@@ -1,0 +1,297 @@
+@import "tailwindcss";
+
+/* ===============================================================
+   ZMANIM — זהות עיתונאית-שוויצרית: קרם + שחור, קווי-שיער (hairlines)
+   במקום צללים, פינות חדות במקום עיגול, תוויות מונוספייס. הגרדיאנט
+   (כתום→ורוד→סגול) שמור אך ורק לרגעי מותג נקודתיים — לוגו, פס
+   הדגשה דק. אין יותר כרטיסים "צפים" עם צל — עומק מגיע מגבולות.
+   מקור: קובץ עיצוב שהמשתמשת סיפקה, 2026-08-06.
+
+   שתי משפחות טוקנים:
+   - הטוקנים הרגילים (canvas/surface/ink/accent…) — קרם/שחור,
+     נדרסים בתוך .dark-zone לרצועות השחורות המלאות (הירו/תהליך/פוטר).
+   - --color-paper-* — נשארים תמיד בהירים, לדף הלוח המודפס
+     במוקאפ בלבד. זה נייר אמיתי; הוא לא "עונה" לערכת הנושא.
+   =============================================================== */
+@theme {
+  /* --- גוני המותג (Accent Gradient) --- */
+  --color-brand-orange: #ff7a1a;
+  --color-brand-pink: #c22a7e;
+  --color-brand-purple: #8a2be2;
+  --color-brand-orange-deep: #b84e00;
+
+  /* --- משטחים: קרם + שחור --- */
+  --color-canvas: #f2efe9;
+  --color-surface: #f2efe9;
+  --color-surface-2: #e9e4db;
+  --color-surface-3: #e0dbd1;
+
+  --color-ink: #17131f;
+  --color-ink-2: #3b3448;
+  --color-muted: #5a5266;
+
+  /* קו שיער עדין לחלוקות פנימיות, וקו מבני מלא ושחור לגבולות
+     סקשן/כרטיס/כותרת — זה מה שנותן את המראה ה"עיתונאי" */
+  --color-line: rgba(23, 19, 31, 0.18);
+  --color-line-2: #17131f;
+
+  /* אקסנט יחיד (מג׳נטה) — לינקים, מיקוד, מספור */
+  --color-accent: #c22a7e;
+  --color-accent-strong: #9c2166;
+  --color-accent-ink: #ffffff;
+  --color-accent-soft: color-mix(in srgb, var(--color-accent) 10%, var(--color-canvas));
+
+  --color-success: #16a34a;
+  --color-warn: #d97706;
+  --color-danger: #dc2626;
+
+  /* --- אזורי-כהה קבועים: הירו / "שיטת העבודה" / יצירת קשר / פוטר --- */
+  --color-hero-bg: #17131f;
+  --color-hero-surface: #221c2c;
+  --color-hero-ink: #f2efe9;
+  --color-hero-ink-2: rgba(242, 239, 233, 0.7);
+  --color-hero-line: rgba(242, 239, 233, 0.22);
+
+  /* --- נייר: קבוע לבן תמיד, לא חלק מערכת הנושא --- */
+  --color-paper: #ffffff;
+  --color-paper-2: #f8f9fb;
+  --color-paper-3: #eef0f4;
+  --color-paper-ink: #16181d;
+  --color-paper-ink-2: #454a54;
+  --color-paper-muted: #858b97;
+  --color-paper-line: #e2e8ef;
+  --color-paper-line-2: #cfd8e3;
+  --color-paper-accent: var(--color-brand-orange-deep);
+  --color-paper-accent-soft: #fdf1e6;
+
+  /* פינות חדות בכל מקום — זה חלק מהזהות, לא ברירת מחדל שנשכחה */
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+
+  /* אין צללים. עומק מגיע מגבולות (--color-line-2), לא מטשטוש */
+  --shadow-e1: none;
+  --shadow-e2: none;
+  --shadow-e3: none;
+  --shadow-accent: none;
+
+  --font-display: var(--font-heebo), "Heebo", "Segoe UI", system-ui, sans-serif;
+  --font-body: var(--font-heebo), "Heebo", "Segoe UI", system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), "IBM Plex Mono", ui-monospace, monospace;
+
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out-soft: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --animate-fade-up: fade-up 0.5s var(--ease-out-soft) both;
+  --animate-pop-in: pop-in 0.45s var(--ease-out-soft) both;
+  --animate-shimmer: shimmer 1.4s infinite;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* =============================================================== */
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    color-scheme: light;
+  }
+
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    font-weight: 800;
+    line-height: 1.12;
+    letter-spacing: -0.02em;
+  }
+
+  /* טבלאות מספרים — יישור עמודות */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* מיקוד נראה תמיד, בכל רכיב אינטראקטיבי */
+  :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: var(--color-ink);
+    color: var(--color-canvas);
+  }
+}
+
+@layer components {
+  /* ===========================================================
+     אזור-כהה — הירו / "שיטת העבודה" / יצירת קשר / פוטר. דורס
+     מקומית את משתני ה-CSS הרגילים לגרסה השחורה הקבועה, כך שכל
+     הרכיבים הפנימיים ממשיכים להשתמש באותן מחלקות Tailwind.
+     =========================================================== */
+  .dark-zone {
+    --color-canvas: var(--color-hero-bg);
+    --color-surface: var(--color-hero-surface);
+    --color-surface-2: color-mix(in srgb, var(--color-hero-surface) 70%, black);
+    --color-surface-3: color-mix(in srgb, var(--color-hero-surface) 55%, black);
+    --color-ink: var(--color-hero-ink);
+    --color-ink-2: var(--color-hero-ink-2);
+    --color-muted: color-mix(in srgb, var(--color-hero-ink-2) 75%, transparent);
+    --color-line: var(--color-hero-line);
+    --color-line-2: var(--color-hero-ink);
+    color-scheme: dark;
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+  }
+
+  /* תווית מונוספייס — עוד אלמנט זהות: מספור, eyebrows, זמנים */
+  .mono-label {
+    font-family: var(--font-mono);
+    letter-spacing: 0.04em;
+  }
+
+  /* טקסט תצוגה ענק — משקל 900 וצפיפות שורות כמעט מלאה, בדיוק
+     כמו בעיתון: הכותרת היא הדבר הראשון שרואים. */
+  .display-hero {
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: clamp(2.5rem, 5.6vw, 5.4rem);
+    line-height: 0.98;
+    letter-spacing: -0.03em;
+  }
+
+  /* ===========================================================
+     חוק המותג: הגרדיאנט (כתום→ורוד→סגול) שמור לרגעי זהות
+     ספציפיים בלבד — לוגו, פס דק תחת eyebrow, CTA ראשי.
+     =========================================================== */
+  .progress-fill {
+    background-image: linear-gradient(
+      90deg,
+      var(--color-brand-orange),
+      var(--color-brand-pink),
+      var(--color-brand-purple)
+    );
+  }
+  .progress-rule {
+    height: 3px;
+    background-image: linear-gradient(
+      90deg,
+      var(--color-brand-orange),
+      var(--color-brand-pink)
+    );
+  }
+
+  /* CTA מותגי — במקור הפניה זהו שחור מלא עם היפוך למג׳נטה ב-hover;
+     גרסת גרדיאנט שמורה לרגעים דקורטיביים בלבד (פס, לוגו) */
+  .brand-cta {
+    background-color: var(--color-ink);
+    color: var(--color-canvas);
+    transition: background-color 0.2s var(--ease-smooth), color 0.2s var(--ease-smooth);
+  }
+  .brand-cta:hover {
+    background-color: var(--color-accent);
+    color: #ffffff;
+  }
+
+  /* מוצג רק כשיש עכבר אמיתי */
+  .pointer-only {
+    display: none;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .pointer-only {
+      display: block;
+    }
+  }
+
+  /* סרגל עליון — קרם מלא עם גבול שחור, בלי זכוכית/טשטוש */
+  .glass {
+    background: var(--color-canvas);
+  }
+
+  .skeleton {
+    position: relative;
+    overflow: hidden;
+    background: var(--color-surface-3);
+  }
+  .skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in srgb, var(--color-surface) 65%, transparent),
+      transparent
+    );
+    animation: var(--animate-shimmer);
+  }
+
+  /* --- דף הנייר: קבוע לבן, לא כפוף לערכת הנושא --- */
+  .paper {
+    background-color: var(--color-paper);
+    color: var(--color-paper-ink);
+  }
+}
+
+/* כיבוד העדפת תנועה מופחתת — לא דקורטיבי, דרישת נגישות */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

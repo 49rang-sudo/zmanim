@@ -1,0 +1,248 @@
+// ---------------------------------------------------------------
+//  לוח שנה — מערכת הזמנת משבצות פרסום
+//  Prisma schema · PostgreSQL
+// ---------------------------------------------------------------
+
+// Prisma 7: הגנרטור החדש כותב ל-src/generated, ו-url כבר לא נמצא כאן —
+// כתובת ה-DB עוברת דרך prisma.config.ts (ל-CLI) ודרך driver adapter (בזמן ריצה).
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------
+//  ניהול
+// ---------------------------------------------------------------
+
+enum AdminRole {
+  OWNER
+  ADMIN
+}
+
+model AdminUser {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String?
+  passwordHash String
+  role         AdminRole @default(ADMIN)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@map("admin_users")
+}
+
+// ---------------------------------------------------------------
+//  ערים — לכל עיר מהדורת דפוס משלה, ולכן מלאי משבצות נפרד
+// ---------------------------------------------------------------
+
+model City {
+  id       String  @id @default(cuid())
+  name     String  @unique
+  region   String?
+  slug     String  @unique
+  /// מספר המשבצות המקסימלי שנמכרות בעיר הזו
+  capacity Int     @default(14)
+  /// הצגה ידנית בבורר הערים
+  visible  Boolean @default(true)
+  /// הסתרה אוטומטית ברגע שהמלאי נגמר
+  autoHideWhenFull Boolean @default(true)
+  /// כמות לוחות שמחולקת בעיר — טקסט שיווקי בכרטיס העיר
+  distribution Int?
+  note      String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders       Order[]
+  reservations SlotReservation[]
+
+  @@index([visible, sortOrder])
+  @@map("cities")
+}
+
+// ---------------------------------------------------------------
+//  משבצות — הפריסה הוויזואלית של העמוד המודפס
+//  col/row/span מגדירים את המיקום ב-CSS grid של המוקאפ
+// ---------------------------------------------------------------
+
+model AdSlot {
+  id          String  @id @default(cuid())
+  sku         String  @unique
+  name        String
+  description String?
+
+  col     Int
+  row     Int
+  colSpan Int @default(1)
+  rowSpan Int @default(1)
+
+  widthCm  Float
+  heightCm Float
+
+  /// מחיר באגורות — כסף לעולם לא נשמר כ-Float
+  priceAgorot Int
+  badge       String?
+  /// קישור סליקה חיצוני ייעודי ל-SKU הזה
+  checkoutUrl String?
+  active      Boolean @default(true)
+  sortOrder   Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders       Order[]
+  reservations SlotReservation[]
+
+  @@index([active, sortOrder])
+  @@map("ad_slots")
+}
+
+// ---------------------------------------------------------------
+//  הזמנות
+// ---------------------------------------------------------------
+
+enum OrderStatus {
+  /// נוצרה, תנאים אושרו, עיר נבחרה — ממתינה לקובץ
+  PENDING
+  /// קובץ הועלה, המשתמש הופנה לסליקה
+  AWAITING_PAYMENT
+  /// תשלום אושר
+  PAID
+  /// בוטלה ידנית
+  CANCELLED
+  /// ההחזקה פגה לפני תשלום
+  EXPIRED
+}
+
+/// מצב הטיפול הגרפי — נפרד לחלוטין ממצב התשלום.
+/// הזמנה יכולה להיות משולמת אך עדיין לא מטופלת גרפית.
+enum ProductionStatus {
+  /// ממתינה לטיפול הגרפיקאית
+  WAITING
+  /// הקובץ הורד ונלקח לעיבוד
+  HANDLED
+}
+
+model Order {
+  id        String      @id @default(cuid())
+  /// מזהה קריא לבני אדם — LU-7QK4X2
+  reference String      @unique
+  status    OrderStatus @default(PENDING)
+
+  slotId String
+  slot   AdSlot @relation(fields: [slotId], references: [id], onDelete: Restrict)
+  cityId String
+  city   City   @relation(fields: [cityId], references: [id], onDelete: Restrict)
+
+  /// המחיר משוכפל לתוך ההזמנה — שינוי מחירון לא משנה הזמנות עבר
+  priceAgorot Int
+  sku         String
+
+  contactName  String
+  businessName String?
+  phone        String
+  email        String
+  notes        String?
+
+  tosAcceptedAt DateTime?
+  tosVersion    String?
+
+  fileKey        String?
+  fileName       String?
+  fileSize       Int?
+  fileMime       String?
+  fileUploadedAt DateTime?
+
+  paymentProvider String?
+  paymentRef      String?
+  checkoutUrl     String?
+  paidAt          DateTime?
+
+  /// --- טיפול גרפי ---
+  /// נקבע אוטומטית ל-HANDLED ברגע שהקובץ הורד מלוח הניהול
+  productionStatus    ProductionStatus @default(WAITING)
+  artworkDownloadedAt DateTime?
+  artworkDownloadedBy String?
+  productionNote      String?
+
+  /// טוקן יכולת — מאפשר ללקוח להמשיך את ההזמנה שלו בלי התחברות
+  accessToken String   @unique
+  adminNotes  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  reservation SlotReservation?
+
+  @@index([status, createdAt])
+  @@index([cityId, slotId])
+  /// לוח הגרפיקאית מסנן בדיוק לפי הצירוף הזה
+  @@index([cityId, productionStatus])
+  @@map("orders")
+}
+
+// ---------------------------------------------------------------
+//  תפיסת מקום במהדורה של עיר.
+//
+//  אין ייחודיות לפי משבצת בכוונה: הגרפיקאית ממזגת ומזיזה
+//  ריבועים בשלב העימוד, ולכן ריבוע בודד אינו פריט מלאי.
+//  המשבצת היא גודל מוצר בלבד; המלאי נספר ברמת העיר מול
+//  capacity, וההגנה מפני מרוץ היא נעילת שורת העיר בזמן התפיסה.
+// ---------------------------------------------------------------
+
+model SlotReservation {
+  id     String @id @default(cuid())
+  cityId String
+  slotId String
+
+  orderId String @unique
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  city    City   @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  slot    AdSlot @relation(fields: [slotId], references: [id], onDelete: Cascade)
+
+  /// null = תפוס לצמיתות (שולם). תאריך = החזקה זמנית שפגה בו
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([cityId])
+  @@index([expiresAt])
+  @@map("slot_reservations")
+}
+
+// ---------------------------------------------------------------
+//  תוכן האתר — רשומה יחידה, גוף JSON מאומת ב-zod
+// ---------------------------------------------------------------
+
+model SiteContent {
+  id             String   @id @default("singleton")
+  landingEnabled Boolean  @default(true)
+  tosVersion     String   @default("1.0")
+  data           Json
+  updatedAt      DateTime @updatedAt
+
+  @@map("site_content")
+}
+
+// ---------------------------------------------------------------
+//  אירועי סליקה — לוג גולמי + מניעת עיבוד כפול
+// ---------------------------------------------------------------
+
+model WebhookEvent {
+  id         String   @id @default(cuid())
+  provider   String
+  eventId    String
+  orderRef   String?
+  payload    Json
+  processed  Boolean  @default(false)
+  error      String?
+  receivedAt DateTime @default(now())
+
+  @@unique([provider, eventId])
+  @@index([orderRef])
+  @@map("webhook_events")
+}

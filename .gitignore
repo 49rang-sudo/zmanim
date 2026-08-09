@@ -1,0 +1,26 @@
+node_modules/
+.next/
+out/
+build/
+dist/
+
+# סביבה — לעולם לא ב-git
+.env
+.env.local
+.env.*.local
+
+# Prisma client מיוצר
+src/generated/
+
+# העלאות מקומיות (כשאין S3)
+storage/
+uploads/
+
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+next-env.d.ts
+tsconfig.tsbuildinfo
