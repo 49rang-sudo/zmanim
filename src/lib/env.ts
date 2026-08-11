@@ -10,6 +10,11 @@ const serverSchema = z.object({
 
   AUTH_SECRET: z.string().min(16, "AUTH_SECRET חייב להיות לפחות 16 תווים"),
 
+  // אופציונליים בכוונה: עד שיוגדרו ב-Google Cloud Console, כניסת
+  // האדמין נכשלת בצורה נקייה (src/lib/auth.ts) — לא מפילה את כל האתר.
+  GOOGLE_CLIENT_ID: z.string().min(1).optional(),
+  GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
+
   S3_ENDPOINT: z.string().min(1),
   S3_REGION: z.string().default("us-east-1"),
   S3_BUCKET: z.string().min(1),
@@ -22,6 +27,18 @@ const serverSchema = z.object({
 
   PAYMENT_WEBHOOK_SECRET: z.string().min(8),
   PAYMENT_PROVIDER: z.string().default("sumit"),
+
+  // אופציונליים בכוונה: אין עדיין credentials אמיתיים מ-sumit, והאתר
+  // חי בייצור — חוסר כאן לא יכול להפיל את כל האפליקציה בהפעלה.
+  // chargeSumit() (src/lib/sumit.ts) בודק את הנוכחות שלהם בזמן ריצה
+  // ומחזיר שגיאה נקייה למשתמש אם עוד לא הוגדרו.
+  SUMIT_COMPANY_ID: z.coerce.number().int().positive().optional(),
+  /** סוד שרת — Credentials.APIKey בקריאת החיוב */
+  SUMIT_API_KEY: z.string().min(1).optional(),
+  /** ציבורי בכוונה — נחשף לדפדפן דרך טופס האשראי המוטמע */
+  SUMIT_API_PUBLIC_KEY: z.string().min(1).optional(),
+  // TODO(sumit): לאמת מול לוח הבקרה של sumit שזו אכן כתובת הבסיס הנכונה ל-REST API
+  SUMIT_API_BASE_URL: z.string().default("https://api.sumit.co.il"),
 
   NEXT_PUBLIC_BASE_URL: z.string().default("http://localhost:3000"),
 

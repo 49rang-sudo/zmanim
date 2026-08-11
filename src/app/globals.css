@@ -116,12 +116,51 @@
   }
 }
 
+/* פועם עדין על כותרת ההירו — "נוכחות חזקה" מתכווצת ומתרחבת.
+   בקשת לקוחה מפורשת. עדין בכוונה (1.5%) כדי לא לפגוע בקריאות. */
+@keyframes hero-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.015);
+  }
+}
+
+/* פיצוץ קונפטי זעיר ברגע בחירת משבצת — בקשת לקוחה מפורשת "לשבור
+   את החזרתיות" של הריבועים בלוח. --dx/--dy מגיעים inline לכל
+   חלקיק (ראו ConfettiBurst ב-CalendarMockup.tsx). */
+@keyframes confetti-pop {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--dx), var(--dy)) scale(0.3);
+    opacity: 0;
+  }
+}
+
 @keyframes fade-in {
   from {
     opacity: 0;
   }
   to {
     opacity: 1;
+  }
+}
+
+/* חריגה מכוונת לכלל "אין צללים": בקשת לקוחה מפורשת ל"קוביות"
+   חיות עם hover — פועם בצל מג'נטה רך, לא בשימוש בטוקנים
+   shadow-e* (שנשארים none בכל שאר האתר). ראו Highlights ב-Landing.tsx. */
+@keyframes card-pulse {
+  0%,
+  100% {
+    box-shadow: 0 20px 36px -18px color-mix(in srgb, var(--color-accent) 45%, transparent);
+  }
+  50% {
+    box-shadow: 0 26px 48px -16px color-mix(in srgb, var(--color-accent) 70%, transparent);
   }
 }
 
@@ -135,6 +174,11 @@
   html {
     -webkit-text-size-adjust: 100%;
     color-scheme: light;
+    /* בקשת לקוחה: גלילה בעכבר "מקפיצה" בעדינות לסקשן הבא במקום
+       גלילה חופשית רציפה. proximity (לא mandatory) — רק קופצת
+       כשקרובים לגבול הסקשן ממילא, לא "לוכדת" גלילה באמצע קריאה. */
+    scroll-behavior: smooth;
+    scroll-snap-type: y proximity;
   }
 
   body {
@@ -194,10 +238,92 @@
     color: var(--color-ink);
   }
 
+  /* נקודת "עצירה" לגלילת הדף — יחד עם scroll-snap-type ב-html */
+  .snap-section {
+    scroll-snap-align: start;
+  }
+
   /* תווית מונוספייס — עוד אלמנט זהות: מספור, eyebrows, זמנים */
   .mono-label {
     font-family: var(--font-mono);
     letter-spacing: 0.04em;
+  }
+
+  /* "צורה מעניינת" לכרטיסי קוביה — פינה עליונה חתוכה באלכסון,
+     במקום מלבן פשוט. בקשת לקוחה מפורשת. עובד באותה צורה גם ב-RTL
+     כי clip-path הוא קואורדינטות ויזואליות, לא לוגיות. */
+  .card-shape {
+    clip-path: polygon(0 0, calc(100% - 28px) 0, 100% 28px, 100% 100%, 0 100%);
+  }
+
+  /* צורת "שבשבת/דגלון" לכרטיסי "איך זה עובד" — חריץ חד בצד אחד,
+     שונה במכוון מפינה חתוכה, כדי לרמז על תהליך שזורם משלב לשלב
+     ולא לחזור על אותה צורה בשלושה מקומות באתר. */
+  .chevron-shape {
+    clip-path: polygon(14px 0, 100% 0, 100% 100%, 14px 100%, 0 50%);
+  }
+
+  /* סרט פינה אלכסוני לכרטיסי חבילה — במקום פינה חתוכה, כדי
+     שהחבילות ירגישו "תג הנחה" ולא עוד קוביה זהה לשאר האתר. */
+  .pkg-ribbon {
+    position: absolute;
+    top: 14px;
+    left: -34px;
+    width: 130px;
+    transform: rotate(-45deg);
+    background-image: linear-gradient(135deg, var(--color-brand-orange), var(--color-brand-pink));
+    color: #ffffff;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-align: center;
+    padding: 2.5px 0;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+  }
+
+  /* כרטיס חבילה — צבע דומיננטי קבוע (לא רק ב-hover), עם עוד
+     יותר עוצמה כשמרחפים מעליו. בקשת לקוחה מפורשת. */
+  .pkg-card {
+    background-image: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--color-brand-orange) 16%, var(--color-surface)) 0%,
+      color-mix(in srgb, var(--color-brand-pink) 16%, var(--color-surface)) 55%,
+      color-mix(in srgb, var(--color-brand-purple) 16%, var(--color-surface)) 100%
+    );
+  }
+  .pkg-card:hover {
+    background-image: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--color-brand-orange) 28%, var(--color-surface)) 0%,
+      color-mix(in srgb, var(--color-brand-pink) 28%, var(--color-surface)) 55%,
+      color-mix(in srgb, var(--color-brand-purple) 28%, var(--color-surface)) 100%
+    );
+    /* צל אמיתי (עומק) בנוסף לפעימת הצבע — כדי שזה יקרא "בולט
+       ולחיץ", לא רק צבוע. בקשת לקוחה מפורשת. */
+    box-shadow: 0 22px 34px -14px rgba(23, 19, 31, 0.32);
+  }
+  /* לחיצה בפועל — "שוקעת" רגעית, מחזקת את התחושה שזה כפתור */
+  .pkg-card:active {
+    transform: translateY(-2px) scale(1.02) !important;
+    transition-duration: 80ms !important;
+  }
+  .pkg-icon {
+    background-image: linear-gradient(135deg, var(--color-brand-orange), var(--color-brand-pink));
+  }
+
+  /* מספר-רקע ענק בגרדיאנט המותג — דרמה שרואים גם בלי hover,
+     לא רק אפקט שתלוי בעכבר. */
+  .gradient-num {
+    background-image: linear-gradient(
+      135deg,
+      var(--color-brand-orange),
+      var(--color-brand-pink),
+      var(--color-brand-purple)
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
   }
 
   /* טקסט תצוגה ענק — משקל 900 וצפיפות שורות כמעט מלאה, בדיוק
@@ -231,8 +357,36 @@
     );
   }
 
-  /* CTA מותגי — במקור הפניה זהו שחור מלא עם היפוך למג׳נטה ב-hover;
-     גרסת גרדיאנט שמורה לרגעים דקורטיביים בלבד (פס, לוגו) */
+  /* ברק גרדיאנט (כתום→ורוד) שחולף על כפתור ב-hover — class
+     עצמאי כדי שאפשר להרכיב אותו על כל כפתור, לא רק brand-cta.
+     z-index:-1 שומר את הברק מתחת לטקסט (חייב position:relative
+     על הכפתור עצמו — brand-cta כבר מגדיר את זה). */
+  .shine-cta {
+    position: relative;
+    z-index: 0;
+    overflow: hidden;
+  }
+  .shine-cta::before {
+    content: "";
+    position: absolute;
+    inset: -60% -20%;
+    z-index: -1;
+    background: linear-gradient(
+      100deg,
+      transparent 35%,
+      var(--color-brand-orange) 47%,
+      var(--color-brand-pink) 53%,
+      transparent 65%
+    );
+    transform: translateX(-120%) rotate(8deg);
+    transition: transform 0.7s var(--ease-out-soft);
+  }
+  .shine-cta:hover::before {
+    transform: translateX(70%) rotate(8deg);
+  }
+
+  /* CTA מותגי — שחור מלא עם היפוך למג'נטה ב-hover. חייב לצרף
+     גם shine-cta ב-JSX כדי לקבל את הברק. */
   .brand-cta {
     background-color: var(--color-ink);
     color: var(--color-canvas);
@@ -241,6 +395,88 @@
   .brand-cta:hover {
     background-color: var(--color-accent);
     color: #ffffff;
+  }
+
+  /* טבעת גרדיאנט חדה (בלי טשטוש) שנכנסת ב-hover — תחליף לצל
+     הכתום המופשט שלא התאים לשפה השטוחה/גרפית של האתר. */
+  .gradient-ring {
+    position: relative;
+  }
+  .gradient-ring::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: 2px;
+    border-radius: inherit;
+    background: linear-gradient(
+      120deg,
+      var(--color-brand-orange),
+      var(--color-brand-pink),
+      var(--color-brand-purple)
+    );
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 0.25s var(--ease-smooth);
+    pointer-events: none;
+  }
+  .gradient-ring:hover::after {
+    opacity: 1;
+  }
+
+  /* זוהר גרדיאנט רדיאלי מאחורי ההירו — נע לאט, טשטוש כבד כדי
+     שלא יתחרה בטקסט. בקשת לקוחה מפורשת ל"יותר משחקים, מעברי
+     צבעים, דרסטי" — האזור היחיד באתר שבו כל שלושת צבעי הגרדיאנט
+     מופיעים בבת אחת בענן אחד, לא רק כפס דק. */
+  .hero-glow {
+    position: absolute;
+    inset: -20% -10%;
+    z-index: 0;
+    pointer-events: none;
+    filter: blur(70px);
+    opacity: 0.55;
+    background-image:
+      radial-gradient(38% 46% at 18% 28%, var(--color-brand-orange) 0%, transparent 70%),
+      radial-gradient(34% 42% at 78% 20%, var(--color-brand-pink) 0%, transparent 70%),
+      radial-gradient(40% 50% at 55% 85%, var(--color-brand-purple) 0%, transparent 70%);
+    animation: hero-glow-drift 14s ease-in-out infinite;
+  }
+  @keyframes hero-glow-drift {
+    0%,
+    100% {
+      transform: translate(0, 0) scale(1);
+    }
+    50% {
+      transform: translate(3%, -4%) scale(1.08);
+    }
+  }
+
+  /* ===========================================================
+     "וילון ברוח" — בקשת לקוחה מפורשת לרקע חי בזמני המתנה
+     (העלאת קובץ, עיבוד תשלום). פסי גרדיאנט המותג נעים לאט
+     קדימה-אחורה, כמו אור שעובר דרך בד מתנפנף — בלי תמונה,
+     בלי טשטוש, נשאר בשפה השטוחה של האתר. */
+  .curtain-bg {
+    background-image: repeating-linear-gradient(
+      100deg,
+      color-mix(in srgb, var(--color-brand-orange) 24%, transparent) 0px,
+      color-mix(in srgb, var(--color-brand-pink) 24%, transparent) 46px,
+      color-mix(in srgb, var(--color-brand-purple) 24%, transparent) 92px,
+      color-mix(in srgb, var(--color-brand-pink) 24%, transparent) 138px,
+      color-mix(in srgb, var(--color-brand-orange) 24%, transparent) 184px
+    );
+    background-size: 200% 100%;
+    animation: curtain-sway 4s ease-in-out infinite;
+  }
+  @keyframes curtain-sway {
+    0%,
+    100% {
+      background-position: 0% 0%;
+    }
+    50% {
+      background-position: 35% 0%;
+    }
   }
 
   /* מוצג רק כשיש עכבר אמיתי */
@@ -293,5 +529,8 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
+  }
+  html {
+    scroll-snap-type: none !important;
   }
 }

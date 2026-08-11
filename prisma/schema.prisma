@@ -23,15 +23,19 @@ enum AdminRole {
   ADMIN
 }
 
+/// כניסה דרך Google בלבד — אין סיסמה. מייל שלא מופיע כאן נדחה
+/// ב-signIn callback (src/lib/auth.ts) גם אם יש לו חשבון Google תקין.
 model AdminUser {
-  id           String    @id @default(cuid())
-  email        String    @unique
-  name         String?
-  passwordHash String
-  role         AdminRole @default(ADMIN)
-  lastLoginAt  DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id          String    @id @default(cuid())
+  email       String    @unique
+  name        String?
+  /// אופציונלי בכוונה — מנהל/ת שנכנסים רק דרך Google לא צריכים סיסמה.
+  /// כשמוגדר, מאפשר גם כניסה עם אימייל+סיסמה (src/lib/auth.ts).
+  passwordHash String?
+  role        AdminRole @default(ADMIN)
+  lastLoginAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@map("admin_users")
 }
@@ -45,7 +49,8 @@ model City {
   name     String  @unique
   region   String?
   slug     String  @unique
-  /// מספר המשבצות המקסימלי שנמכרות בעיר הזו
+  /// ברירת מחדל בזמן יצירת מהדורה חדשה (Edition.capacity) — לא
+  /// חוסמת כלום בעצמה יותר, המלאי החי נספר ברמת המהדורה.
   capacity Int     @default(14)
   /// הצגה ידנית בבורר הערים
   visible  Boolean @default(true)
@@ -60,9 +65,46 @@ model City {
 
   orders       Order[]
   reservations SlotReservation[]
+  editions     Edition[]
 
   @@index([visible, sortOrder])
   @@map("cities")
+}
+
+// ---------------------------------------------------------------
+//  מהדורות — ריצת דפוס חודשית אחת של עיר אחת. כל המלאי (משבצות
+//  פנויות/תפוסות) נספר ונחסם ברמת המהדורה, לא ברמת העיר.
+// ---------------------------------------------------------------
+
+enum EditionStatus {
+  OPEN
+  CLOSED
+}
+
+model Edition {
+  id     String @id @default(cuid())
+  cityId String
+  city   City   @relation(fields: [cityId], references: [id], onDelete: Restrict)
+
+  /// תווית עברית מלאה לתצוגה — למשל "כסלו תשפ״ז". טקסט חופשי, מוזן ידנית באדמין.
+  hebrewLabel    String
+  gregorianMonth Int
+  gregorianYear  Int
+
+  /// קיבולת המהדורה הזו. ברירת מחדל בזמן היצירה: City.capacity, אך ניתנת לעריכה בנפרד לכל מהדורה.
+  capacity Int
+  /// מועד סגירת ההזמנות/העלאת קבצים למהדורה הזו
+  closesAt DateTime
+  status   EditionStatus @default(OPEN)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  reservations SlotReservation[]
+
+  @@unique([cityId, gregorianYear, gregorianMonth])
+  @@index([cityId, status, gregorianYear, gregorianMonth])
+  @@map("editions")
 }
 
 // ---------------------------------------------------------------
@@ -87,8 +129,6 @@ model AdSlot {
   /// מחיר באגורות — כסף לעולם לא נשמר כ-Float
   priceAgorot Int
   badge       String?
-  /// קישור סליקה חיצוני ייעודי ל-SKU הזה
-  checkoutUrl String?
   active      Boolean @default(true)
   sortOrder   Int     @default(0)
 
@@ -139,9 +179,22 @@ model Order {
   cityId String
   city   City   @relation(fields: [cityId], references: [id], onDelete: Restrict)
 
-  /// המחיר משוכפל לתוך ההזמנה — שינוי מחירון לא משנה הזמנות עבר
+  /// המחיר משוכפל לתוך ההזמנה — שינוי מחירון לא משנה הזמנות עבר.
+  /// בחבילה, זה כבר הסכום הכולל אחרי הנחה (כל המהדורות, לא ליחידה).
   priceAgorot Int
   sku         String
+
+  /// --- חבילת פרסום מרובת-מהדורות (אופציונלי) ---
+  /// null = הזמנה חד-פעמית (מהדורה אחת). ראו src/lib/packages.ts —
+  /// עכשיו רק תוויות פריסט לתצוגה, לא מקור האמת למה שנתפס בפועל.
+  packageTier     String?
+  /// שדה תצוגה מוכפל בכוונה — חייב להיות שווה editionIds.length.
+  packageEditions Int      @default(1)
+  /// כל מזהי ה-Edition שנרכשו בהזמנה הזו, קפואים בזמן היצירה —
+  /// editionIds[0] הוא תמיד המהדורה שדרכה נבחרה המשבצת. הכרחי כדי
+  /// שנתיב השחזור ב-confirmReservation ידע מה לתפוס מחדש גם אחרי
+  /// ששורות SlotReservation המקוריות כבר נמחקו (החזקה שפגה).
+  editionIds      String[]
 
   contactName  String
   businessName String?
@@ -160,7 +213,6 @@ model Order {
 
   paymentProvider String?
   paymentRef      String?
-  checkoutUrl     String?
   paidAt          DateTime?
 
   /// --- טיפול גרפי ---
@@ -177,7 +229,7 @@ model Order {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  reservation SlotReservation?
+  reservations SlotReservation[]
 
   @@index([status, createdAt])
   @@index([cityId, slotId])
@@ -187,29 +239,34 @@ model Order {
 }
 
 // ---------------------------------------------------------------
-//  תפיסת מקום במהדורה של עיר.
+//  תפיסת מקום במשבצת ספציפית במהדורה ספציפית.
 //
-//  אין ייחודיות לפי משבצת בכוונה: הגרפיקאית ממזגת ומזיזה
-//  ריבועים בשלב העימוד, ולכן ריבוע בודד אינו פריט מלאי.
-//  המשבצת היא גודל מוצר בלבד; המלאי נספר ברמת העיר מול
-//  capacity, וההגנה מפני מרוץ היא נעילת שורת העיר בזמן התפיסה.
+//  ייחודיות אמיתית לפי (editionId, slotId): אותה משבצת לא יכולה
+//  להיות תפוסה פעמיים באותה מהדורה. הקיבולת נספרת ברמת המהדורה
+//  מול Edition.capacity, וההגנה מפני מרוץ היא נעילת שורת/שורות
+//  ה-Edition הרלוונטיות (FOR UPDATE) בזמן התפיסה — האינדקס הייחודי
+//  הוא הגנה כפולה לכל נתיב שבטעות לא עבר דרך הנעילה.
 // ---------------------------------------------------------------
 
 model SlotReservation {
-  id     String @id @default(cuid())
-  cityId String
-  slotId String
+  id        String @id @default(cuid())
+  cityId    String
+  slotId    String
+  editionId String
 
-  orderId String @unique
-  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  city    City   @relation(fields: [cityId], references: [id], onDelete: Cascade)
-  slot    AdSlot @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  orderId String
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  city    City    @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  slot    AdSlot  @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  edition Edition @relation(fields: [editionId], references: [id], onDelete: Cascade)
 
   /// null = תפוס לצמיתות (שולם). תאריך = החזקה זמנית שפגה בו
   expiresAt DateTime?
   createdAt DateTime  @default(now())
 
+  @@unique([editionId, slotId])
   @@index([cityId])
+  @@index([orderId])
   @@index([expiresAt])
   @@map("slot_reservations")
 }
@@ -245,4 +302,20 @@ model WebhookEvent {
   @@unique([provider, eventId])
   @@index([orderRef])
   @@map("webhook_events")
+}
+
+// ---------------------------------------------------------------
+//  רשימת תפוצה — הצטרפות וולונטרית בסימון וי בטופס ההזמנה.
+//  עצמאית מ-Order בכוונה: נשארת גם אם ההזמנה עצמה פגה/בוטלה.
+// ---------------------------------------------------------------
+
+model MailingListSubscriber {
+  id        String   @id @default(cuid())
+  firstName String
+  lastName  String
+  email     String   @unique
+  phone     String?
+  createdAt DateTime @default(now())
+
+  @@map("mailing_list_subscribers")
 }

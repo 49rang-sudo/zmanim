@@ -5,9 +5,15 @@ import { LoginForm } from "./LoginForm";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "כניסה לניהול" };
 
-export default async function AdminLoginPage() {
+export default async function AdminLoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
   const session = await auth();
   if (session?.user) redirect("/admin");
+
+  const { error } = await searchParams;
 
   return (
     <main className="mesh-glow grid min-h-dvh place-items-center px-5 py-12">
@@ -21,7 +27,7 @@ export default async function AdminLoginPage() {
           </p>
         </div>
 
-        <LoginForm />
+        <LoginForm error={error} />
       </div>
     </main>
   );

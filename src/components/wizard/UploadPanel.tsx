@@ -143,30 +143,34 @@ export function UploadPanel({
           }
         }}
         className={cn(
-          "flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed p-10 text-center",
+          "relative flex flex-col items-center justify-center gap-3 overflow-hidden rounded-lg border-2 border-dashed p-10 text-center",
           "transition-[border-color,background-color,transform] duration-200 ease-smooth",
           uploading
-            ? "cursor-wait border-accent bg-accent-soft"
+            ? "cursor-wait border-accent"
             : dragging
               ? "-translate-y-1 cursor-copy border-accent bg-accent-soft"
               : "cursor-pointer border-line-2 bg-surface-2 hover:border-accent hover:bg-accent-soft",
         )}
       >
-        <div className="grid size-12 place-items-center rounded-full bg-surface text-accent shadow-e1">
+        {uploading ? (
+          <div className="curtain-bg pointer-events-none absolute inset-0 opacity-70" aria-hidden />
+        ) : null}
+
+        <div className="relative grid size-12 place-items-center rounded-full bg-surface text-accent shadow-e1">
           <FileUp className="size-5" />
         </div>
 
         {uploading ? (
           <>
-            <p className="font-semibold text-ink">מעלה את הקובץ…</p>
-            <div className="h-2 w-full max-w-xs overflow-hidden rounded-full bg-surface-3">
+            <p className="relative font-semibold text-ink">מעלה את הקובץ…</p>
+            <div className="relative h-2 w-full max-w-xs overflow-hidden rounded-full bg-surface-3">
               {/* גרדיאנט הלוגו = התקדמות בזמן */}
               <div
                 className="progress-fill h-full rounded-full transition-[width] duration-200 ease-smooth"
                 style={{ width: `${progress}%` }}
               />
             </div>
-            <p className="tnum text-sm text-muted">{progress}%</p>
+            <p className="tnum relative text-sm text-muted">{progress}%</p>
           </>
         ) : (
           <>

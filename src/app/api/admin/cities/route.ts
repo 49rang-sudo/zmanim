@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
-import { getCityAvailability } from "@/lib/availability";
 import { slugify } from "@/lib/utils";
 import { fail, handle, ok, parseBody, unauthorized } from "@/lib/api";
 
@@ -18,28 +17,16 @@ const createCitySchema = z.object({
   autoHideWhenFull: z.boolean().default(false),
 });
 
-/** GET /api/admin/cities — כולל ערים מוסתרות ונתוני תפוסה */
+/** GET /api/admin/cities — כולל ערים מוסתרות. תפוסה חיה נמצאת עכשיו בלוח המהדורות. */
 export async function GET() {
   return handle(async () => {
     if (!(await requireAdmin())) return unauthorized();
 
-    const [availability, cities] = await Promise.all([
-      getCityAvailability(true),
-      prisma.city.findMany({
-        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-      }),
-    ]);
-
-    const byId = new Map(availability.map((a) => [a.id, a]));
-
-    return ok({
-      cities: cities.map((city) => ({
-        ...city,
-        taken: byId.get(city.id)?.taken ?? 0,
-        remaining: byId.get(city.id)?.remaining ?? city.capacity,
-        isFull: byId.get(city.id)?.isFull ?? false,
-      })),
+    const cities = await prisma.city.findMany({
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
     });
+
+    return ok({ cities });
   });
 }
 

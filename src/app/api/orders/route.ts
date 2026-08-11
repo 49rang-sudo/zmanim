@@ -4,6 +4,7 @@ import { reserveSlot, SlotUnavailableError } from "@/lib/availability";
 import { generateAccessToken, generateReference } from "@/lib/ids";
 import { getSiteSettings } from "@/lib/site";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
+import { AD_PACKAGES, packageTotalAgorotForEditions } from "@/lib/packages";
 import { fail, handle, ok, parseBody } from "@/lib/api";
 
 export const runtime = "nodejs";
@@ -11,6 +12,13 @@ export const runtime = "nodejs";
 const createOrderSchema = z.object({
   slotId: z.string().min(1),
   cityId: z.string().min(1),
+  editionIds: z
+    .array(z.string().min(1))
+    .min(1, "יש לבחור לפחות מהדורה אחת")
+    .max(24)
+    .refine((ids) => new Set(ids).size === ids.length, {
+      message: "מהדורות כפולות",
+    }),
   // האישור מגיע מהלקוח, אבל חותמת הזמן נקבעת בשרת בלבד
   tosAccepted: z.literal(true, {
     message: "יש לאשר את תנאי ההתקשרות",
@@ -60,6 +68,12 @@ export async function POST(request: Request) {
 
     const reference = generateReference();
     const accessToken = generateAccessToken();
+    const editionsCount = input.editionIds.length;
+    // תווית פריסט קוסמטית בלבד לתצוגה — אם הכמות תואמת דרגה מוכרת
+    const cosmeticTier =
+      AD_PACKAGES.find(
+        (p) => p.editions === editionsCount && p.id !== "SINGLE",
+      )?.id ?? null;
 
     // ההזמנה נוצרת קודם, ורק אז נתפסת המשבצת — כך שאם התפיסה
     // נכשלת בגלל מרוץ, אנחנו מוחקים הזמנה ולא משאירים תפיסה יתומה.
@@ -71,8 +85,15 @@ export async function POST(request: Request) {
         slotId: slot.id,
         cityId: city.id,
         sku: slot.sku,
-        // המחיר מוקפא ברגע ההזמנה — שינוי מחירון לא ישפיע עליה
-        priceAgorot: slot.priceAgorot,
+        // המחיר מוקפא ברגע ההזמנה — שינוי מחירון לא ישפיע עליה.
+        // בחבילה זה כבר הסכום הכולל אחרי הנחה, לא מחיר ליחידה.
+        priceAgorot: packageTotalAgorotForEditions(
+          slot.priceAgorot,
+          editionsCount,
+        ),
+        packageTier: cosmeticTier,
+        packageEditions: editionsCount,
+        editionIds: input.editionIds,
         contactName: input.contactName,
         businessName: input.businessName ?? null,
         phone: input.phone,
@@ -84,7 +105,12 @@ export async function POST(request: Request) {
     });
 
     try {
-      const holdExpiresAt = await reserveSlot(city.id, slot.id, order.id);
+      const holdExpiresAt = await reserveSlot(
+        city.id,
+        slot.id,
+        input.editionIds,
+        order.id,
+      );
 
       return ok(
         {
@@ -92,6 +118,9 @@ export async function POST(request: Request) {
           reference: order.reference,
           accessToken: order.accessToken,
           priceAgorot: order.priceAgorot,
+          packageTier: order.packageTier,
+          packageEditions: order.packageEditions,
+          editionIds: order.editionIds,
           holdExpiresAt: holdExpiresAt.toISOString(),
           slot: { id: slot.id, name: slot.name, sku: slot.sku },
           city: { id: city.id, name: city.name },
@@ -102,7 +131,18 @@ export async function POST(request: Request) {
       await prisma.order.delete({ where: { id: order.id } });
 
       if (error instanceof SlotUnavailableError) {
-        return fail(409, "CITY_FULL", "העיר הזו מלאה למהדורה הנוכחית");
+        if (error.reason === "SLOT_TAKEN") {
+          return fail(
+            409,
+            "SLOT_TAKEN",
+            "המשבצת הזו כבר נתפסה באחת המהדורות שבחרתם",
+          );
+        }
+        return fail(
+          409,
+          "EDITION_FULL",
+          "העיר הזו מלאה לאחת המהדורות שבחרתם",
+        );
       }
       throw error;
     }

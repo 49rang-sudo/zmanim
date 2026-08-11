@@ -1,10 +1,13 @@
 import { getSiteSettings, getActiveSlots } from "@/lib/site";
 import { env } from "@/lib/env";
 import { OrderWizard } from "@/components/wizard/OrderWizard";
+import { SnapScroll } from "@/components/SnapScroll";
 import {
+  FAQ,
   Hero,
   Highlights,
   HowItWorks,
+  Packages,
   SiteFooter,
   SiteHeader,
 } from "@/components/landing/Landing";
@@ -19,10 +22,14 @@ export default async function HomePage() {
     getActiveSlots(),
   ]);
 
-  const maxUploadMb = env().MAX_UPLOAD_MB;
+  const e = env();
+  const maxUploadMb = e.MAX_UPLOAD_MB;
+  const sumitCompanyId = e.SUMIT_COMPANY_ID ?? null;
+  const sumitApiPublicKey = e.SUMIT_API_PUBLIC_KEY ?? null;
 
   return (
     <>
+      <SnapScroll />
       <SiteHeader content={settings.content} />
 
       <main>
@@ -32,12 +39,14 @@ export default async function HomePage() {
             <Hero content={settings.content} />
             <Highlights content={settings.content} />
             <HowItWorks content={settings.content} />
+            <Packages />
+            <FAQ content={settings.content} />
           </>
         ) : null}
 
         <section
           id="order"
-          className="scroll-mt-16 border-t border-line bg-canvas"
+          className="snap-section scroll-mt-16 border-t border-line bg-canvas"
         >
           <div className="mx-auto max-w-[1200px] px-5 py-14 sm:py-20">
             {settings.landingEnabled ? (
@@ -53,6 +62,8 @@ export default async function HomePage() {
               slots={slots}
               content={settings.content}
               maxUploadMb={maxUploadMb}
+              sumitCompanyId={sumitCompanyId}
+              sumitApiPublicKey={sumitApiPublicKey}
             />
           </div>
         </section>

@@ -11,7 +11,7 @@ export async function findOrderByToken(id: string, token: string | null) {
 
   const order = await prisma.order.findUnique({
     where: { id },
-    include: { slot: true, city: true, reservation: true },
+    include: { slot: true, city: true, reservations: true },
   });
 
   if (!order) return null;

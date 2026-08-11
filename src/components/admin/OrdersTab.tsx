@@ -6,6 +6,7 @@ import { Download, FileText, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge, EmptyState, Input } from "@/components/ui/primitives";
 import { cn, formatDateTime, formatFileSize, formatPrice } from "@/lib/utils";
+import { AD_PACKAGES } from "@/lib/packages";
 
 type AdminOrder = {
   id: string;
@@ -24,9 +25,18 @@ type AdminOrder = {
   fileUploadedAt: string | null;
   createdAt: string;
   paidAt: string | null;
+  packageTier: string | null;
+  packageEditions: number;
+  editionIds: string[];
+  editions: {
+    id: string;
+    hebrewLabel: string;
+    gregorianMonth: number;
+    gregorianYear: number;
+  }[];
   slot: { name: string; sku: string; widthCm: number; heightCm: number };
   city: { name: string };
-  reservation: { expiresAt: string | null } | null;
+  reservations: { expiresAt: string | null }[];
 };
 
 const STATUS = {
@@ -177,6 +187,13 @@ export function OrdersTab() {
                       <div className="text-[11.5px] text-muted">
                         {formatDateTime(order.createdAt)}
                       </div>
+                      {order.packageTier ? (
+                        <Badge tone="accent" className="mt-1">
+                          {AD_PACKAGES.find((p) => p.id === order.packageTier)?.label ?? order.packageTier}
+                          {" · "}
+                          {order.editionIds.length} מהדורות
+                        </Badge>
+                      ) : null}
                     </td>
 
                     <td className="px-4 py-3">
@@ -279,6 +296,19 @@ export function OrdersTab() {
                               ))}
                             </div>
                           </DetailBlock>
+
+                          {order.editions.length > 0 ? (
+                            <DetailBlock title="מהדורות שנרכשו">
+                              <div className="flex flex-wrap gap-1.5">
+                                {order.editions.map((e) => (
+                                  <Badge key={e.id} tone="accent">
+                                    {e.hebrewLabel} ({e.gregorianMonth}/
+                                    {e.gregorianYear})
+                                  </Badge>
+                                ))}
+                              </div>
+                            </DetailBlock>
+                          ) : null}
 
                           {order.notes ? (
                             <DetailBlock

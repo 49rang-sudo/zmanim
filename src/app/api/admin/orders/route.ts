@@ -47,15 +47,33 @@ export async function GET(request: Request) {
         include: {
           slot: { select: { name: true, sku: true, widthCm: true, heightCm: true } },
           city: { select: { name: true } },
-          reservation: { select: { expiresAt: true } },
+          reservations: { select: { expiresAt: true } },
         },
       }),
       prisma.order.count({ where }),
       prisma.order.groupBy({ by: ["status"], _count: { _all: true } }),
     ]);
 
+    const allEditionIds = [...new Set(orders.flatMap((o) => o.editionIds))];
+    const editions = await prisma.edition.findMany({
+      where: { id: { in: allEditionIds } },
+      select: {
+        id: true,
+        hebrewLabel: true,
+        gregorianMonth: true,
+        gregorianYear: true,
+      },
+    });
+    const editionMap = new Map(editions.map((e) => [e.id, e]));
+    const ordersWithEditions = orders.map((o) => ({
+      ...o,
+      editions: o.editionIds
+        .map((id) => editionMap.get(id))
+        .filter((e): e is NonNullable<typeof e> => !!e),
+    }));
+
     return ok({
-      orders,
+      orders: ordersWithEditions,
       total,
       page,
       pageSize,

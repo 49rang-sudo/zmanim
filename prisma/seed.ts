@@ -7,7 +7,6 @@
  */
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
-import { hashPassword } from "../src/lib/password";
 import { defaultContent } from "../src/lib/content";
 import { slugify } from "../src/lib/utils";
 
@@ -113,30 +112,26 @@ async function main() {
   });
   console.log("  ✓ תוכן האתר");
 
-  // --- משתמש ניהול ---------------------------------------------
+  // --- משתמש ניהול ------------------------------------------------
+  // כניסה דרך Google בלבד — אין סיסמה. המייל הזה הופך ל-OWNER הראשון,
+  // מורשה יחיד להוסיף מיילי אדמין נוספים דרך לוח הניהול (טאב "צוות").
   const email = (process.env.SEED_ADMIN_EMAIL ?? "admin@luach.local")
     .toLowerCase()
     .trim();
-  const password = process.env.SEED_ADMIN_PASSWORD;
-
-  if (!password) {
-    throw new Error("SEED_ADMIN_PASSWORD חסר — קבעו אותו ב-.env לפני הזריעה");
-  }
 
   const existingAdmin = await prisma.adminUser.findUnique({ where: { email } });
 
   if (existingAdmin) {
-    console.log(`  · משתמש ניהול ${email} כבר קיים — הסיסמה לא שונתה`);
+    console.log(`  · משתמש ניהול ${email} כבר קיים`);
   } else {
     await prisma.adminUser.create({
       data: {
         email,
         name: "מנהל/ת הלוח",
-        passwordHash: await hashPassword(password),
         role: "OWNER",
       },
     });
-    console.log(`  ✓ משתמש ניהול נוצר: ${email}`);
+    console.log(`  ✓ משתמש ניהול נוצר (OWNER): ${email}`);
   }
 
   // --- משבצות ---------------------------------------------------
@@ -194,6 +189,55 @@ async function main() {
     cityIndex += 1;
   }
   console.log(`  ✓ ${CITIES.length} ערים`);
+
+  // --- מהדורות ----------------------------------------------------
+  // 3 מהדורות פתוחות לכל עיר: החודש הנוכחי ושני החודשים הבאים —
+  // כדי שהאשף יהיה בר-בדיקה מיידית אחרי זריעה, בלי תלות בתאריך
+  // ריצה. התווית העברית כאן קירוב גס לצורך זריעה בלבד — לא חישוב
+  // הלכתי; באדמין אפשר לערוך/ליצור מהדורות עם תוויות מדויקות.
+  const HEBREW_MONTH_APPROX = [
+    "טבת", "שבט", "אדר", "ניסן", "אייר", "סיוון",
+    "תמוז", "אב", "אלול", "תשרי", "חשוון", "כסלו",
+  ];
+
+  const cityRows = await prisma.city.findMany({
+    select: { id: true, capacity: true },
+  });
+  const now = new Date();
+  let editionCount = 0;
+
+  for (const city of cityRows) {
+    for (let i = 0; i < 3; i += 1) {
+      const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+      const gregorianMonth = d.getMonth() + 1;
+      const gregorianYear = d.getFullYear();
+      const closesAt = new Date(
+        now.getTime() + (i + 1) * 20 * 24 * 60 * 60 * 1000,
+      );
+
+      await prisma.edition.upsert({
+        where: {
+          cityId_gregorianYear_gregorianMonth: {
+            cityId: city.id,
+            gregorianYear,
+            gregorianMonth,
+          },
+        },
+        update: {},
+        create: {
+          cityId: city.id,
+          hebrewLabel: HEBREW_MONTH_APPROX[gregorianMonth % 12],
+          gregorianMonth,
+          gregorianYear,
+          capacity: city.capacity,
+          closesAt,
+          status: "OPEN",
+        },
+      });
+      editionCount += 1;
+    }
+  }
+  console.log(`  ✓ ${editionCount} מהדורות (3 לכל עיר, ${cityRows.length} ערים)`);
 
   // --- דלי האחסון ------------------------------------------------
   // לא קריטי לזריעה: אם האחסון לא זמין, שאר הנתונים כבר נשמרו

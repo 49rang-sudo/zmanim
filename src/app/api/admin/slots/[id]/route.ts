@@ -11,10 +11,6 @@ const patchSlotSchema = z.object({
   /** מחיר מתקבל בשקלים מהטופס ונשמר באגורות */
   priceShekels: z.coerce.number().min(0).max(1_000_000).optional(),
   badge: z.string().trim().max(30).optional().nullable(),
-  checkoutUrl: z
-    .union([z.string().trim().url("כתובת הסליקה אינה תקינה"), z.literal("")])
-    .optional()
-    .nullable(),
   active: z.boolean().optional(),
   widthCm: z.coerce.number().positive().max(500).optional(),
   heightCm: z.coerce.number().positive().max(500).optional(),
@@ -34,7 +30,7 @@ export async function PATCH(
     const exists = await prisma.adSlot.findUnique({ where: { id } });
     if (!exists) return notFound("המשבצת");
 
-    const { priceShekels, checkoutUrl, ...rest } = body.data;
+    const { priceShekels, ...rest } = body.data;
 
     const slot = await prisma.adSlot.update({
       where: { id },
@@ -43,9 +39,6 @@ export async function PATCH(
         // עיגול לאגורה שלמה — כסף לא נשמר כ-Float
         ...(priceShekels !== undefined
           ? { priceAgorot: Math.round(priceShekels * 100) }
-          : {}),
-        ...(checkoutUrl !== undefined
-          ? { checkoutUrl: checkoutUrl === "" ? null : checkoutUrl }
           : {}),
       },
     });

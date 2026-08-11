@@ -1,11 +1,33 @@
 import Image from "next/image";
+import { ArrowLeft, BadgePercent, Calendar, ChevronDown, MapPin, Sparkles, type LucideIcon } from "lucide-react";
 import { Eyebrow } from "@/components/ui/primitives";
+import { AD_PACKAGES } from "@/lib/packages";
 import type { SiteContentData } from "@/lib/content";
 
+const HIGHLIGHT_ICONS: Record<string, LucideIcon> = {
+  calendar: Calendar,
+  "map-pin": MapPin,
+};
+
+/**
+ * מפצל את כותרת ההירו לשני חלקים לפי הנקודה הראשונה — החלק
+ * השני (לרוב "נוכחות חזקה") מקבל את אפקט הפעימה, הראשון נשאר
+ * דומם. אם אין נקודה, כל הכותרת נשארת דוממת (fallback בטוח).
+ */
+function splitHeroTitle(title: string): [string, string] {
+  const idx = title.indexOf(". ");
+  if (idx === -1) return [title, ""];
+  return [title.slice(0, idx + 1), title.slice(idx + 2)];
+}
+
 export function Hero({ content }: { content: SiteContentData }) {
+  const [stillPart, pulsePart] = splitHeroTitle(content.hero.title);
+
   return (
-    <section className="dark-zone border-b border-line-2">
-      <div className="mx-auto grid max-w-[1200px] grid-cols-1 px-5 lg:grid-cols-[minmax(0,1fr)_320px] lg:px-8">
+    <section className="snap-section dark-zone relative overflow-hidden border-b border-line-2">
+      <div className="hero-glow" aria-hidden />
+
+      <div className="relative mx-auto grid max-w-[1200px] grid-cols-1 px-5 lg:grid-cols-[minmax(0,1fr)_320px] lg:px-8">
         {/* --- טקסט --- */}
         <div className="border-line-2 py-14 lg:border-e lg:py-20 lg:pe-12">
           <div className="mb-7 flex items-center gap-3.5 animate-[fade-up_0.5s_var(--ease-out-soft)_both]">
@@ -16,10 +38,20 @@ export function Hero({ content }: { content: SiteContentData }) {
           </div>
 
           <h1
-            className="display-hero text-ink animate-[fade-up_0.5s_var(--ease-out-soft)_both]"
-            style={{ animationDelay: "60ms" }}
+            className="display-hero text-ink animate-[fade-up_0.5s_var(--ease-out-soft)_60ms_both]"
           >
-            {content.hero.title}
+            {stillPart}
+            {pulsePart ? (
+              <>
+                {" "}
+                <span
+                  className="inline-block"
+                  style={{ animation: "hero-pulse 1.6s ease-in-out 0.6s infinite" }}
+                >
+                  {pulsePart}
+                </span>
+              </>
+            ) : null}
           </h1>
 
           <p
@@ -35,7 +67,7 @@ export function Hero({ content }: { content: SiteContentData }) {
           >
             <a
               href="#order"
-              className="brand-cta inline-flex items-center px-8 py-4 text-base font-bold"
+              className="brand-cta shine-cta inline-flex items-center px-8 py-4 text-base font-bold"
             >
               {content.hero.primaryCta}
             </a>
@@ -92,13 +124,13 @@ export function Highlights({ content }: { content: SiteContentData }) {
   if (content.highlights.length === 0) return null;
 
   return (
-    <section id="work" className="border-b border-line-2 scroll-mt-20">
+    <section id="work" className="snap-section border-b border-line-2 scroll-mt-20">
       <div className="mx-auto max-w-[1200px] px-5 pt-16 lg:px-8">
         <div className="grid gap-10 border-b border-line pb-10 lg:grid-cols-[320px_1fr]">
           <h2 className="font-display text-[2.1rem] font-black leading-[1.08] tracking-tight text-ink">
-            למה מפרסמים
+            למה לוח שנה מנצח
             <br />
-            אצלנו
+            כל פרסום אחר?
           </h2>
           <p className="self-end text-lg leading-relaxed text-ink-2">
             {content.brand.tagline}
@@ -106,24 +138,46 @@ export function Highlights({ content }: { content: SiteContentData }) {
         </div>
       </div>
 
-      <div className="mx-auto max-w-[1200px] px-5 pb-16 lg:px-8">
-        {content.highlights.map((item, index) => (
-          <article
-            key={index}
-            className="grid grid-cols-[44px_1fr] items-baseline gap-6 border-t border-line py-6 transition-colors duration-200 ease-smooth hover:bg-surface-2 sm:grid-cols-[56px_220px_1fr] sm:gap-8"
-          >
-            <span className="mono-label text-sm text-accent">
-              {String(index + 1).padStart(2, "0")}
-            </span>
-            <h3 className="font-display text-xl font-extrabold tracking-tight text-ink">
-              {item.title}
-            </h3>
-            <p className="col-span-2 text-[15.5px] leading-relaxed text-ink-2 sm:col-span-1">
-              {item.text}
-            </p>
-          </article>
-        ))}
-        <div className="border-t border-line" />
+      <div className="mx-auto max-w-[1200px] px-5 py-16 lg:px-8">
+        <div className="grid gap-5 sm:grid-cols-3">
+          {content.highlights.map((item, index) => {
+            const Icon = HIGHLIGHT_ICONS[item.icon] ?? Sparkles;
+            return (
+              <article
+                key={index}
+                className={[
+                  "card-shape group relative overflow-hidden border border-line-2 bg-surface p-7",
+                  "transition-[transform,border-color] duration-300 ease-smooth",
+                  "hover:-translate-y-1.5 hover:scale-[1.02] hover:border-accent",
+                  "hover:[animation:card-pulse_1.8s_ease-in-out_infinite]",
+                ].join(" ")}
+              >
+                <span
+                  aria-hidden
+                  className="gradient-num pointer-events-none absolute -left-2 -top-6 font-display text-8xl font-black opacity-[0.14]"
+                >
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+
+                <div className="relative flex items-center justify-between">
+                  <span className="mono-label text-sm text-accent">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <Icon
+                    className="size-5 text-muted transition-[color,transform] duration-300 ease-smooth group-hover:scale-110 group-hover:text-accent"
+                    strokeWidth={1.75}
+                  />
+                </div>
+                <h3 className="relative mt-6 font-display text-xl font-extrabold tracking-tight text-ink">
+                  {item.title}
+                </h3>
+                <p className="relative mt-2.5 text-[15px] leading-relaxed text-ink-2">
+                  {item.text}
+                </p>
+              </article>
+            );
+          })}
+        </div>
       </div>
     </section>
   );
@@ -133,15 +187,15 @@ export function HowItWorks({ content }: { content: SiteContentData }) {
   if (content.howItWorks.length === 0) return null;
 
   return (
-    <section id="how" className="dark-zone scroll-mt-20">
+    <section id="how" className="snap-section dark-zone scroll-mt-20">
       <div className="mx-auto max-w-[1200px] px-5 py-16 lg:px-8 lg:py-20">
         <Eyebrow>התהליך</Eyebrow>
         <h2 className="mt-3 font-display text-[2.1rem] font-black leading-tight tracking-tight text-ink">
-          איך זה עובד
+          4 צעדים — והמודעה שלכם על הקיר
         </h2>
 
         <ol
-          className="mt-12 grid gap-9 sm:grid-cols-2"
+          className="mt-12 grid gap-5 sm:grid-cols-2"
           style={{
             gridTemplateColumns: `repeat(${Math.min(content.howItWorks.length, 4)}, minmax(0,1fr))`,
           }}
@@ -149,16 +203,30 @@ export function HowItWorks({ content }: { content: SiteContentData }) {
           {content.howItWorks.map((step, index) => (
             <li
               key={index}
-              className="border-line ps-6 first:ps-0 sm:border-s sm:ps-7"
-              style={{ borderInlineStartWidth: index === 0 ? 0 : undefined }}
+              className={[
+                "chevron-shape group relative overflow-hidden border border-line-2 bg-surface py-6 pl-8 pr-6",
+                "transition-[transform,border-color] duration-300 ease-smooth",
+                "hover:-translate-y-1.5 hover:scale-[1.02] hover:border-accent",
+                "hover:[animation:card-pulse_1.8s_ease-in-out_infinite]",
+              ].join(" ")}
             >
-              <span className="mono-label text-[13px]" style={{ color: "var(--color-brand-orange)" }}>
+              <span
+                aria-hidden
+                className="gradient-num pointer-events-none absolute right-1 -top-7 font-display text-8xl font-black opacity-[0.16]"
+              >
                 {String(index + 1).padStart(2, "0")}
               </span>
-              <h3 className="mt-3 font-display text-lg font-extrabold tracking-tight text-ink">
+
+              <span
+                className="relative mono-label block text-[13px]"
+                style={{ color: "var(--color-brand-orange)" }}
+              >
+                {String(index + 1).padStart(2, "0")}
+              </span>
+              <h3 className="relative mt-3 font-display text-lg font-extrabold tracking-tight text-ink">
                 {step.title}
               </h3>
-              <p className="mt-2 text-[15px] leading-relaxed text-ink-2">
+              <p className="relative mt-2 text-[15px] leading-relaxed text-ink-2">
                 {step.text}
               </p>
             </li>
@@ -169,45 +237,146 @@ export function HowItWorks({ content }: { content: SiteContentData }) {
   );
 }
 
+export function Packages() {
+  const packages = AD_PACKAGES.filter((p) => p.id !== "SINGLE");
+
+  return (
+    <section id="packages" className="snap-section border-b border-line-2 scroll-mt-20">
+      <div className="mx-auto max-w-[1200px] px-5 pt-16 lg:px-8">
+        <Eyebrow>חבילות</Eyebrow>
+        <h2 className="mt-3 font-display text-[2.1rem] font-black leading-tight tracking-tight text-ink">
+          חסכו עם פרסום חוזר
+        </h2>
+        <p className="mt-3 max-w-xl text-[15.5px] leading-relaxed text-ink-2">
+          קונים משבצת אחת ומתחייבים למספר מהדורות מראש — 5% הנחה על הסכום
+          הכולל, והמשבצת שלכם ממשיכה להתפרסם בלי לחזור ולהזמין כל פעם מחדש.
+          המחיר הסופי נקבע לפי המשבצת שתבחרו בהמשך.
+        </p>
+      </div>
+
+      <div className="mx-auto max-w-[1200px] px-5 py-12 lg:px-8">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4 lg:items-start">
+          {packages.map((pkg) => {
+            const featured = pkg.id === "GOLD";
+            return (
+              <a
+                key={pkg.id}
+                href={`/?package=${pkg.id}#order`}
+                className={[
+                  "pkg-card group relative flex flex-col overflow-hidden border p-6",
+                  "transition-[transform,border-color,background-image] duration-300 ease-smooth",
+                  "hover:-translate-y-2 hover:scale-[1.06]",
+                  "hover:[animation:card-pulse_1.8s_ease-in-out_infinite]",
+                  featured
+                    ? "border-2 border-accent lg:-translate-y-2 lg:scale-[1.04]"
+                    : "border-line-2 hover:border-accent",
+                ].join(" ")}
+              >
+                <span className="pkg-ribbon" aria-hidden>
+                  {Math.round(pkg.discount * 100)}% הנחה
+                </span>
+
+                {featured ? (
+                  <span className="mono-label mb-3 inline-block w-fit rounded-full bg-accent px-3 py-1 text-[10.5px] font-bold text-accent-ink">
+                    הכי משתלם
+                  </span>
+                ) : null}
+
+                <span className="pkg-icon grid size-11 place-items-center rounded-full text-white transition-transform duration-300 ease-smooth group-hover:scale-110">
+                  <BadgePercent className="size-5" strokeWidth={1.75} />
+                </span>
+                <p className="mt-5 font-display text-xl font-extrabold tracking-tight text-ink">
+                  {pkg.label}
+                </p>
+                <p className="mt-1.5 text-[14px] leading-relaxed text-ink-2">
+                  {pkg.editions} מהדורות · {Math.round(pkg.discount * 100)}% הנחה
+                  על הסכום הכולל
+                </p>
+                <span className="mt-5 inline-flex items-center gap-1.5 text-[13px] font-semibold text-accent">
+                  בחירת חבילה זו
+                  <ArrowLeft className="size-3.5 transition-transform duration-300 ease-smooth group-hover:-translate-x-1" />
+                </span>
+              </a>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function FAQ({ content }: { content: SiteContentData }) {
+  if (content.faq.items.length === 0) return null;
+
+  const whatsappDigits = content.contact.whatsapp?.replace(/\D/g, "");
+  const contactHref = whatsappDigits
+    ? `https://wa.me/${whatsappDigits}`
+    : `tel:${content.contact.phone}`;
+  const contactLabel = whatsappDigits ? "בוואטסאפ" : `בטלפון ${content.contact.phone}`;
+
+  return (
+    <section id="faq" className="snap-section border-b border-line-2 scroll-mt-20">
+      <div className="mx-auto max-w-[1200px] px-5 py-16 lg:px-8 lg:py-20">
+        <div className="flex flex-wrap items-end justify-between gap-6 border-b border-line pb-10">
+          <div>
+            <Eyebrow>שאלות נפוצות</Eyebrow>
+            <h2 className="mt-3 font-display text-[2.1rem] font-black leading-tight tracking-tight text-ink">
+              עוד לפני שסוגרים
+            </h2>
+          </div>
+
+          <a
+            href={contactHref}
+            className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-accent hover:text-accent-strong"
+          >
+            יש לכם שאלה שלא מופיעה כאן? צרו איתנו קשר {contactLabel}
+            <ArrowLeft className="size-3.5" />
+          </a>
+        </div>
+
+        <div className="mt-8 grid gap-3">
+          {content.faq.items.map((item, index) => (
+            <details
+              key={index}
+              className="group card-shape border border-line-2 bg-surface px-6 py-4 open:border-accent"
+            >
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-display text-[16.5px] font-bold text-ink marker:content-none">
+                {item.question}
+                <ChevronDown className="size-4 shrink-0 text-muted transition-transform duration-300 ease-smooth group-open:rotate-180 group-open:text-accent" />
+              </summary>
+              <p className="mt-3 max-w-3xl text-[14.5px] leading-relaxed text-ink-2">
+                {item.answer}
+              </p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function SiteHeader({ content }: { content: SiteContentData }) {
   return (
     <header className="glass sticky top-0 z-30 border-b border-line-2">
-      <div className="mx-auto grid max-w-[1200px] grid-cols-[auto_1fr_auto] items-center gap-8 px-5 py-3.5 lg:px-8">
-        <a href="/" className="flex items-center gap-2.5">
-          {content.brand.logoUrl ? (
-            // הלוגו של הלקוח גובר על סמל ברירת המחדל
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={content.brand.logoUrl}
-              alt={content.brand.siteName}
-              className="h-8 w-auto max-w-44 object-contain"
-            />
-          ) : (
-            <>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/brand/zmanim-mark.png"
-                alt=""
-                className="h-6 w-auto object-contain"
-              />
-              <span className="font-display text-lg font-black leading-tight tracking-tight text-ink">
-                {content.brand.siteName}
-              </span>
-            </>
-          )}
-        </a>
-
-        <span className="hidden justify-self-center text-[13.5px] text-ink-2 sm:block">
-          {content.brand.tagline}
+      <div className="mx-auto grid max-w-[1200px] grid-cols-[1fr_auto_1fr] items-center gap-4 px-5 py-2.5 lg:px-8">
+        <span dir="ltr" className="mono-label hidden text-[13px] text-ink-2 sm:block">
+          {content.contact.phone}
         </span>
 
-        <div className="flex items-center gap-5">
-          <span dir="ltr" className="mono-label hidden text-[13px] text-ink-2 sm:block">
-            {content.contact.phone}
-          </span>
+        {/* לוגו — נוכחות גדולה וממורכזת, כמו מסתהד עיתון */}
+        <a href="/" className="flex flex-col items-center justify-self-center py-1">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={content.brand.logoUrl ?? "/brand/zmanim-logo.png"}
+            alt={content.brand.siteName}
+            className="h-11 w-auto max-w-56 object-contain sm:h-14"
+          />
+        </a>
+
+        <div className="flex items-center justify-self-end gap-5">
           <a
             href="#order"
-            className="brand-cta inline-flex h-[38px] items-center px-5 text-[14px] font-bold"
+            className="brand-cta shine-cta inline-flex h-[38px] items-center px-5 text-[14px] font-bold"
           >
             להזמנה
           </a>
@@ -226,7 +395,7 @@ export function SiteFooter({ content }: { content: SiteContentData }) {
         <div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/brand/zmanim-logo.png"
+            src="/brand/zmanim-logo-2.png"
             alt={content.brand.siteName}
             className="h-16 w-auto object-contain object-right"
           />

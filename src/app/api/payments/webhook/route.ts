@@ -67,7 +67,14 @@ export async function POST(request: Request) {
         },
       });
     } catch {
-      console.log(`[webhook] אירוע כפול ${event.eventId} — דולג`);
+      // @@unique([provider, eventId]) מבוסס על ההנחה שהספק נותן eventId
+      // חדש לכל התראה (התנהגות סטנדרטית אצל ספקי סליקה). אם אי פעם
+      // ייעשה שימוש חוזר באותו eventId עבור סטטוס אחר (למשל pending
+      // ואז paid), האירוע השני יידחה כאן בשקט — לכן הלוג כולל את
+      // ה-reference והסטטוס הנכנס, כדי שחריגה כזו תהיה גלויה בניטור.
+      console.log(
+        `[webhook] אירוע כפול ${event.eventId} (הזמנה ${event.reference}, סטטוס נכנס: ${event.status}) — דולג`,
+      );
       return ok({ received: true, duplicate: true });
     }
 

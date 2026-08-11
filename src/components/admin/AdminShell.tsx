@@ -4,33 +4,51 @@ import * as React from "react";
 import * as Tabs from "@radix-ui/react-tabs";
 import { signOut } from "next-auth/react";
 import {
+  CalendarDays,
   ChartColumn,
   FileText,
   LayoutGrid,
   LogOut,
+  Mail,
   MapPin,
   Palette,
   Type,
+  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { OverviewTab } from "./OverviewTab";
 import { ProductionTab } from "./ProductionTab";
 import { OrdersTab } from "./OrdersTab";
 import { CitiesTab } from "./CitiesTab";
+import { EditionsTab } from "./EditionsTab";
 import { SlotsTab } from "./SlotsTab";
 import { ContentTab } from "./ContentTab";
+import { TeamTab } from "./TeamTab";
+import { MailingListTab } from "./MailingListTab";
 import { cn } from "@/lib/utils";
 
-const TABS = [
+const BASE_TABS = [
   { value: "overview", label: "סקירה", icon: ChartColumn },
   { value: "production", label: "גרפיקה", icon: Palette },
   { value: "orders", label: "הזמנות", icon: FileText },
   { value: "cities", label: "ערים", icon: MapPin },
+  { value: "editions", label: "מהדורות", icon: CalendarDays },
   { value: "slots", label: "משבצות", icon: LayoutGrid },
   { value: "content", label: "תוכן", icon: Type },
+  { value: "mailing-list", label: "תפוצה", icon: Mail },
 ];
 
-export function AdminShell({ userName }: { userName: string }) {
+const TEAM_TAB = { value: "team", label: "צוות", icon: Users };
+
+export function AdminShell({
+  userName,
+  role,
+}: {
+  userName: string;
+  role: string;
+}) {
+  const isOwner = role === "OWNER";
+  const tabs = isOwner ? [...BASE_TABS, TEAM_TAB] : BASE_TABS;
   return (
     <div className="min-h-dvh bg-canvas">
       <header className="glass sticky top-0 z-30 border-b border-line">
@@ -68,7 +86,7 @@ export function AdminShell({ userName }: { userName: string }) {
       <main className="mx-auto max-w-[1200px] px-5 py-8">
         <Tabs.Root defaultValue="overview" dir="rtl">
           <Tabs.List className="mb-7 flex flex-wrap gap-2 border-b border-line pb-3">
-            {TABS.map((tab) => {
+            {tabs.map((tab) => {
               const Icon = tab.icon;
               return (
                 <Tabs.Trigger
@@ -100,12 +118,23 @@ export function AdminShell({ userName }: { userName: string }) {
           <Tabs.Content value="cities" className="focus:outline-none">
             <CitiesTab />
           </Tabs.Content>
+          <Tabs.Content value="editions" className="focus:outline-none">
+            <EditionsTab />
+          </Tabs.Content>
           <Tabs.Content value="slots" className="focus:outline-none">
             <SlotsTab />
           </Tabs.Content>
           <Tabs.Content value="content" className="focus:outline-none">
             <ContentTab />
           </Tabs.Content>
+          <Tabs.Content value="mailing-list" className="focus:outline-none">
+            <MailingListTab />
+          </Tabs.Content>
+          {isOwner ? (
+            <Tabs.Content value="team" className="focus:outline-none">
+              <TeamTab />
+            </Tabs.Content>
+          ) : null}
         </Tabs.Root>
       </main>
     </div>

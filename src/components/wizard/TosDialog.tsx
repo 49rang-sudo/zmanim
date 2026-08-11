@@ -111,6 +111,7 @@ export function TosDialog({ slot, tos, open, onOpenChange, onAccept }: Props) {
           </Button>
 
           <Button
+            className="shine-cta"
             disabled={!accepted}
             onClick={() => {
               onAccept();

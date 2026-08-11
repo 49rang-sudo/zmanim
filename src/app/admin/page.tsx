@@ -14,6 +14,7 @@ export default async function AdminPage() {
   return (
     <AdminShell
       userName={session.user.name ?? session.user.email ?? "מנהל"}
+      role={session.user.role}
     />
   );
 }

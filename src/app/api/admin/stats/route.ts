@@ -68,7 +68,7 @@ export async function GET(request: Request) {
 
     const bucket = bucketFor(range);
 
-    const [paidInRange, openOrders, cities, reservations, allPaid] =
+    const [paidInRange, openOrders, cities, openEditions, allPaid] =
       await Promise.all([
         prisma.order.findMany({
           where: { status: "PAID", paidAt: { gte: from, lte: now } },
@@ -85,9 +85,15 @@ export async function GET(request: Request) {
           where: { status: { in: ["PENDING", "AWAITING_PAYMENT"] } },
         }),
         prisma.city.findMany({
-          select: { id: true, name: true, capacity: true, visible: true },
+          select: { id: true, name: true, visible: true },
         }),
-        prisma.slotReservation.count(),
+        // תפוסה/קיבולת נמדדות עכשיו ברמת המהדורה הפתוחה, לא ברמת
+        // העיר — תואם ל-totalCapacity שמסתכם רק מערים גלויות, אחרת
+        // אחוז התפוסה משווה מונה ומכנה מתחומים שונים ויכול לחרוג מ-100%
+        prisma.edition.findMany({
+          where: { status: "OPEN", city: { visible: true } },
+          select: { id: true, cityId: true, capacity: true },
+        }),
         prisma.order.aggregate({
           where: { status: "PAID" },
           _sum: { priceAgorot: true },
@@ -95,13 +101,22 @@ export async function GET(request: Request) {
         }),
       ]);
 
+    const occupied = await prisma.slotReservation.count({
+      where: { editionId: { in: openEditions.map((e) => e.id) } },
+    });
+    const capacityByCity = new Map<string, number>();
+    for (const edition of openEditions) {
+      capacityByCity.set(
+        edition.cityId,
+        (capacityByCity.get(edition.cityId) ?? 0) + edition.capacity,
+      );
+    }
+
     // --- מדדים ראשיים ---
     const revenue = paidInRange.reduce((sum, o) => sum + o.priceAgorot, 0);
     const orderCount = paidInRange.length;
 
-    const totalCapacity = cities
-      .filter((c) => c.visible)
-      .reduce((sum, c) => sum + c.capacity, 0);
+    const totalCapacity = openEditions.reduce((sum, e) => sum + e.capacity, 0);
 
     // --- מכירות לאורך זמן ---
     const seriesMap = new Map<string, { revenue: number; count: number }>();
@@ -133,7 +148,7 @@ export async function GET(request: Request) {
     const byCity = cities
       .map((city) => ({
         name: city.name,
-        capacity: city.capacity,
+        capacity: capacityByCity.get(city.id) ?? 0,
         revenue: cityMap.get(city.name)?.revenue ?? 0,
         count: cityMap.get(city.name)?.count ?? 0,
       }))
@@ -165,11 +180,11 @@ export async function GET(request: Request) {
         orderCount,
         avgOrder: orderCount > 0 ? Math.round(revenue / orderCount) : 0,
         openOrders,
-        occupied: reservations,
+        occupied,
         totalCapacity,
         occupancyPct:
           totalCapacity > 0
-            ? Math.round((reservations / totalCapacity) * 100)
+            ? Math.round((occupied / totalCapacity) * 100)
             : 0,
         lifetimeRevenue: allPaid._sum.priceAgorot ?? 0,
         lifetimeOrders: allPaid._count._all,

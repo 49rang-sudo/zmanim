@@ -38,7 +38,8 @@ export async function GET(
             uploadedAt: order.fileUploadedAt,
           }
         : null,
-      holdExpiresAt: order.reservation?.expiresAt ?? null,
+      holdExpiresAt: order.reservations[0]?.expiresAt ?? null,
+      editionIds: order.editionIds,
       paidAt: order.paidAt,
       createdAt: order.createdAt,
     });

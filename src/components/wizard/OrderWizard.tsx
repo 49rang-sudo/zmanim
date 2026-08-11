@@ -1,48 +1,82 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   AlertTriangle,
   ArrowLeft,
   ArrowRight,
+  BadgePercent,
+  CheckCircle2,
   Clock,
-  CreditCard,
+  Mail,
   ShieldCheck,
 } from "lucide-react";
 import { CalendarMockup, type MockupSlot } from "./CalendarMockup";
 import { CityPicker } from "./CityPicker";
+import { EditionChecklist } from "./EditionChecklist";
 import { TosDialog } from "./TosDialog";
+import { MailingListDialog } from "./MailingListDialog";
 import { UploadPanel } from "./UploadPanel";
+import { SumitCardForm } from "./SumitCardForm";
 import { Button } from "@/components/ui/button";
 import { Badge, Eyebrow, Field, Input, Textarea } from "@/components/ui/primitives";
 import { cn, formatCm, formatPrice } from "@/lib/utils";
+import { AD_PACKAGES, packageTotalAgorotForEditions } from "@/lib/packages";
 import type { SiteContentData } from "@/lib/content";
-import type { CityAvailability } from "@/lib/availability";
+import type { CityAvailability, EditionAvailability } from "@/lib/availability";
 
 type OrderState = {
   id: string;
   reference: string;
   accessToken: string;
   holdExpiresAt: string;
+  priceAgorot: number;
+  packageTier: string | null;
+  packageEditions: number;
 };
 
 type Props = {
   slots: MockupSlot[];
   content: SiteContentData;
   maxUploadMb: number;
+  /** null כשעדיין לא הוגדרו credentials אמיתיים מ-sumit */
+  sumitCompanyId: number | null;
+  sumitApiPublicKey: string | null;
 };
 
-const STEPS = ["משבצת", "עיר", "פרטים", "קובץ", "תשלום"] as const;
+const STEPS = ["עיר", "משבצת", "פרטים", "קובץ", "תשלום"] as const;
 
 const STORAGE_KEY = "luach:order";
 
-export function OrderWizard({ slots, content, maxUploadMb }: Props) {
+export function OrderWizard({
+  slots,
+  content,
+  maxUploadMb,
+  sumitCompanyId,
+  sumitApiPublicKey,
+}: Props) {
+  const router = useRouter();
   const [step, setStep] = React.useState(1);
   const [slot, setSlot] = React.useState<MockupSlot | null>(null);
   const [pendingSlot, setPendingSlot] = React.useState<MockupSlot | null>(null);
   const [tosOpen, setTosOpen] = React.useState(false);
+  const [mailingModalOpen, setMailingModalOpen] = React.useState(false);
+  const [mailingListStatus, setMailingListStatus] = React.useState<
+    "pending" | "joined" | "skipped"
+  >("pending");
+  const mailingModalShown = React.useRef(false);
   const [city, setCity] = React.useState<CityAvailability | null>(null);
+  const [editions, setEditions] = React.useState<EditionAvailability[] | null>(
+    null,
+  );
+  const [viewedEditionId, setViewedEditionId] = React.useState<string | null>(
+    null,
+  );
+  const [selectedEditionIds, setSelectedEditionIds] = React.useState<
+    string[]
+  >([]);
   const [order, setOrder] = React.useState<OrderState | null>(null);
   const [uploaded, setUploaded] = React.useState<{
     name: string;
@@ -58,8 +92,129 @@ export function OrderWizard({ slots, content, maxUploadMb }: Props) {
     notes: "",
   });
   const [errors, setErrors] = React.useState<Record<string, string>>({});
+  const [incomingPackageLabel, setIncomingPackageLabel] = React.useState<
+    string | null
+  >(null);
+  const presetEditionCountRef = React.useRef<number | null>(null);
+  const presetAppliedRef = React.useRef(false);
 
   const topRef = React.useRef<HTMLDivElement>(null);
+
+  // הגעה מקישור "בחירת חבילה" בסקשן החבילות בדף הבית (?package=GOLD#order)
+  // — רק שומר כמה מהדורות להציע כברירת מחדל בצ'קליסט של שלב 2,
+  // לא קובע חבילה נוקשה. הבחירה בפועל תמיד חופשית וניתנת לשינוי.
+  React.useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("package");
+    const pkg = AD_PACKAGES.find((p) => p.id === id);
+    if (pkg && pkg.id !== "SINGLE") {
+      presetEditionCountRef.current = pkg.editions;
+      setIncomingPackageLabel(pkg.label);
+    }
+  }, []);
+
+  // בחירת עיר טוענת את המהדורות הפתוחות שלה — זה מה שמניע את
+  // דפדוף החודשים ואת צביעת התפוסה בשלב הבא.
+  React.useEffect(() => {
+    if (!city) {
+      setEditions(null);
+      setViewedEditionId(null);
+      return;
+    }
+
+    let cancelled = false;
+    fetch(`/api/cities/${city.id}/editions`, { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data) => {
+        if (cancelled) return;
+        const list: EditionAvailability[] = data.editions ?? [];
+        setEditions(list);
+        setViewedEditionId(list[0]?.id ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) toast.error("טעינת המהדורות נכשלה");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [city]);
+
+  // מיישם פריסט "?package=" בפעם הראשונה שיש גם משבצת נבחרת וגם
+  // רשימת מהדורות — מסמן מראש N-1 חודשים נוספים פנויים לאותה
+  // משבצת, אך עדיין ניתן לשינוי חופשי בצ'קליסט.
+  React.useEffect(() => {
+    if (
+      !slot ||
+      !editions ||
+      !viewedEditionId ||
+      presetAppliedRef.current ||
+      !presetEditionCountRef.current
+    ) {
+      return;
+    }
+    presetAppliedRef.current = true;
+
+    const eligible = editions
+      .filter(
+        (e) =>
+          e.id !== viewedEditionId &&
+          !e.isFull &&
+          !e.occupiedSlotIds.includes(slot.id),
+      )
+      .slice(0, presetEditionCountRef.current - 1)
+      .map((e) => e.id);
+
+    setSelectedEditionIds((prev) => [...new Set([...prev, ...eligible])]);
+  }, [slot, editions, viewedEditionId]);
+
+  // שלב נוכחי דרך ref כדי לא לפרק ולבנות מחדש את מאזיני היציאה (ואת
+  // "בליעת" ההיסטוריה) בכל מעבר שלב — רק כדי לקרוא את הערך העדכני.
+  const stepRef = React.useRef(step);
+  React.useEffect(() => {
+    stepRef.current = step;
+  }, [step]);
+
+  // מוקפצת רק בכוונת יציאה (Exit-Intent) — לא מיד עם הכניסה לאתר ולא
+  // חוסמת את מסלול ההזמנה. בדסקטופ: הסמן יוצא דרך חלק העליון של
+  // החלון (לכיוון סגירת לשונית / שורת הכתובת). במובייל: לחיצה על
+  // "חזרה". מזוינת רק 4 שניות אחרי הטעינה כדי לא לתפוס גלישה חולפת.
+  // מושתקת בשלב התשלום (5) — הרגע הכי קריטי בקנייה, לא המקום להפריע.
+  // בקשת לקוחה מפורשת לאיסוף לידים ממי שעוזב בלי להזמין.
+  React.useEffect(() => {
+    if (mailingListStatus !== "pending") return;
+
+    let armed = false;
+    const armTimer = setTimeout(() => {
+      armed = true;
+    }, 4000);
+
+    const trigger = () => {
+      if (!armed || mailingModalShown.current || stepRef.current === 5) return;
+      mailingModalShown.current = true;
+      setMailingModalOpen(true);
+    };
+
+    const onMouseLeave = (event: MouseEvent) => {
+      if (event.clientY <= 0) trigger();
+    };
+
+    // "בולען" ערך היסטוריה אחד כדי לתפוס לחיצת "חזרה" יחידה במובייל,
+    // בלי לתקוע לצמיתות את כפתור החזרה — לחיצה שנייה עוזבת כרגיל.
+    history.pushState(null, "", location.href);
+    const onPopState = () => {
+      window.removeEventListener("popstate", onPopState);
+      trigger();
+    };
+
+    document.addEventListener("mouseleave", onMouseLeave);
+    window.addEventListener("popstate", onPopState);
+
+    return () => {
+      clearTimeout(armTimer);
+      document.removeEventListener("mouseleave", onMouseLeave);
+      window.removeEventListener("popstate", onPopState);
+    };
+  }, [mailingListStatus]);
 
   const goTo = (next: number) => {
     setStep(next);
@@ -74,14 +229,19 @@ export function OrderWizard({ slots, content, maxUploadMb }: Props) {
 
   const handleTosAccept = () => {
     setSlot(pendingSlot);
-    // החלפת משבצת מאפסת את בחירת העיר — הזמינות תלויה בשתיהן
-    setCity(null);
-    goTo(2);
+    // נשארים בשלב 2 — הצ'קליסט "גם בחודשים נוספים" נפתח מתחת
+    // למוקאפ, לא מתקדמים לשלב הבא אוטומטית
+    setSelectedEditionIds(viewedEditionId ? [viewedEditionId] : []);
+  };
+
+  const handleMailingDecision = (joined: boolean) => {
+    setMailingListStatus(joined ? "joined" : "skipped");
+    setMailingModalOpen(false);
   };
 
   /* --- יצירת ההזמנה ותפיסת המשבצת --- */
   const createOrder = async () => {
-    if (!slot || !city) return;
+    if (!slot || !city || selectedEditionIds.length === 0) return;
 
     const nextErrors: Record<string, string> = {};
     if (form.contactName.trim().length < 2)
@@ -102,6 +262,7 @@ export function OrderWizard({ slots, content, maxUploadMb }: Props) {
         body: JSON.stringify({
           slotId: slot.id,
           cityId: city.id,
+          editionIds: selectedEditionIds,
           tosAccepted: true,
           contactName: form.contactName.trim(),
           businessName: form.businessName.trim() || null,
@@ -114,10 +275,25 @@ export function OrderWizard({ slots, content, maxUploadMb }: Props) {
       const data = await res.json();
 
       if (!res.ok) {
-        // העיר התמלאה בזמן מילוי הטופס — מחזירים לבחירת עיר
-        if (data?.error?.code === "CITY_FULL") {
+        // המשבצת/מהדורה התמלאה בזמן מילוי הטופס — מרעננים תפוסה
+        // ומחזירים לשלב בחירת המשבצת
+        if (
+          data?.error?.code === "SLOT_TAKEN" ||
+          data?.error?.code === "EDITION_FULL"
+        ) {
           toast.error(data.error.message);
-          setCity(null);
+          try {
+            const res2 = await fetch(`/api/cities/${city.id}/editions`, {
+              cache: "no-store",
+            });
+            const d2 = await res2.json();
+            setEditions(d2.editions ?? []);
+          } catch {
+            // אם הרענון עצמו נכשל, פשוט משאירים את המצב הישן —
+            // הלקוח עדיין יכול לנסות שוב מהשלב הקודם
+          }
+          setSlot(null);
+          setSelectedEditionIds([]);
           goTo(2);
           return;
         }
@@ -130,6 +306,9 @@ export function OrderWizard({ slots, content, maxUploadMb }: Props) {
         reference: data.reference,
         accessToken: data.accessToken,
         holdExpiresAt: data.holdExpiresAt,
+        priceAgorot: data.priceAgorot,
+        packageTier: data.packageTier,
+        packageEditions: data.packageEditions,
       };
 
       setOrder(created);
@@ -142,24 +321,28 @@ export function OrderWizard({ slots, content, maxUploadMb }: Props) {
     }
   };
 
-  /* --- מעבר לסליקה --- */
-  const goToCheckout = async () => {
+  /* --- חיוב בפועל דרך sumit --- */
+  const chargeOrder = async (singleUseToken: string) => {
     if (!order) return;
 
     setBusy(true);
     try {
-      const res = await fetch(`/api/orders/${order.id}/checkout`, {
+      const res = await fetch(`/api/orders/${order.id}/charge`, {
         method: "POST",
-        headers: { "x-order-token": order.accessToken },
+        headers: {
+          "content-type": "application/json",
+          "x-order-token": order.accessToken,
+        },
+        body: JSON.stringify({ singleUseToken }),
       });
       const data = await res.json();
 
       if (!res.ok) {
-        toast.error(data?.error?.message ?? "המעבר לתשלום נכשל");
+        toast.error(data?.error?.message ?? "התשלום נכשל");
         return;
       }
 
-      window.location.href = data.checkoutUrl;
+      router.push(`/order/${order.reference}`);
     } catch {
       toast.error("שגיאת רשת. נסו שוב.");
     } finally {
@@ -169,26 +352,21 @@ export function OrderWizard({ slots, content, maxUploadMb }: Props) {
 
   return (
     <div ref={topRef} className="scroll-mt-24">
-      <Stepper current={step} />
+      <Stepper current={step} onJump={goTo} />
 
-      {/* ============ שלב 1 — משבצת ============ */}
-      {step === 1 ? (
-        <section className="animate-[fade-up_0.45s_var(--ease-out-soft)_both]">
-          <StepHeading
-            title={content.wizard.chooseTitle}
-            subtitle={content.wizard.chooseSubtitle}
-          />
-          <CalendarMockup
-            slots={slots}
-            calendar={content.calendar}
-            selectedSlotId={slot?.id ?? null}
-            onSelect={handleSlotClick}
-          />
-        </section>
+      {incomingPackageLabel && step <= 2 ? (
+        <div className="mb-6 flex items-center gap-2.5 border border-accent bg-accent-soft px-4 py-3 text-[13.5px] text-accent-strong">
+          <BadgePercent className="size-4 shrink-0" />
+          <span>
+            נבחרה חבילת <strong>{incomingPackageLabel}</strong> — הצ׳קליסט
+            יסמן אוטומטית את החודשים הבאים אחרי שתבחרו עיר ומשבצת. עדיין
+            אפשר לשנות בחירה.
+          </span>
+        </div>
       ) : null}
 
-      {/* ============ שלב 2 — עיר ============ */}
-      {step === 2 && slot ? (
+      {/* ============ שלב 1 — עיר ============ */}
+      {step === 1 ? (
         <section className="animate-[fade-up_0.45s_var(--ease-out-soft)_both]">
           <StepHeading
             title={content.wizard.cityTitle}
@@ -201,10 +379,57 @@ export function OrderWizard({ slots, content, maxUploadMb }: Props) {
           />
 
           <NavRow
-            onBack={() => goTo(1)}
-            backLabel="חזרה למשבצות"
             next={
-              <Button disabled={!city} onClick={() => goTo(3)}>
+              <Button disabled={!city} onClick={() => goTo(2)} className="shine-cta">
+                המשך לבחירת משבצת
+                <ArrowLeft className="size-4" />
+              </Button>
+            }
+          />
+        </section>
+      ) : null}
+
+      {/* ============ שלב 2 — משבצת ============ */}
+      {step === 2 && city ? (
+        <section className="animate-[fade-up_0.45s_var(--ease-out-soft)_both]">
+          <StepHeading
+            title={content.wizard.chooseTitle}
+            subtitle={content.wizard.chooseSubtitle}
+          />
+          <CalendarMockup
+            slots={slots}
+            calendar={content.calendar}
+            editions={editions ?? []}
+            viewedEditionId={viewedEditionId}
+            onViewedEditionChange={setViewedEditionId}
+            selectedSlotId={slot?.id ?? null}
+            onSelect={handleSlotClick}
+          />
+
+          {slot && editions && viewedEditionId ? (
+            <EditionChecklist
+              slot={slot}
+              currentEditionId={viewedEditionId}
+              editions={editions}
+              selectedEditionIds={selectedEditionIds}
+              onChange={setSelectedEditionIds}
+            />
+          ) : null}
+
+          <NavRow
+            onBack={() => {
+              setCity(null);
+              setSlot(null);
+              setSelectedEditionIds([]);
+              goTo(1);
+            }}
+            backLabel="חזרה לבחירת עיר"
+            next={
+              <Button
+                disabled={!slot || selectedEditionIds.length === 0}
+                onClick={() => goTo(3)}
+                className="shine-cta"
+              >
                 המשך לפרטים
                 <ArrowLeft className="size-4" />
               </Button>
@@ -285,16 +510,53 @@ export function OrderWizard({ slots, content, maxUploadMb }: Props) {
                   onChange={(e) => setForm({ ...form, notes: e.target.value })}
                 />
               </Field>
+
+              {mailingListStatus !== "pending" ? (
+                <div className="mt-1 flex items-center gap-2 text-[13px]">
+                  {mailingListStatus === "joined" ? (
+                    <>
+                      <CheckCircle2 className="size-4 shrink-0 text-accent" />
+                      <span className="text-ink-2">נרשמת לרשימת התפוצה</span>
+                    </>
+                  ) : (
+                    <>
+                      <Mail className="size-4 shrink-0 text-muted" />
+                      <span className="text-ink-2">לא הצטרפת לרשימת התפוצה</span>
+                    </>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setMailingModalOpen(true)}
+                    className="text-accent underline underline-offset-2 hover:text-accent-strong"
+                  >
+                    שינוי
+                  </button>
+                </div>
+              ) : null}
             </div>
 
-            <OrderSummary slot={slot} city={city} />
+            <OrderSummary
+              slot={slot}
+              city={city}
+              priceAgorot={packageTotalAgorotForEditions(
+                slot.priceAgorot,
+                selectedEditionIds.length,
+              )}
+              packageLabel={
+                AD_PACKAGES.find(
+                  (p) =>
+                    p.editions === selectedEditionIds.length &&
+                    p.id !== "SINGLE",
+                )?.label
+              }
+            />
           </div>
 
           <NavRow
             onBack={() => goTo(2)}
-            backLabel="חזרה לערים"
+            backLabel="חזרה למשבצת"
             next={
-              <Button loading={busy} onClick={createOrder}>
+              <Button loading={busy} onClick={createOrder} className="shine-cta">
                 אישור והמשך להעלאה
                 <ArrowLeft className="size-4" />
               </Button>
@@ -325,7 +587,13 @@ export function OrderWizard({ slots, content, maxUploadMb }: Props) {
               }}
             />
 
-            <OrderSummary slot={slot} city={city} reference={order.reference} />
+            <OrderSummary
+              slot={slot}
+              city={city}
+              reference={order.reference}
+              priceAgorot={order.priceAgorot}
+              packageLabel={AD_PACKAGES.find((p) => p.id === order.packageTier)?.label}
+            />
           </div>
 
           <NavRow
@@ -350,7 +618,23 @@ export function OrderWizard({ slots, content, maxUploadMb }: Props) {
           <HoldTimer expiresAt={order.holdExpiresAt} />
 
           <div className="mt-4 grid gap-6 lg:grid-cols-[1fr_320px]">
-            <div className="rounded-lg border border-line bg-surface p-6 shadow-e1">
+            <div className="relative overflow-hidden rounded-lg border border-line bg-surface p-6 shadow-e1">
+              {busy ? (
+                <div
+                  className="curtain-bg pointer-events-none absolute inset-0 z-10 opacity-80"
+                  aria-hidden
+                />
+              ) : null}
+              {busy ? (
+                <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-canvas/55 text-center backdrop-blur-[1px]">
+                  <div className="size-8 animate-spin rounded-full border-2 border-ink/25 border-t-ink" />
+                  <p className="font-semibold text-ink">מעבד את התשלום…</p>
+                  <p className="max-w-[220px] text-[12.5px] text-ink-2">
+                    רגע אחד, לא לרענן את הדף ולא ללחוץ שוב.
+                  </p>
+                </div>
+              ) : null}
+
               <dl className="divide-y divide-line">
                 <SummaryRow label="מספר הזמנה" value={order.reference} mono />
                 <SummaryRow label="משבצת" value={slot.name} />
@@ -362,12 +646,18 @@ export function OrderWizard({ slots, content, maxUploadMb }: Props) {
                 <SummaryRow label="עיר" value={city.name} />
                 <SummaryRow label="קובץ" value={uploaded?.name ?? "—"} />
                 <SummaryRow label="איש קשר" value={form.contactName} />
+                {order.packageTier ? (
+                  <SummaryRow
+                    label="חבילה"
+                    value={`${AD_PACKAGES.find((p) => p.id === order.packageTier)?.label ?? order.packageTier} · ${order.packageEditions} מהדורות`}
+                  />
+                ) : null}
                 <div className="flex items-center justify-between py-4">
                   <dt className="font-display text-lg font-semibold text-ink">
                     לתשלום
                   </dt>
                   <dd className="tnum font-display text-2xl font-bold text-accent">
-                    {formatPrice(slot.priceAgorot)}
+                    {formatPrice(order.priceAgorot)}
                   </dd>
                 </div>
               </dl>
@@ -375,23 +665,36 @@ export function OrderWizard({ slots, content, maxUploadMb }: Props) {
               <div className="mt-5 flex items-start gap-2.5 rounded-md bg-surface-2 p-3.5">
                 <ShieldCheck className="mt-0.5 size-4 shrink-0 text-accent" />
                 <p className="text-[12.5px] leading-relaxed text-ink-2">
-                  התשלום מתבצע בעמוד המאובטח של ספק הסליקה. פרטי האשראי
-                  אינם עוברים דרך האתר הזה ואינם נשמרים אצלנו.
+                  פרטי האשראי מוצפנים ונשלחים ישירות ל-sumit דרך טופס
+                  מאובטח. הם אינם עוברים דרך השרת שלנו ואינם נשמרים אצלנו.
                 </p>
               </div>
 
-              <Button
-                size="lg"
-                className="mt-5 w-full"
-                loading={busy}
-                onClick={goToCheckout}
-              >
-                <CreditCard className="size-4" />
-                מעבר לתשלום מאובטח
-              </Button>
+              <div className="mt-5">
+                {sumitCompanyId && sumitApiPublicKey ? (
+                  <SumitCardForm
+                    companyId={sumitCompanyId}
+                    apiPublicKey={sumitApiPublicKey}
+                    busy={busy}
+                    onToken={chargeOrder}
+                    onError={(message) => toast.error(message)}
+                  />
+                ) : (
+                  <p className="rounded-md border border-warn/40 bg-[color-mix(in_srgb,var(--color-warn)_10%,transparent)] p-3.5 text-[13px] leading-relaxed text-warn">
+                    תשלום מקוון אינו זמין כרגע. נא לפנות אלינו כדי להשלים את
+                    ההזמנה — מספר ההזמנה שלכם הוא {order.reference}.
+                  </p>
+                )}
+              </div>
             </div>
 
-            <OrderSummary slot={slot} city={city} reference={order.reference} />
+            <OrderSummary
+              slot={slot}
+              city={city}
+              reference={order.reference}
+              priceAgorot={order.priceAgorot}
+              packageLabel={AD_PACKAGES.find((p) => p.id === order.packageTier)?.label}
+            />
           </div>
 
           <NavRow onBack={() => goTo(4)} backLabel="חזרה לקובץ" />
@@ -405,13 +708,25 @@ export function OrderWizard({ slots, content, maxUploadMb }: Props) {
         onOpenChange={setTosOpen}
         onAccept={handleTosAccept}
       />
+
+      <MailingListDialog
+        open={mailingModalOpen}
+        onOpenChange={setMailingModalOpen}
+        onDecide={handleMailingDecision}
+      />
     </div>
   );
 }
 
 /* =============================================================== */
 
-function Stepper({ current }: { current: number }) {
+function Stepper({
+  current,
+  onJump,
+}: {
+  current: number;
+  onJump: (step: number) => void;
+}) {
   const progress = ((current - 1) / (STEPS.length - 1)) * 100;
 
   return (
@@ -437,29 +752,48 @@ function Stepper({ current }: { current: number }) {
         const state =
           number < current ? "done" : number === current ? "active" : "todo";
 
-        return (
-          <li
-            key={label}
-            className={cn(
-              "flex flex-1 items-center gap-2 rounded-md border px-3 py-2.5 text-[13px]",
-              "transition-colors duration-200 ease-smooth",
-              state === "active" &&
-                "border-accent bg-accent-soft font-semibold text-accent-strong",
-              state === "done" && "border-line bg-surface text-ink-2",
-              state === "todo" && "border-line bg-surface text-muted",
-            )}
-          >
+        // אותו כלל שהחצים "חזרה" כבר אוכפים: אחרי שההזמנה נוצרת
+        // (משלב 4 והלאה) אי אפשר לקפוץ לשלבי משבצת/עיר/פרטים —
+        // שום דבר לא באמת יעדכן את ההזמנה שכבר נוצרה עם הפרטים ההם.
+        const clickable = state === "done" && (number <= 3 ? current <= 3 : true);
+
+        const content = (
+          <>
             <span
               className={cn(
                 "tnum grid size-6 shrink-0 place-items-center rounded-full text-[11px] font-bold",
+                "transition-[background-color,transform] duration-200 ease-smooth",
                 state === "active" && "bg-accent text-accent-ink",
                 state === "done" && "bg-success text-white",
                 state === "todo" && "bg-line-2 text-surface",
+                clickable && "group-hover:scale-110",
               )}
             >
               {number}
             </span>
             <span className="truncate">{label}</span>
+          </>
+        );
+
+        const itemClassName = cn(
+          "group flex flex-1 items-center gap-2 rounded-md border px-3 py-2.5 text-[13px]",
+          "transition-colors duration-200 ease-smooth",
+          state === "active" &&
+            "border-accent bg-accent-soft font-semibold text-accent-strong",
+          state === "done" && "border-line bg-surface text-ink-2",
+          state === "todo" && "border-line bg-surface text-muted",
+          clickable && "cursor-pointer hover:border-accent hover:bg-accent-soft",
+        );
+
+        return clickable ? (
+          <li key={label} className="flex-1">
+            <button type="button" onClick={() => onJump(number)} className={cn(itemClassName, "w-full")}>
+              {content}
+            </button>
+          </li>
+        ) : (
+          <li key={label} className={itemClassName}>
+            {content}
           </li>
         );
       })}
@@ -534,10 +868,15 @@ function OrderSummary({
   slot,
   city,
   reference,
+  priceAgorot,
+  packageLabel,
 }: {
   slot: MockupSlot;
   city: CityAvailability;
   reference?: string;
+  /** ברירת מחדל: מחיר המשבצת הרגיל. אחרי בחירת חבילה/יצירת הזמנה — הסכום הכולל בפועל */
+  priceAgorot?: number;
+  packageLabel?: string;
 }) {
   return (
     <aside className="h-fit rounded-lg border border-line bg-surface-2 p-5 shadow-e1 lg:sticky lg:top-24">
@@ -551,6 +890,7 @@ function OrderSummary({
         <Badge tone="neutral">{formatCm(slot.widthCm, slot.heightCm)}</Badge>
         <Badge tone="neutral">{slot.sku}</Badge>
         <Badge tone="accent">{city.name}</Badge>
+        {packageLabel ? <Badge tone="accent">חבילת {packageLabel}</Badge> : null}
       </div>
 
       {reference ? (
@@ -563,7 +903,7 @@ function OrderSummary({
         <div className="flex items-baseline justify-between">
           <span className="text-sm text-ink-2">סה״כ</span>
           <span className="tnum font-display text-2xl font-bold text-accent">
-            {formatPrice(slot.priceAgorot)}
+            {formatPrice(priceAgorot ?? slot.priceAgorot)}
           </span>
         </div>
       </div>

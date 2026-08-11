@@ -28,24 +28,8 @@ export async function PATCH(
     const body = await parseBody(request, patchCitySchema);
     if (!body.ok) return body.response;
 
-    const existing = await prisma.city.findUnique({
-      where: { id },
-      include: { _count: { select: { reservations: true } } },
-    });
+    const existing = await prisma.city.findUnique({ where: { id } });
     if (!existing) return notFound("העיר");
-
-    // הורדת קיבולת מתחת למה שכבר נמכר תיצור מלאי שלילי
-    if (
-      body.data.capacity !== undefined &&
-      body.data.capacity < existing._count.reservations
-    ) {
-      return fail(
-        409,
-        "CAPACITY_BELOW_SOLD",
-        `כבר נתפסו ${existing._count.reservations} משבצות בעיר הזו. ` +
-          `לא ניתן לקבוע קיבולת נמוכה מזה.`,
-      );
-    }
 
     const city = await prisma.city.update({
       where: { id },
@@ -75,7 +59,7 @@ export async function DELETE(
 
     const city = await prisma.city.findUnique({
       where: { id },
-      include: { _count: { select: { orders: true } } },
+      include: { _count: { select: { orders: true, editions: true } } },
     });
 
     if (!city) return notFound("העיר");
@@ -86,6 +70,15 @@ export async function DELETE(
         "CITY_HAS_ORDERS",
         `לעיר ${city.name} יש ${city._count.orders} הזמנות. ` +
           `אי אפשר למחוק אותה — אפשר להסתיר אותה מהבורר.`,
+      );
+    }
+
+    if (city._count.editions > 0) {
+      return fail(
+        409,
+        "CITY_HAS_EDITIONS",
+        `לעיר ${city.name} יש ${city._count.editions} מהדורות. ` +
+          `יש למחוק אותן קודם.`,
       );
     }
 

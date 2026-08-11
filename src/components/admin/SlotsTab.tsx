@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { toast } from "sonner";
-import { ExternalLink, Save } from "lucide-react";
+import { Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge, Field, Input, Textarea } from "@/components/ui/primitives";
 import { formatCm, formatPrice } from "@/lib/utils";
@@ -16,7 +16,6 @@ type AdminSlot = {
   heightCm: number;
   priceAgorot: number;
   badge: string | null;
-  checkoutUrl: string | null;
   active: boolean;
   citiesAvailable: number;
   soldCount: number;
@@ -53,7 +52,6 @@ export function SlotsTab() {
         description: data.get("description") || null,
         priceShekels: Number(data.get("price")),
         badge: data.get("badge") || null,
-        checkoutUrl: data.get("checkoutUrl") || "",
         active: data.get("active") === "on",
       }),
     });
@@ -82,14 +80,6 @@ export function SlotsTab() {
 
   return (
     <div>
-      <div className="mb-5 rounded-md border border-line bg-surface-2 p-4">
-        <p className="text-[13.5px] leading-relaxed text-ink-2">
-          <strong className="text-ink">קישור סליקה לכל מק״ט:</strong> הדביקו כאן
-          את הקישור הייעודי של המשבצת אצל ספק הסליקה. מק״ט בלי קישור מועבר
-          לעמוד סליקת הדגמה — שימושי לבדיקות, אבל לא לגבייה אמיתית.
-        </p>
-      </div>
-
       <div className="grid gap-4">
         {slots.map((slot) => (
           <form
@@ -112,9 +102,6 @@ export function SlotsTab() {
               </Badge>
               {slot.soldCount > 0 ? (
                 <Badge tone="accent">{slot.soldCount} נמכרו</Badge>
-              ) : null}
-              {!slot.checkoutUrl ? (
-                <Badge tone="warn">ללא קישור סליקה</Badge>
               ) : null}
 
               <span className="tnum mr-auto font-display text-lg font-bold text-accent">
@@ -155,21 +142,6 @@ export function SlotsTab() {
               </Field>
             </div>
 
-            <Field
-              label="קישור סליקה למק״ט זה"
-              htmlFor={`checkout-${slot.id}`}
-              hint="השאירו ריק כדי להשתמש בסליקת הדגמה"
-            >
-              <Input
-                id={`checkout-${slot.id}`}
-                name="checkoutUrl"
-                type="url"
-                dir="ltr"
-                placeholder="https://…"
-                defaultValue={slot.checkoutUrl ?? ""}
-              />
-            </Field>
-
             <Field label="תיאור בטולטיפ" htmlFor={`desc-${slot.id}`}>
               <Textarea
                 id={`desc-${slot.id}`}
@@ -188,18 +160,6 @@ export function SlotsTab() {
                 />
                 מוצגת בעמוד ההזמנה
               </label>
-
-              {slot.checkoutUrl ? (
-                <a
-                  href={slot.checkoutUrl}
-                  target="_blank"
-                  rel="noreferrer noopener"
-                  className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-accent hover:underline"
-                >
-                  <ExternalLink className="size-3.5" />
-                  בדיקת הקישור
-                </a>
-              ) : null}
 
               <Button
                 type="submit"

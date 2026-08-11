@@ -16,9 +16,6 @@ type AdminCity = {
   distribution: number | null;
   visible: boolean;
   autoHideWhenFull: boolean;
-  taken: number;
-  remaining: number;
-  isFull: boolean;
 };
 
 export function CitiesTab() {
@@ -189,7 +186,6 @@ export function CitiesTab() {
                     <h3 className="font-display text-lg font-semibold text-ink">
                       {city.name}
                     </h3>
-                    {city.isFull ? <Badge tone="warn">מלאה</Badge> : null}
                     {!city.visible ? (
                       <Badge tone="neutral">מוסתרת</Badge>
                     ) : null}
@@ -211,33 +207,14 @@ export function CitiesTab() {
                 </Button>
               </div>
 
-              {/* מד תפוסה */}
-              <div className="mt-4">
-                <div className="mb-1.5 flex items-baseline justify-between text-[12.5px]">
-                  <span className="text-muted">תפוסה</span>
-                  <span className="tnum font-semibold text-ink">
-                    {city.taken} / {city.capacity}
-                  </span>
-                </div>
-                <div className="h-2 overflow-hidden rounded-full bg-surface-3">
-                  <div
-                    className={cn(
-                      "h-full rounded-full transition-[width] duration-300 ease-smooth",
-                      city.isFull ? "bg-warn" : "bg-accent",
-                    )}
-                    style={{
-                      width: `${Math.min(100, (city.taken / city.capacity) * 100)}%`,
-                    }}
-                  />
-                </div>
-              </div>
-
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 <label className="text-[12.5px]">
-                  <span className="mb-1 block text-muted">קיבולת</span>
+                  <span className="mb-1 block text-muted">
+                    קיבולת ברירת מחדל למהדורות חדשות
+                  </span>
                   <Input
                     type="number"
-                    min={city.taken || 1}
+                    min={1}
                     max={200}
                     defaultValue={city.capacity}
                     className="py-1.5 text-[13px]"

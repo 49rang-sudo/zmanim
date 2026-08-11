@@ -1,12 +1,35 @@
 import { prisma } from "./prisma";
 import { env } from "./env";
 
+export type EditionAvailability = {
+  id: string;
+  cityId: string;
+  hebrewLabel: string;
+  gregorianMonth: number;
+  gregorianYear: number;
+  closesAt: string;
+  capacity: number;
+  taken: number;
+  remaining: number;
+  isFull: boolean;
+  status: "OPEN" | "CLOSED";
+  /** מזהי המשבצות התפוסות (זמנית או קבוע) במהדורה הזו — לצביעת המוקאפ */
+  occupiedSlotIds: string[];
+};
+
 export type CityAvailability = {
   id: string;
   name: string;
   region: string | null;
   distribution: number | null;
   note: string | null;
+  openEditionsCount: number;
+  nearestEdition: {
+    id: string;
+    hebrewLabel: string;
+    gregorianMonth: number;
+    gregorianYear: number;
+  } | null;
   capacity: number;
   taken: number;
   remaining: number;
@@ -46,8 +69,9 @@ export async function releaseExpiredHolds(): Promise<number> {
 }
 
 /**
- * זמינות לכל עיר. המלאי נספר ברמת העיר בלבד — אין מעקב אחרי
- * ריבוע בודד, כי העימוד הסופי ממזג ומזיז ריבועים.
+ * זמינות לכל עיר. המלאי נספר ברמת המהדורה (חודש ספציפי) — עיר
+ * נחשבת זמינה אם יש לה לפחות מהדורה פתוחה אחת שאינה מלאה.
+ * הפירוט המדויק לפי משבצת/מהדורה מגיע מ-getOpenEditionsForCity.
  *
  * includeHidden מיועד ללוח הניהול, שרוצה לראות גם ערים מוסתרות.
  */
@@ -56,15 +80,33 @@ export async function getCityAvailability(
 ): Promise<CityAvailability[]> {
   await releaseExpiredHolds();
 
+  const now = new Date();
+
   const cities = await prisma.city.findMany({
     where: includeHidden ? {} : { visible: true },
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-    include: { _count: { select: { reservations: true } } },
+    include: {
+      editions: {
+        where: { status: "OPEN", closesAt: { gt: now } },
+        orderBy: [{ gregorianYear: "asc" }, { gregorianMonth: "asc" }],
+        include: { _count: { select: { reservations: true } } },
+      },
+    },
   });
 
   const rows = cities.map((city) => {
-    const taken = city._count.reservations;
-    const isFull = taken >= city.capacity;
+    const openEditions = city.editions.map((edition) => ({
+      id: edition.id,
+      hebrewLabel: edition.hebrewLabel,
+      gregorianMonth: edition.gregorianMonth,
+      gregorianYear: edition.gregorianYear,
+      capacity: edition.capacity,
+      taken: edition._count.reservations,
+    }));
+
+    const nearest =
+      openEditions.find((e) => e.taken < e.capacity) ?? null;
+    const isFull = nearest === null;
 
     return {
       id: city.id,
@@ -72,9 +114,18 @@ export async function getCityAvailability(
       region: city.region,
       distribution: city.distribution,
       note: city.note,
-      capacity: city.capacity,
-      taken,
-      remaining: Math.max(0, city.capacity - taken),
+      openEditionsCount: openEditions.length,
+      nearestEdition: nearest
+        ? {
+            id: nearest.id,
+            hebrewLabel: nearest.hebrewLabel,
+            gregorianMonth: nearest.gregorianMonth,
+            gregorianYear: nearest.gregorianYear,
+          }
+        : null,
+      capacity: nearest?.capacity ?? 0,
+      taken: nearest?.taken ?? 0,
+      remaining: nearest ? Math.max(0, nearest.capacity - nearest.taken) : 0,
       isFull,
       available: !isFull,
       autoHideWhenFull: city.autoHideWhenFull,
@@ -92,48 +143,119 @@ export async function getCityAvailability(
     .map(({ autoHideWhenFull: _hide, ...rest }) => rest);
 }
 
+/**
+ * כל המהדורות הפתוחות של עיר, עם רשימת המשבצות התפוסות בכל אחת —
+ * זה מה שמניע את דפדוף החודשים ואת צביעת המוקאפ באשף ההזמנה.
+ */
+export async function getOpenEditionsForCity(
+  cityId: string,
+): Promise<EditionAvailability[]> {
+  const now = new Date();
+
+  const editions = await prisma.edition.findMany({
+    where: { cityId, status: "OPEN", closesAt: { gt: now } },
+    orderBy: [{ gregorianYear: "asc" }, { gregorianMonth: "asc" }],
+    include: {
+      reservations: { select: { slotId: true } },
+    },
+  });
+
+  return editions.map((edition) => {
+    const occupiedSlotIds = edition.reservations.map((r) => r.slotId);
+    const taken = occupiedSlotIds.length;
+
+    return {
+      id: edition.id,
+      cityId: edition.cityId,
+      hebrewLabel: edition.hebrewLabel,
+      gregorianMonth: edition.gregorianMonth,
+      gregorianYear: edition.gregorianYear,
+      closesAt: edition.closesAt.toISOString(),
+      capacity: edition.capacity,
+      taken,
+      remaining: Math.max(0, edition.capacity - taken),
+      isFull: taken >= edition.capacity,
+      status: edition.status,
+      occupiedSlotIds,
+    };
+  });
+}
+
 export class SlotUnavailableError extends Error {
-  constructor(public readonly reason: "CITY_FULL") {
+  constructor(
+    public readonly reason:
+      | "EDITION_FULL"
+      | "SLOT_TAKEN"
+      | "EDITION_CLOSED"
+      | "EDITION_NOT_FOUND",
+  ) {
     super(reason);
     this.name = "SlotUnavailableError";
   }
 }
 
 /**
- * תופס מקום במהדורה של העיר עבור הזמנה.
- *
- * `SELECT ... FOR UPDATE` נועל את שורת העיר עד סוף הטרנזקציה,
- * ולכן שתי בקשות מקבילות לאותה עיר נכנסות בתור ולא שתיהן
- * רואות את אותה ספירה. בלי הנעילה הזו אפשר היה לחרוג מהקיבולת,
- * כי אין יותר אינדקס ייחודי שיתפוס את המרוץ.
+ * תופס משבצת ספציפית בכל אחת מהמהדורות שברשימה, אטומית — הכול
+ * או כלום. נועלים בדיוק את שורות ה-Edition המעורבות, בסדר קבוע
+ * (ORDER BY id) כדי ששתי תפיסות מרובות-מהדורות שחופפות תמיד ננעלות
+ * באותו סדר יחסי — כך אי אפשר להגיע למבוי סתום (deadlock).
  */
 export async function reserveSlot(
   cityId: string,
   slotId: string,
+  editionIds: string[],
   orderId: string,
 ): Promise<Date> {
   await releaseExpiredHolds();
 
   const holdMinutes = env().SLOT_HOLD_MINUTES;
   const expiresAt = new Date(Date.now() + holdMinutes * 60 * 1000);
+  const now = new Date();
 
   await prisma.$transaction(async (tx) => {
-    const locked = await tx.$queryRaw<{ capacity: number }[]>`
-      SELECT capacity FROM cities WHERE id = ${cityId} FOR UPDATE
+    const locked = await tx.$queryRaw<
+      { id: string; capacity: number; status: string; closesAt: Date }[]
+    >`
+      SELECT id, capacity, status, "closesAt"
+      FROM editions
+      WHERE id = ANY(${editionIds}) AND "cityId" = ${cityId}
+      ORDER BY id
+      FOR UPDATE
     `;
 
-    if (locked.length === 0) {
-      throw new SlotUnavailableError("CITY_FULL");
+    if (locked.length !== editionIds.length) {
+      throw new SlotUnavailableError("EDITION_NOT_FOUND");
     }
 
-    const taken = await tx.slotReservation.count({ where: { cityId } });
-
-    if (taken >= locked[0].capacity) {
-      throw new SlotUnavailableError("CITY_FULL");
+    if (locked.some((e) => e.status !== "OPEN" || e.closesAt <= now)) {
+      throw new SlotUnavailableError("EDITION_CLOSED");
     }
 
-    await tx.slotReservation.create({
-      data: { cityId, slotId, orderId, expiresAt },
+    const existing = await tx.slotReservation.findMany({
+      where: { editionId: { in: editionIds } },
+      select: { editionId: true, slotId: true },
+    });
+
+    if (existing.some((r) => r.slotId === slotId)) {
+      throw new SlotUnavailableError("SLOT_TAKEN");
+    }
+
+    const takenCount = new Map<string, number>();
+    for (const row of existing) {
+      takenCount.set(row.editionId, (takenCount.get(row.editionId) ?? 0) + 1);
+    }
+    if (locked.some((e) => (takenCount.get(e.id) ?? 0) >= e.capacity)) {
+      throw new SlotUnavailableError("EDITION_FULL");
+    }
+
+    await tx.slotReservation.createMany({
+      data: editionIds.map((editionId) => ({
+        cityId,
+        slotId,
+        editionId,
+        orderId,
+        expiresAt,
+      })),
     });
   });
 
@@ -142,52 +264,79 @@ export async function reserveSlot(
 
 export type ConfirmReservationResult =
   | { ok: true }
-  | { ok: false; reason: "CITY_FULL" };
+  | { ok: false; reason: "PARTIAL_FAILURE"; failedEditionIds: string[] };
 
 /**
- * הופך החזקה זמנית לתפיסה קבועה — נקרא רק אחרי אישור תשלום.
+ * הופך החזקות זמניות לתפיסות קבועות — נקרא רק אחרי אישור תשלום.
  *
- * מקרה קצה: אם התשלום אושר *אחרי* שההחזקה כבר פגה (למשל webhook
- * שהגיע באיחור אחרי SLOT_HOLD_MINUTES, או ניקוי ידני), אין יותר
- * שורת reservation לעדכן — updateMany היה מדווח הצלחה על 0 שורות
- * בשקט, וההזמנה הייתה מסומנת "שולם" בלי לתפוס מקום בכלל, מה
- * שמאפשר חריגה ממכסת העיר. לכן במקרה הזה תופסים מקום חדש וקבוע
- * מההתחלה, עם אותה נעילת שורת עיר שמונעת מרוץ. אם העיר כבר מלאה
- * (מישהו אחר תפס את המקום בינתיים) — מחזירים CITY_FULL כדי שהקורא
- * יסמן את ההזמנה לטיפול ידני; התשלום עצמו כבר בוצע ואי אפשר
- * "לבטל" אותו כאן.
+ * מקרה קצה: אם התשלום אושר *אחרי* שהחזקה מסוימת כבר פגה (למשל
+ * webhook שהגיע באיחור), אין יותר שורת reservation לאותה מהדורה.
+ * במקרה הזה תופסים מקום קבוע מחדש רק למהדורות החסרות, כל אחת
+ * בנפרד, תחת אותה נעילת שורת-Edition שמונעת מרוץ. בניגוד לתפיסה
+ * הראשונית (reserveSlot, הכול-או-כלום), כאן מותר להצליח חלקית —
+ * התשלום כבר בוצע ואי אפשר "לבטל" אותו, אז מהדורה שלא הצליחה
+ * מסומנת לטיפול ידני ולא הופכת את כל האישור לכישלון.
  */
 export async function confirmReservation(
   orderId: string,
   cityId: string,
   slotId: string,
+  editionIds: string[],
 ): Promise<ConfirmReservationResult> {
   return prisma.$transaction(async (tx) => {
     const updated = await tx.slotReservation.updateMany({
-      where: { orderId },
+      where: { orderId, editionId: { in: editionIds } },
       data: { expiresAt: null },
     });
 
-    if (updated.count > 0) {
+    if (updated.count === editionIds.length) {
       return { ok: true };
     }
 
-    const locked = await tx.$queryRaw<{ capacity: number }[]>`
-      SELECT capacity FROM cities WHERE id = ${cityId} FOR UPDATE
+    const confirmedEditionIds = new Set(
+      (
+        await tx.slotReservation.findMany({
+          where: { orderId, editionId: { in: editionIds } },
+          select: { editionId: true },
+        })
+      ).map((r) => r.editionId),
+    );
+    const missingIds = editionIds.filter((id) => !confirmedEditionIds.has(id));
+
+    const locked = await tx.$queryRaw<{ id: string; capacity: number }[]>`
+      SELECT id, capacity FROM editions
+      WHERE id = ANY(${missingIds}) AND "cityId" = ${cityId}
+      ORDER BY id
+      FOR UPDATE
     `;
-    if (locked.length === 0) {
-      return { ok: false, reason: "CITY_FULL" };
+    const lockedById = new Map(locked.map((e) => [e.id, e]));
+
+    const failed: string[] = [];
+    for (const editionId of missingIds) {
+      const edition = lockedById.get(editionId);
+      if (!edition) {
+        failed.push(editionId);
+        continue;
+      }
+
+      const [alreadyTaken, taken] = await Promise.all([
+        tx.slotReservation.findFirst({ where: { editionId, slotId } }),
+        tx.slotReservation.count({ where: { editionId } }),
+      ]);
+
+      if (alreadyTaken || taken >= edition.capacity) {
+        failed.push(editionId);
+        continue;
+      }
+
+      await tx.slotReservation.create({
+        data: { cityId, slotId, editionId, orderId, expiresAt: null },
+      });
     }
 
-    const taken = await tx.slotReservation.count({ where: { cityId } });
-    if (taken >= locked[0].capacity) {
-      return { ok: false, reason: "CITY_FULL" };
-    }
-
-    await tx.slotReservation.create({
-      data: { cityId, slotId, orderId, expiresAt: null },
-    });
-    return { ok: true };
+    return failed.length === 0
+      ? { ok: true }
+      : { ok: false, reason: "PARTIAL_FAILURE", failedEditionIds: failed };
   });
 }
 

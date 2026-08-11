@@ -47,8 +47,9 @@ export async function POST(
 
     // ההחזקה פגה בזמן שהלקוח מילא פרטים
     if (
-      order.reservation?.expiresAt &&
-      order.reservation.expiresAt.getTime() < Date.now()
+      order.reservations.some(
+        (r) => r.expiresAt && r.expiresAt.getTime() < Date.now(),
+      )
     ) {
       return fail(
         409,

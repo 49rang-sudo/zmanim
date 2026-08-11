@@ -1,9 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { ArrowLeft, Check, MoveHorizontal } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, MoveHorizontal } from "lucide-react";
 import { cn, formatCm, formatPrice } from "@/lib/utils";
 import type { SiteContentData } from "@/lib/content";
+import type { EditionAvailability } from "@/lib/availability";
+import { Badge } from "@/components/ui/primitives";
 import { MonthSheet } from "./MonthSheet";
 
 export type MockupSlot = {
@@ -24,6 +26,10 @@ export type MockupSlot = {
 type Props = {
   slots: MockupSlot[];
   calendar: SiteContentData["calendar"];
+  /** מהדורות פתוחות של העיר שנבחרה — מניעות את הדפדוף בין החודשים */
+  editions: EditionAvailability[];
+  viewedEditionId: string | null;
+  onViewedEditionChange: (id: string) => void;
   selectedSlotId?: string | null;
   onSelect: (slot: MockupSlot) => void;
 };
@@ -33,36 +39,111 @@ type Props = {
    החצי העליון הוא A5 (210×148.5) ומוקצה למפרסמים, החצי התחתון
    הוא לוח השנה.
 
-   הריבועים כאן הם בחירת גודל ומחיר בלבד. אין להם סטטוס מלאי,
-   כי העימוד הסופי ממזג ומזיז אותם — הזמינות נמדדת ברמת העיר.
+   הריבועים כאן הם בחירת גודל ומחיר. הזמינות בפועל (תפוס/פנוי)
+   נמדדת ברמת (מהדורה, משבצת) — ריבוע יכול להיות תפוס בחודש אחד
+   ופנוי בחודש אחר של אותה עיר, ולכן צביעת "תפוס" תלויה בחודש
+   שמוצג כרגע (viewedEditionId), לא קבועה.
    --------------------------------------------------------------- */
 
 export function CalendarMockup({
   slots,
   calendar,
+  editions,
+  viewedEditionId,
+  onViewedEditionChange,
   selectedSlotId,
   onSelect,
 }: Props) {
   const [hovered, setHovered] = React.useState<string | null>(null);
 
+  const viewedIndex = editions.findIndex((e) => e.id === viewedEditionId);
+  const viewedEdition = viewedIndex >= 0 ? editions[viewedIndex] : null;
+  const occupiedSet = React.useMemo(
+    () => new Set(viewedEdition?.occupiedSlotIds ?? []),
+    [viewedEdition],
+  );
+
   const selected = slots.find((s) => s.id === selectedSlotId) ?? null;
   const focused = slots.find((s) => s.id === hovered) ?? selected;
+  const focusedOccupied = focused
+    ? occupiedSet.has(focused.id) && selectedSlotId !== focused.id
+    : false;
+
+  // לתצוגת לוח השנה בחצי התחתון — עוקב אחרי החודש שמוצג בפועל
+  // (viewedEdition) במקום התוכן השיווקי הסטטי, כדי שלא יסתרו זה
+  // את זה. חוזר לברירת המחדל הסטטית רק אם עדיין לא נטענו מהדורות.
+  const displayCalendar = viewedEdition
+    ? {
+        ...calendar,
+        monthLabel: viewedEdition.hebrewLabel,
+        yearLabel: "",
+        gregorianMonth: viewedEdition.gregorianMonth,
+        gregorianYear: viewedEdition.gregorianYear,
+      }
+    : calendar;
 
   return (
     <div>
-      <div className="relative">
-        <p className="mb-2 flex items-center gap-1.5 text-[12px] text-muted lg:hidden">
-          <MoveHorizontal className="size-3.5 shrink-0" />
-          גללו לצדדים כדי לראות את כל העמוד
-        </p>
+      <p className="mb-2 flex items-center gap-1.5 text-[12px] text-muted lg:hidden">
+        <MoveHorizontal className="size-3.5 shrink-0" />
+        גללו לצדדים כדי לראות את כל העמוד
+      </p>
 
+      {editions.length > 0 ? (
+        <div className="mb-3 flex items-center justify-between gap-2 rounded-md border border-line bg-surface-2 px-3 py-2">
+          <button
+            type="button"
+            disabled={viewedIndex <= 0}
+            onClick={() =>
+              viewedIndex > 0 &&
+              onViewedEditionChange(editions[viewedIndex - 1].id)
+            }
+            aria-label="חודש קודם"
+            className="grid size-7 place-items-center rounded-full text-ink-2 transition-colors duration-150 hover:bg-surface-3 disabled:pointer-events-none disabled:opacity-30"
+          >
+            <ArrowRight className="size-4" />
+          </button>
+
+          <div className="flex items-center gap-2">
+            <span className="font-display text-[14px] font-bold text-ink">
+              {viewedEdition?.hebrewLabel ?? "—"}
+            </span>
+            {viewedEdition ? (
+              <Badge tone={viewedEdition.remaining <= 3 ? "warn" : "success"}>
+                {viewedEdition.remaining} פנויות מתוך {viewedEdition.capacity}
+              </Badge>
+            ) : null}
+          </div>
+
+          <button
+            type="button"
+            disabled={viewedIndex < 0 || viewedIndex >= editions.length - 1}
+            onClick={() =>
+              viewedIndex >= 0 &&
+              viewedIndex < editions.length - 1 &&
+              onViewedEditionChange(editions[viewedIndex + 1].id)
+            }
+            aria-label="חודש הבא"
+            className="grid size-7 place-items-center rounded-full text-ink-2 transition-colors duration-150 hover:bg-surface-3 disabled:pointer-events-none disabled:opacity-30"
+          >
+            <ArrowLeft className="size-4" />
+          </button>
+        </div>
+      ) : null}
+
+      {/* עוטף ברוחב זהה בול לדף (mx-auto + max-w זהה) כדי שהחלונית
+          תתיישר איתו בלי להיות בתוך אזור הגלילה האופקית — בתוכו
+          כל מה שחורג מהדף נחתך (overflow-x-auto), וזה בדיוק מה
+          שקטע את הקו של החלונית כשהיא ישבה בפנים. */}
+      <div className="relative mx-auto w-full max-w-[620px]">
         {/* ============ חלון צף — הסכום והמעבר להזמנה ============
-            צף בפינת המוקאפ עצמו (לא בתחתית המסך) — קרוב לאזור
-            שבו בפועל עומדים/לוחצים, ולא מכסה את לוח השנה למטה. */}
+            top-0 מיישר אותו בול לגובה החלק העליון של הדף
+            ("מקביל ללוח"), וה-end בערך calc דוחף אותו כולו החוצה,
+            צמוד לשוליים החיצוניים — לא מכסה אף משבצת. */}
         <div
           aria-hidden={!focused}
           className={cn(
-            "pointer-events-none absolute -top-3 end-0 z-40 w-full max-w-[280px] sm:end-4",
+            "pointer-events-none absolute top-0 end-[calc(100%+1rem)] z-40 w-[260px]",
             "transition-[opacity,transform] duration-200 ease-smooth",
             focused ? "translate-y-0 opacity-100" : "-translate-y-2 opacity-0",
           )}
@@ -77,14 +158,14 @@ export function CalendarMockup({
               <FocusPanel
                 slot={focused}
                 isSelected={selectedSlotId === focused.id}
+                isOccupied={focusedOccupied}
                 onSelect={() => onSelect(focused)}
               />
             ) : null}
           </div>
         </div>
 
-        <div className="relative">
-          <div className="overflow-x-auto pb-2">
+        <div className="overflow-x-auto pb-2">
             {/* --- גיליון A4 — נייר אמיתי, קבוע לבן ללא קשר לערכת הנושא --- */}
             <div
               className={cn(
@@ -119,16 +200,25 @@ export function CalendarMockup({
                 >
                   {slots.map((slot, index) => {
                     const isSelected = selectedSlotId === slot.id;
+                    const isOccupied = occupiedSet.has(slot.id) && !isSelected;
 
                     return (
                       <button
                         key={slot.id}
                         type="button"
-                        onClick={() => onSelect(slot)}
+                        onClick={() => {
+                          if (isOccupied) return;
+                          onSelect(slot);
+                        }}
                         onMouseEnter={() => setHovered(slot.id)}
                         onFocus={() => setHovered(slot.id)}
                         onBlur={() => setHovered(null)}
-                        aria-label={`${slot.name}, ${formatCm(slot.widthCm, slot.heightCm)}, ${formatPrice(slot.priceAgorot)} — לחצו להזמנה`}
+                        aria-disabled={isOccupied}
+                        aria-label={
+                          isOccupied
+                            ? `${slot.name} — תפוס במהדורה זו`
+                            : `${slot.name}, ${formatCm(slot.widthCm, slot.heightCm)}, ${formatPrice(slot.priceAgorot)} — לחצו להזמנה`
+                        }
                         style={{
                           gridColumn: `${slot.col} / span ${slot.colSpan}`,
                           gridRow: `${slot.row} / span ${slot.rowSpan}`,
@@ -139,22 +229,30 @@ export function CalendarMockup({
                           background: isSelected
                             ? "var(--color-paper-accent-soft)"
                             : "var(--color-paper-2)",
+                          opacity: isOccupied ? 0.45 : 1,
                         }}
                         className={cn(
-                          "group relative flex cursor-pointer flex-col items-center justify-center gap-0.5",
-                          "overflow-hidden rounded-[4px] border p-1 text-center",
-                          "transition-[transform,background-color,border-color,box-shadow] duration-200 ease-smooth",
+                          "group relative flex flex-col items-center justify-center gap-0.5",
+                          "gradient-ring rounded-[4px] border p-1 text-center",
+                          "transition-[transform,background-color,border-color] duration-200 ease-smooth",
                           "animate-[pop-in_0.4s_var(--ease-out-soft)_both]",
-                          isSelected ? "border-2 shadow-e2" : "border-dashed hover:-translate-y-0.5 hover:shadow-e2",
+                          isOccupied
+                            ? "cursor-not-allowed border-dashed"
+                            : isSelected
+                              ? "cursor-pointer border-2"
+                              : "cursor-pointer border-dashed hover:-translate-y-1 hover:scale-[1.04] hover:border-solid",
                         )}
                       >
                         {isSelected ? (
-                          <span
-                            className="absolute right-1 top-1 grid size-4 place-items-center rounded-full text-white"
-                            style={{ background: "var(--color-paper-accent)" }}
-                          >
-                            <Check className="size-2.5" strokeWidth={3} />
-                          </span>
+                          <>
+                            <ConfettiBurst />
+                            <span
+                              className="absolute right-1 top-1 grid size-4 place-items-center rounded-full text-white"
+                              style={{ background: "var(--color-paper-accent)" }}
+                            >
+                              <Check className="size-2.5" strokeWidth={3} />
+                            </span>
+                          </>
                         ) : null}
 
                         <span
@@ -174,7 +272,7 @@ export function CalendarMockup({
                           className="tnum text-[10px] font-bold leading-none"
                           style={{ color: "var(--color-paper-accent)" }}
                         >
-                          {formatPrice(slot.priceAgorot)}
+                          {isOccupied ? "תפוס" : formatPrice(slot.priceAgorot)}
                         </span>
                       </button>
                     );
@@ -194,7 +292,7 @@ export function CalendarMockup({
               </div>
 
               {/* ====== חצי תחתון: A5 — לוח השנה ====== */}
-              <MonthSheet calendar={calendar} />
+              <MonthSheet calendar={displayCalendar} />
             </div>
           </div>
 
@@ -208,19 +306,72 @@ export function CalendarMockup({
           />
         </div>
       </div>
-    </div>
   );
 }
 
 /* --------------------------------------------------------------- */
 
+const CONFETTI_COLORS = [
+  "var(--color-brand-orange)",
+  "var(--color-brand-pink)",
+  "var(--color-brand-purple)",
+  "var(--color-paper-accent)",
+];
+
+/**
+ * פיצוץ קונפטי זעיר סביב תג הבחירה כשמשבצת נבחרת — בקשת לקוחה
+ * מפורשת: "לשבור את החזרתיות" של 14 ריבועים זהים ברגע הבחירה.
+ * גרסה מוקטנת בהשראת אפקט כפתור מוכר (ספינר→וי→קונפטי) — כאן רק
+ * חלק הקונפטי, בקנה מידה שמתאים לריבוע קטן, לא כפתור ענק.
+ * ממופה פעם אחת ב-mount בלבד (לא נטען מחדש כל עוד המשבצת נשארת
+ * נבחרת) כי isSelected הופך מ-false ל-true פעם אחת בלבד להזמנה.
+ */
+function ConfettiBurst() {
+  const particles = React.useMemo(
+    () =>
+      Array.from({ length: 10 }, () => {
+        const angle = Math.random() * Math.PI * 2;
+        const distance = 14 + Math.random() * 16;
+        return {
+          dx: Math.round(Math.cos(angle) * distance),
+          dy: Math.round(Math.sin(angle) * distance),
+          delay: Math.round(Math.random() * 80),
+          color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
+        };
+      }),
+    [],
+  );
+
+  return (
+    <span
+      aria-hidden
+      className="pointer-events-none absolute right-[11px] top-[11px] size-0"
+    >
+      {particles.map((p, i) => (
+        <span
+          key={i}
+          className="absolute size-[3.5px] rounded-full"
+          style={{
+            background: p.color,
+            animation: `confetti-pop 0.55s ${p.delay}ms ease-out forwards`,
+            ["--dx" as string]: `${p.dx}px`,
+            ["--dy" as string]: `${p.dy}px`,
+          }}
+        />
+      ))}
+    </span>
+  );
+}
+
 function FocusPanel({
   slot,
   isSelected,
+  isOccupied,
   onSelect,
 }: {
   slot: MockupSlot;
   isSelected: boolean;
+  isOccupied: boolean;
   onSelect: () => void;
 }) {
   return (
@@ -247,7 +398,7 @@ function FocusPanel({
       </dl>
 
       <div className="mt-4">
-        <p className="text-[11.5px] text-muted">מחיר לשנה</p>
+        <p className="text-[11.5px] text-muted">מחיר למהדורה</p>
         <p className="tnum font-display text-3xl leading-tight text-accent">
           {formatPrice(slot.priceAgorot)}
         </p>
@@ -261,16 +412,21 @@ function FocusPanel({
 
       <button
         type="button"
-        onClick={onSelect}
+        onClick={isOccupied ? undefined : onSelect}
+        disabled={isOccupied}
         className={cn(
           "mt-5 flex w-full items-center justify-center gap-2 px-4 py-3 text-sm font-bold",
           "transition-colors duration-200 ease-smooth",
-          isSelected
-            ? "bg-accent-soft text-accent-strong"
-            : "bg-ink text-canvas hover:bg-accent hover:text-white",
+          isOccupied
+            ? "cursor-not-allowed bg-surface-3 text-muted"
+            : isSelected
+              ? "bg-accent-soft text-accent-strong"
+              : "bg-ink text-canvas hover:bg-accent hover:text-white",
         )}
       >
-        {isSelected ? (
+        {isOccupied ? (
+          "תפוס במהדורה זו"
+        ) : isSelected ? (
           <>
             <Check className="size-4" strokeWidth={3} />
             נבחר
