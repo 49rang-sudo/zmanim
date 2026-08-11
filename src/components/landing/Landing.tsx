@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { ArrowLeft, Calendar, ChevronDown, MapPin, Sparkles, type LucideIcon } from "lucide-react";
+import { ArrowLeft, Calendar, ChevronDown, MapPin, MoveHorizontal, Sparkles, type LucideIcon } from "lucide-react";
 import { Eyebrow } from "@/components/ui/primitives";
 import { CountUpStat } from "./CountUpStat";
 import type { SiteContentData } from "@/lib/content";
@@ -204,12 +204,23 @@ export function HowItWorks({ content }: { content: SiteContentData }) {
           4 צעדים — והמודעה שלכם על הקיר
         </h2>
 
-        <ol className="mt-12 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <p className="mt-3 flex items-center gap-1.5 text-[12px] text-ink-2">
+          <MoveHorizontal className="size-3.5 shrink-0" />
+          גררו לצדדים כדי לעבור בין השלבים
+        </p>
+
+        {/* קרוסלה אופקית עם snap — כל גלילה מביאה את הכרטיס הבא
+            במלואו, בלי לצופף כמה כרטיסים צרים זה לצד זה. */}
+        <ol
+          className="mt-8 flex snap-x snap-mandatory gap-5 overflow-x-auto pb-4 [&::-webkit-scrollbar]:hidden"
+          style={{ scrollbarWidth: "none" }}
+        >
           {content.howItWorks.map((step, index) => (
             <li
               key={index}
               className={[
-                "chevron-shape group relative overflow-hidden border border-line-2 bg-surface py-6 pl-8 pr-6",
+                "chevron-shape group relative w-[82%] shrink-0 snap-center overflow-hidden border border-line-2 bg-surface py-6 pl-8 pr-6",
+                "sm:w-[58%] lg:w-[calc(25%-1.125rem)]",
                 "transition-[transform,border-color] duration-300 ease-smooth",
                 "hover:-translate-y-1.5 hover:scale-[1.02] hover:border-accent",
                 "hover:[animation:card-pulse_1.8s_ease-in-out_infinite]",
