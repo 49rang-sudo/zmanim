@@ -255,28 +255,18 @@ export function FAQ({ content }: { content: SiteContentData }) {
   return (
     <section id="faq" className="snap-section border-b border-line-2 scroll-mt-20">
       <div className="mx-auto max-w-[1200px] px-5 py-16 lg:px-8 lg:py-20">
-        <div className="flex flex-wrap items-end justify-between gap-6 border-b border-line pb-10">
-          <div>
-            <Eyebrow>שאלות נפוצות</Eyebrow>
-            <h2 className="mt-3 font-display text-[2.1rem] font-black leading-tight tracking-tight text-ink">
-              עוד לפני שסוגרים
-            </h2>
-          </div>
-
-          <a
-            href={contactHref}
-            className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-accent hover:text-accent-strong"
-          >
-            יש לכם שאלה שלא מופיעה כאן? צרו איתנו קשר {contactLabel}
-            <ArrowLeft className="size-3.5" />
-          </a>
+        <div className="border-b border-line pb-10">
+          <Eyebrow>שאלות נפוצות</Eyebrow>
+          <h2 className="mt-3 font-display text-[2.1rem] font-black leading-tight tracking-tight text-ink">
+            עוד לפני שסוגרים
+          </h2>
         </div>
 
         <div className="mt-8 grid gap-3">
           {content.faq.items.map((item, index) => (
             <details
               key={index}
-              className="group card-shape border border-line-2 bg-surface px-6 py-4 open:border-accent"
+              className="group card-shape shine-cta border border-line-2 bg-surface px-6 py-4 open:border-accent"
             >
               <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-display text-[16.5px] font-bold text-ink marker:content-none">
                 {item.question}
@@ -287,6 +277,16 @@ export function FAQ({ content }: { content: SiteContentData }) {
               </p>
             </details>
           ))}
+
+          {/* "עוד שאלה?" — סוגר את הרשימה באותה שורת אקורדיון בדיוק,
+              עם אותו אפקט ברק ב-hover כמו כפתור ה-CTA הראשי */}
+          <a
+            href={contactHref}
+            className="group card-shape shine-cta flex items-center justify-between gap-4 border border-line-2 bg-surface px-6 py-4 font-display text-[16.5px] font-bold text-ink transition-colors duration-200 ease-smooth hover:border-accent"
+          >
+            יש לכם שאלה שלא מופיעה כאן? צרו איתנו קשר {contactLabel}
+            <ArrowLeft className="size-4 shrink-0 text-muted transition-[transform,color] duration-300 ease-smooth group-hover:-translate-x-1 group-hover:text-accent" />
+          </a>
         </div>
       </div>
     </section>
