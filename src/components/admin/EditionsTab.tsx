@@ -5,7 +5,7 @@ import * as SwitchPrimitive from "@radix-ui/react-switch";
 import { toast } from "sonner";
 import { CalendarDays, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge, Field, Input } from "@/components/ui/primitives";
+import { Badge, Field, Input, Textarea } from "@/components/ui/primitives";
 import { cn } from "@/lib/utils";
 
 type AdminCity = { id: string; name: string; capacity: number };
@@ -23,6 +23,7 @@ type AdminEdition = {
   isFull: boolean;
   closesAt: string;
   status: "OPEN" | "CLOSED";
+  marketingNote: string | null;
 };
 
 export function EditionsTab() {
@@ -108,6 +109,7 @@ export function EditionsTab() {
         capacity: Number(form.get("capacity")),
         closesAt: form.get("closesAt"),
         status: "OPEN",
+        marketingNote: form.get("marketingNote") || null,
       }),
     });
     const data = await res.json();
@@ -228,6 +230,14 @@ export function EditionsTab() {
             </Field>
           </div>
 
+          <Field
+            label="למה לפרסם דווקא בחודש הזה (אופציונלי)"
+            htmlFor="marketingNote"
+            hint="מוצג ללקוח בזמן דפדוף בין החודשים באשף ההזמנה"
+          >
+            <Textarea id="marketingNote" name="marketingNote" maxLength={400} />
+          </Field>
+
           <div className="flex gap-2">
             <Button type="submit" size="sm" loading={busy}>
               יצירה
@@ -346,6 +356,24 @@ export function EditionsTab() {
                   />
                 </label>
               </div>
+
+              <label className="mt-3 block text-[12.5px]">
+                <span className="mb-1 block text-muted">
+                  למה לפרסם דווקא בחודש הזה
+                </span>
+                <Textarea
+                  defaultValue={edition.marketingNote ?? ""}
+                  maxLength={400}
+                  className="py-1.5 text-[13px]"
+                  placeholder="אופציונלי — מוצג ללקוח באשף ההזמנה"
+                  onBlur={(e) => {
+                    const value = e.target.value.trim() || null;
+                    if (value !== edition.marketingNote) {
+                      patch(edition.id, { marketingNote: value });
+                    }
+                  }}
+                />
+              </label>
 
               <div className="mt-4 border-t border-line pt-4">
                 <label className="flex cursor-pointer items-center justify-between gap-3">

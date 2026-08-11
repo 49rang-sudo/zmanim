@@ -1,7 +1,12 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
-import { confirmReservation, releaseReservation } from "@/lib/availability";
+import {
+  confirmReservation,
+  releaseReservation,
+  type SlotSelection,
+} from "@/lib/availability";
+import { resolveOrderSelections } from "@/lib/orders";
 import { fail, handle, notFound, ok, parseBody, unauthorized } from "@/lib/api";
 
 export const runtime = "nodejs";
@@ -46,8 +51,7 @@ export async function PATCH(
       const reservation = await confirmReservation(
         id,
         existing.cityId,
-        existing.slotId,
-        existing.editionIds,
+        existing.selections as SlotSelection[],
       );
       if (!reservation.ok) {
         const alert = `⚠ סומן כשולם, אך אין מקום פנוי במהדורות: ${reservation.failedEditionIds.join(", ")} — נדרש טיפול ידני (החזר חלקי/מהדורה חלופית).`;
@@ -87,18 +91,14 @@ export async function GET(
 
     if (!order) return notFound("ההזמנה");
 
-    const editions = await prisma.edition.findMany({
-      where: { id: { in: order.editionIds } },
-      select: {
-        id: true,
-        hebrewLabel: true,
-        gregorianMonth: true,
-        gregorianYear: true,
-      },
-    });
+    const detailsMap = await resolveOrderSelections([
+      { id: order.id, selections: order.selections },
+    ]);
 
     // הטוקן של הלקוח לא נחשף גם למנהל דרך ה-API
     const { accessToken: _token, ...safe } = order;
-    return ok({ order: { ...safe, editions } });
+    return ok({
+      order: { ...safe, selectionDetails: detailsMap.get(order.id) ?? [] },
+    });
   });
 }

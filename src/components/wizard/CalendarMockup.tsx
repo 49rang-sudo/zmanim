@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ArrowLeft, ArrowRight, Check, MoveHorizontal } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, MoveHorizontal, Sparkles } from "lucide-react";
 import { cn, formatCm, formatPrice } from "@/lib/utils";
 import { packageTotalAgorotForEditions } from "@/lib/packages";
 import type { SiteContentData } from "@/lib/content";
@@ -24,6 +24,16 @@ export type MockupSlot = {
   badge: string | null;
 };
 
+/** "אותו סוג" = אותו גודל פיזי — קובע אילו משבצות מתאימות זו לזו לחבילה */
+export function isSameType(a: MockupSlot, b: MockupSlot): boolean {
+  return (
+    a.colSpan === b.colSpan &&
+    a.rowSpan === b.rowSpan &&
+    a.widthCm === b.widthCm &&
+    a.heightCm === b.heightCm
+  );
+}
+
 type Props = {
   slots: MockupSlot[];
   calendar: SiteContentData["calendar"];
@@ -31,7 +41,12 @@ type Props = {
   editions: EditionAvailability[];
   viewedEditionId: string | null;
   onViewedEditionChange: (id: string) => void;
-  selectedSlotId?: string | null;
+  /** המשבצת שקבעה את "הסוג" הנרכש בהזמנה הזו — null לפני הבחירה הראשונה */
+  anchorSlot: MockupSlot | null;
+  /** כמה חודשים בסך הכול צריך לבחור (דרגת החבילה) — null עד שנבחרה */
+  targetCount: number | null;
+  /** הבחירה בפועל לכל מהדורה: editionId -> המשבצת שנבחרה בה */
+  selections: Record<string, MockupSlot>;
   onSelect: (slot: MockupSlot) => void;
 };
 
@@ -52,7 +67,9 @@ export function CalendarMockup({
   editions,
   viewedEditionId,
   onViewedEditionChange,
-  selectedSlotId,
+  anchorSlot,
+  targetCount,
+  selections,
   onSelect,
 }: Props) {
   const [hovered, setHovered] = React.useState<string | null>(null);
@@ -63,12 +80,31 @@ export function CalendarMockup({
     () => new Set(viewedEdition?.occupiedSlotIds ?? []),
     [viewedEdition],
   );
+  // המשבצת שכבר נבחרה עבור החודש שמוצג כרגע (אם בכלל)
+  const pickedForViewedMonth = viewedEditionId
+    ? selections[viewedEditionId]
+    : undefined;
 
-  const selected = slots.find((s) => s.id === selectedSlotId) ?? null;
-  const focused = slots.find((s) => s.id === hovered) ?? selected;
+  const focused = slots.find((s) => s.id === hovered) ?? pickedForViewedMonth ?? null;
+  const focusedIsPicked = !!focused && focused.id === pickedForViewedMonth?.id;
   const focusedOccupied = focused
-    ? occupiedSet.has(focused.id) && selectedSlotId !== focused.id
+    ? occupiedSet.has(focused.id) && !focusedIsPicked
     : false;
+  const focusedEligible = !!(
+    focused &&
+    anchorSlot &&
+    targetCount &&
+    !focusedOccupied &&
+    !focusedIsPicked &&
+    isSameType(anchorSlot, focused)
+  );
+  const focusedWrongType = !!(
+    focused &&
+    anchorSlot &&
+    targetCount &&
+    !isSameType(anchorSlot, focused) &&
+    !focusedIsPicked
+  );
 
   // לתצוגת לוח השנה בחצי התחתון — עוקב אחרי החודש שמוצג בפועל
   // (viewedEdition) במקום התוכן השיווקי הסטטי, כדי שלא יסתרו זה
@@ -164,6 +200,13 @@ export function CalendarMockup({
         </div>
       ) : null}
 
+      {viewedEdition?.marketingNote ? (
+        <p className="mb-3 flex items-start gap-2 rounded-md border border-accent/30 bg-accent-soft px-3 py-2 text-[12.5px] leading-relaxed text-accent-strong">
+          <Sparkles className="mt-0.5 size-3.5 shrink-0" />
+          {viewedEdition.marketingNote}
+        </p>
+      ) : null}
+
       {/* עוטף ברוחב זהה בול לדף (mx-auto + max-w זהה) כדי שהחלונית
           תתיישר איתו בלי להיות בתוך אזור הגלילה האופקית — בתוכו
           כל מה שחורג מהדף נחתך (overflow-x-auto), וזה בדיוק מה
@@ -190,8 +233,10 @@ export function CalendarMockup({
             {focused ? (
               <FocusPanel
                 slot={focused}
-                isSelected={selectedSlotId === focused.id}
+                isPicked={focusedIsPicked}
                 isOccupied={focusedOccupied}
+                isEligible={focusedEligible}
+                isWrongType={focusedWrongType}
                 onSelect={() => onSelect(focused)}
               />
             ) : null}
@@ -262,8 +307,16 @@ export function CalendarMockup({
                   }}
                 >
                   {slots.map((slot, index) => {
-                    const isSelected = selectedSlotId === slot.id;
-                    const isOccupied = occupiedSet.has(slot.id) && !isSelected;
+                    const isPicked = pickedForViewedMonth?.id === slot.id;
+                    const isOccupied = occupiedSet.has(slot.id) && !isPicked;
+                    // "מתאימה" = אותו סוג/גודל כמו העוגן, פנויה, ולא כבר
+                    // הבחירה של החודש הזה — זה בדיוק ה"הדגשה לפי סוג"
+                    const isEligible =
+                      !!anchorSlot &&
+                      !!targetCount &&
+                      !isOccupied &&
+                      !isPicked &&
+                      isSameType(anchorSlot, slot);
                     // 10 מתוך 14 המשבצות זהות (1×1, "משבצת" גנרית) — שם
                     // ומידות זהים חוזרים על עצמם ומרעישים חזותית. עליהן
                     // מציגים רק את המחיר; הפרטים המלאים תמיד זמינים
@@ -292,12 +345,16 @@ export function CalendarMockup({
                           gridColumn: `${slot.col} / span ${slot.colSpan}`,
                           gridRow: `${slot.row} / span ${slot.rowSpan}`,
                           animationDelay: `${index * 35}ms`,
-                          borderColor: isSelected
+                          borderColor: isPicked
                             ? "var(--color-paper-accent)"
-                            : "var(--color-paper-line-2)",
-                          background: isSelected
+                            : isEligible
+                              ? "var(--color-paper-accent)"
+                              : "var(--color-paper-line-2)",
+                          background: isPicked
                             ? "var(--color-paper-accent-soft)"
-                            : "var(--color-paper-2)",
+                            : isEligible
+                              ? "color-mix(in srgb, var(--color-paper-accent) 8%, var(--color-paper-2))"
+                              : "var(--color-paper-2)",
                           opacity: isOccupied ? 0.45 : 1,
                         }}
                         className={cn(
@@ -307,14 +364,16 @@ export function CalendarMockup({
                           "animate-[pop-in_0.4s_var(--ease-out-soft)_both]",
                           isOccupied
                             ? "cursor-not-allowed border-dashed"
-                            : isSelected
+                            : isPicked
                               ? "cursor-pointer border-2"
-                              : isGenericSquare
-                                ? "cursor-pointer border-solid hover:-translate-y-1 hover:scale-[1.04]"
-                                : "cursor-pointer border-dashed hover:-translate-y-1 hover:scale-[1.04] hover:border-solid",
+                              : isEligible
+                                ? "cursor-pointer border-2 [animation:card-pulse_1.8s_ease-in-out_infinite] hover:-translate-y-1 hover:scale-[1.04]"
+                                : isGenericSquare
+                                  ? "cursor-pointer border-solid hover:-translate-y-1 hover:scale-[1.04]"
+                                  : "cursor-pointer border-dashed hover:-translate-y-1 hover:scale-[1.04] hover:border-solid",
                         )}
                       >
-                        {isSelected ? (
+                        {isPicked ? (
                           <>
                             <ConfettiBurst />
                             <span
@@ -444,15 +503,25 @@ function ConfettiBurst() {
 
 function FocusPanel({
   slot,
-  isSelected,
+  isPicked,
   isOccupied,
+  isEligible,
+  isWrongType,
   onSelect,
 }: {
   slot: MockupSlot;
-  isSelected: boolean;
+  isPicked: boolean;
   isOccupied: boolean;
+  isEligible: boolean;
+  isWrongType: boolean;
   onSelect: () => void;
 }) {
+  // תצוגת "ל-3 חודשים" היא הצצה כללית לפני שנבחרה דרגת חבילה —
+  // ברגע שיש חבילה בתהליך (נבחר/מתאים/סוג אחר) הכפתור וההקשר כבר
+  // מספרים את הסיפור המדויק, ולא צריך עוד הצצה כללית שעלולה לבלבל.
+  const midPackage = isPicked || isEligible || isWrongType;
+  const disabled = isOccupied || isWrongType;
+
   return (
     <div>
       <span className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-muted">
@@ -483,12 +552,14 @@ function FocusPanel({
         </p>
       </div>
 
-      <div className="mt-2.5 flex items-center justify-between rounded-md bg-surface-2 px-3 py-2">
-        <span className="text-[11.5px] text-ink-2">ל-3 חודשים · 5% הנחה</span>
-        <span className="tnum text-[13px] font-bold text-ink">
-          {formatPrice(packageTotalAgorotForEditions(slot.priceAgorot, 3))}
-        </span>
-      </div>
+      {midPackage ? null : (
+        <div className="mt-2.5 flex items-center justify-between rounded-md bg-surface-2 px-3 py-2">
+          <span className="text-[11.5px] text-ink-2">ל-3 חודשים · 5% הנחה</span>
+          <span className="tnum text-[13px] font-bold text-ink">
+            {formatPrice(packageTotalAgorotForEditions(slot.priceAgorot, 3))}
+          </span>
+        </div>
+      )}
 
       {slot.description ? (
         <p className="mt-3.5 text-[12px] leading-relaxed text-muted">
@@ -498,25 +569,29 @@ function FocusPanel({
 
       <button
         type="button"
-        onClick={isOccupied ? undefined : onSelect}
-        disabled={isOccupied}
+        onClick={disabled ? undefined : onSelect}
+        disabled={disabled}
         className={cn(
           "mt-5 flex w-full items-center justify-center gap-2 px-4 py-3 text-sm font-bold",
           "transition-colors duration-200 ease-smooth",
-          isOccupied
+          disabled
             ? "cursor-not-allowed bg-surface-3 text-muted"
-            : isSelected
+            : isPicked
               ? "bg-accent-soft text-accent-strong"
               : "bg-ink text-canvas hover:bg-accent hover:text-white",
         )}
       >
         {isOccupied ? (
           "תפוס במהדורה זו"
-        ) : isSelected ? (
+        ) : isWrongType ? (
+          "סוג אחר — לא מתאים לחבילה"
+        ) : isPicked ? (
           <>
             <Check className="size-4" strokeWidth={3} />
-            נבחר
+            הסרה מהחודש הזה
           </>
+        ) : isEligible ? (
+          "הוספה לחבילה"
         ) : (
           <>
             להזמנה

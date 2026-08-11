@@ -97,6 +97,10 @@ model Edition {
   closesAt DateTime
   status   EditionStatus @default(OPEN)
 
+  /// טקסט שיווקי קצר: למה כדאי לפרסם דווקא במהדורה הזו. אופציונלי,
+  /// מוצג ללקוח בזמן דפדוף בין החודשים באשף ההזמנה.
+  marketingNote String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -188,13 +192,14 @@ model Order {
   /// null = הזמנה חד-פעמית (מהדורה אחת). ראו src/lib/packages.ts —
   /// עכשיו רק תוויות פריסט לתצוגה, לא מקור האמת למה שנתפס בפועל.
   packageTier     String?
-  /// שדה תצוגה מוכפל בכוונה — חייב להיות שווה editionIds.length.
+  /// שדה תצוגה מוכפל בכוונה — חייב להיות שווה selections.length.
   packageEditions Int      @default(1)
-  /// כל מזהי ה-Edition שנרכשו בהזמנה הזו, קפואים בזמן היצירה —
-  /// editionIds[0] הוא תמיד המהדורה שדרכה נבחרה המשבצת. הכרחי כדי
-  /// שנתיב השחזור ב-confirmReservation ידע מה לתפוס מחדש גם אחרי
-  /// ששורות SlotReservation המקוריות כבר נמחקו (החזקה שפגה).
-  editionIds      String[]
+  /// כל הבחירות בפועל בהזמנה: לכל מהדורה — איזו משבצת נבחרה בה.
+  /// יכולות להיות משבצות שונות (באותו סוג/גודל) בכל חודש — ראו
+  /// SlotSelection ב-src/lib/availability.ts. קפוא בזמן היצירה, כדי
+  /// שנתיב השחזור ב-confirmReservation ידע לתפוס מחדש במדויק גם
+  /// אחרי ששורות SlotReservation המקוריות כבר נמחקו (החזקה שפגה).
+  selections      Json
 
   contactName  String
   businessName String?

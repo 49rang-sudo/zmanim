@@ -4,21 +4,27 @@ import { reserveSlot, SlotUnavailableError } from "@/lib/availability";
 import { generateAccessToken, generateReference } from "@/lib/ids";
 import { getSiteSettings } from "@/lib/site";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
-import { AD_PACKAGES, packageTotalAgorotForEditions } from "@/lib/packages";
+import { AD_PACKAGES, sumWithPackageDiscount } from "@/lib/packages";
 import { fail, handle, ok, parseBody } from "@/lib/api";
 
 export const runtime = "nodejs";
 
 const createOrderSchema = z.object({
-  slotId: z.string().min(1),
   cityId: z.string().min(1),
-  editionIds: z
-    .array(z.string().min(1))
+  selections: z
+    .array(
+      z.object({
+        editionId: z.string().min(1),
+        slotId: z.string().min(1),
+      }),
+    )
     .min(1, "יש לבחור לפחות מהדורה אחת")
     .max(24)
-    .refine((ids) => new Set(ids).size === ids.length, {
-      message: "מהדורות כפולות",
-    }),
+    .refine(
+      (sels) =>
+        new Set(sels.map((s) => s.editionId)).size === sels.length,
+      { message: "מהדורות כפולות" },
+    ),
   // האישור מגיע מהלקוח, אבל חותמת הזמן נקבעת בשרת בלבד
   tosAccepted: z.literal(true, {
     message: "יש לאשר את תנאי ההתקשרות",
@@ -53,47 +59,67 @@ export async function POST(request: Request) {
     if (!body.ok) return body.response;
     const input = body.data;
 
-    const [slot, city, settings] = await Promise.all([
-      prisma.adSlot.findUnique({ where: { id: input.slotId } }),
+    const slotIds = [...new Set(input.selections.map((s) => s.slotId))];
+    const [slots, city, settings] = await Promise.all([
+      prisma.adSlot.findMany({ where: { id: { in: slotIds } } }),
       prisma.city.findUnique({ where: { id: input.cityId } }),
       getSiteSettings(),
     ]);
 
-    if (!slot || !slot.active) {
-      return fail(404, "SLOT_NOT_FOUND", "המשבצת המבוקשת אינה זמינה");
+    const slotsById = new Map(slots.map((s) => [s.id, s]));
+    if (slotIds.some((id) => !slotsById.get(id)?.active)) {
+      return fail(404, "SLOT_NOT_FOUND", "אחת המשבצות המבוקשות אינה זמינה");
     }
     if (!city || !city.visible) {
       return fail(404, "CITY_NOT_FOUND", "העיר המבוקשת אינה זמינה");
     }
 
+    // המשבצת הראשונה קובעת את "הסוג" (גודל) של כל ההזמנה — כל
+    // הבחירות האחרות חייבות להתאים לה במידות, גם אם המיקום/המק"ט
+    // שונה בכל חודש. לא סומכים על הלקוח — נבדק גם כאן בשרת.
+    const anchorSlot = slotsById.get(input.selections[0].slotId)!;
+    const sameType = slots.every(
+      (s) =>
+        s.colSpan === anchorSlot.colSpan &&
+        s.rowSpan === anchorSlot.rowSpan &&
+        s.widthCm === anchorSlot.widthCm &&
+        s.heightCm === anchorSlot.heightCm,
+    );
+    if (!sameType) {
+      return fail(
+        422,
+        "TYPE_MISMATCH",
+        "כל המשבצות בהזמנה חייבות להיות מאותו גודל",
+      );
+    }
+
     const reference = generateReference();
     const accessToken = generateAccessToken();
-    const editionsCount = input.editionIds.length;
+    const editionsCount = input.selections.length;
     // תווית פריסט קוסמטית בלבד לתצוגה — אם הכמות תואמת דרגה מוכרת
     const cosmeticTier =
       AD_PACKAGES.find(
         (p) => p.editions === editionsCount && p.id !== "SINGLE",
       )?.id ?? null;
+    const totalPriceAgorot = sumWithPackageDiscount(
+      input.selections.map((s) => slotsById.get(s.slotId)!.priceAgorot),
+    );
 
-    // ההזמנה נוצרת קודם, ורק אז נתפסת המשבצת — כך שאם התפיסה
+    // ההזמנה נוצרת קודם, ורק אז נתפסות המשבצות — כך שאם התפיסה
     // נכשלת בגלל מרוץ, אנחנו מוחקים הזמנה ולא משאירים תפיסה יתומה.
     const order = await prisma.order.create({
       data: {
         reference,
         accessToken,
         status: "PENDING",
-        slotId: slot.id,
+        slotId: anchorSlot.id,
         cityId: city.id,
-        sku: slot.sku,
+        sku: anchorSlot.sku,
         // המחיר מוקפא ברגע ההזמנה — שינוי מחירון לא ישפיע עליה.
-        // בחבילה זה כבר הסכום הכולל אחרי הנחה, לא מחיר ליחידה.
-        priceAgorot: packageTotalAgorotForEditions(
-          slot.priceAgorot,
-          editionsCount,
-        ),
+        priceAgorot: totalPriceAgorot,
         packageTier: cosmeticTier,
         packageEditions: editionsCount,
-        editionIds: input.editionIds,
+        selections: input.selections,
         contactName: input.contactName,
         businessName: input.businessName ?? null,
         phone: input.phone,
@@ -107,8 +133,7 @@ export async function POST(request: Request) {
     try {
       const holdExpiresAt = await reserveSlot(
         city.id,
-        slot.id,
-        input.editionIds,
+        input.selections,
         order.id,
       );
 
@@ -120,9 +145,9 @@ export async function POST(request: Request) {
           priceAgorot: order.priceAgorot,
           packageTier: order.packageTier,
           packageEditions: order.packageEditions,
-          editionIds: order.editionIds,
+          selections: input.selections,
           holdExpiresAt: holdExpiresAt.toISOString(),
-          slot: { id: slot.id, name: slot.name, sku: slot.sku },
+          slot: { id: anchorSlot.id, name: anchorSlot.name, sku: anchorSlot.sku },
           city: { id: city.id, name: city.name },
         },
         201,

@@ -12,9 +12,8 @@ import {
   Mail,
   ShieldCheck,
 } from "lucide-react";
-import { CalendarMockup, type MockupSlot } from "./CalendarMockup";
+import { CalendarMockup, isSameType, type MockupSlot } from "./CalendarMockup";
 import { CityPicker } from "./CityPicker";
-import { EditionChecklist } from "./EditionChecklist";
 import { TierPicker } from "./TierPicker";
 import { TosDialog } from "./TosDialog";
 import { MailingListDialog } from "./MailingListDialog";
@@ -23,7 +22,7 @@ import { SumitCardForm } from "./SumitCardForm";
 import { Button } from "@/components/ui/button";
 import { Badge, Eyebrow, Field, Input, Textarea } from "@/components/ui/primitives";
 import { cn, formatCm, formatPrice } from "@/lib/utils";
-import { AD_PACKAGES, packageTotalAgorotForEditions } from "@/lib/packages";
+import { AD_PACKAGES, sumWithPackageDiscount } from "@/lib/packages";
 import type { SiteContentData } from "@/lib/content";
 import type { CityAvailability, EditionAvailability } from "@/lib/availability";
 
@@ -59,8 +58,8 @@ export function OrderWizard({
 }: Props) {
   const router = useRouter();
   const [step, setStep] = React.useState(1);
-  const [slot, setSlot] = React.useState<MockupSlot | null>(null);
-  const [pendingSlot, setPendingSlot] = React.useState<MockupSlot | null>(null);
+  /** המשבצת שקבעה את "הסוג" (גודל) הנרכש בהזמנה הנוכחית */
+  const [anchorSlot, setAnchorSlot] = React.useState<MockupSlot | null>(null);
   const [tosOpen, setTosOpen] = React.useState(false);
   const [mailingModalOpen, setMailingModalOpen] = React.useState(false);
   const [mailingListStatus, setMailingListStatus] = React.useState<
@@ -74,9 +73,11 @@ export function OrderWizard({
   const [viewedEditionId, setViewedEditionId] = React.useState<string | null>(
     null,
   );
-  const [selectedEditionIds, setSelectedEditionIds] = React.useState<
-    string[]
-  >([]);
+  /** הבחירה בפועל לכל מהדורה: editionId -> המשבצת שנבחרה בה (יכולה
+   * להיות משבצת אחרת בכל חודש, כל עוד היא מאותו סוג/גודל כמו העוגן) */
+  const [selections, setSelections] = React.useState<
+    Record<string, MockupSlot>
+  >({});
   /** null = עדיין לא נבחרה דרגה (בודד/חבילה) עבור המשבצת הנוכחית */
   const [targetEditionsCount, setTargetEditionsCount] = React.useState<
     number | null
@@ -181,22 +182,66 @@ export function OrderWizard({
   };
 
   /* --- לחיצה על משבצת פותחת את התנאים לפני כל התחייבות --- */
-  const handleSlotClick = (clicked: MockupSlot) => {
-    setPendingSlot(clicked);
-    setTosOpen(true);
-  };
+  /**
+   * לחיצה על משבצת בגריד. הלחיצה הראשונה קובעת את "הסוג" (גודל)
+   * הנרכש ופותחת את TierPicker — בלי תנאי התקשרות בשלב הזה, הם
+   * מוצגים רק פעם אחת בסוף, אחרי שמכסת החודשים התמלאה. לחיצות
+   * הבאות (אחרי שנבחרה דרגה) מסמנות/מבטלות את הבחירה לחודש הנצפה.
+   */
+  const handleGridSelect = (clicked: MockupSlot) => {
+    if (!anchorSlot) {
+      setAnchorSlot(clicked);
+      setSelections({});
+      setTargetEditionsCount(null);
+      return;
+    }
 
-  const handleTosAccept = () => {
-    setSlot(pendingSlot);
-    // נשארים בשלב 2 — קודם TierPicker (בודד/חבילה, בסכומים אמיתיים),
-    // ורק אחרי בחירת דרגה נפתח הצ'קליסט לבחירת החודשים בפועל
-    setSelectedEditionIds(viewedEditionId ? [viewedEditionId] : []);
-    setTargetEditionsCount(null);
+    if (!isSameType(anchorSlot, clicked)) {
+      toast.error(
+        'המשבצת הזו מסוג אחר — לחצו "בחירה מחדש" כדי להתחיל עם גודל חדש',
+      );
+      return;
+    }
+
+    if (!targetEditionsCount || !viewedEditionId) return;
+
+    setSelections((prev) => {
+      const current = prev[viewedEditionId];
+      if (current?.id === clicked.id) {
+        const next = { ...prev };
+        delete next[viewedEditionId];
+        return next;
+      }
+      if (!current && Object.keys(prev).length >= targetEditionsCount) {
+        toast.error(
+          `כבר נבחרו ${targetEditionsCount} חודשים — בטלו בחירה בחודש אחר קודם`,
+        );
+        return prev;
+      }
+      return { ...prev, [viewedEditionId]: clicked };
+    });
   };
 
   const handleTierSelect = (editionsCount: number) => {
     setTargetEditionsCount(editionsCount);
-    setSelectedEditionIds((prev) => prev.slice(0, editionsCount));
+    setSelections((prev) => {
+      const entries = Object.entries(prev).slice(0, editionsCount);
+      if (entries.length === 0 && viewedEditionId && anchorSlot) {
+        entries.push([viewedEditionId, anchorSlot]);
+      }
+      return Object.fromEntries(entries);
+    });
+  };
+
+  const handleResetSelection = () => {
+    setAnchorSlot(null);
+    setSelections({});
+    setTargetEditionsCount(null);
+  };
+
+  /** נפתח רק אחרי שמכסת החודשים התמלאה — תנאי ההתקשרות מכסים את כל החבילה */
+  const handleTosAccept = () => {
+    goTo(3);
   };
 
   const handleMailingDecision = (joined: boolean) => {
@@ -206,7 +251,15 @@ export function OrderWizard({
 
   /* --- יצירת ההזמנה ותפיסת המשבצת --- */
   const createOrder = async () => {
-    if (!slot || !city || selectedEditionIds.length === 0) return;
+    const entries = Object.entries(selections);
+    if (
+      !anchorSlot ||
+      !city ||
+      !targetEditionsCount ||
+      entries.length !== targetEditionsCount
+    ) {
+      return;
+    }
 
     const nextErrors: Record<string, string> = {};
     if (form.contactName.trim().length < 2)
@@ -225,9 +278,11 @@ export function OrderWizard({
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          slotId: slot.id,
           cityId: city.id,
-          editionIds: selectedEditionIds,
+          selections: entries.map(([editionId, s]) => ({
+            editionId,
+            slotId: s.id,
+          })),
           tosAccepted: true,
           contactName: form.contactName.trim(),
           businessName: form.businessName.trim() || null,
@@ -257,8 +312,7 @@ export function OrderWizard({
             // אם הרענון עצמו נכשל, פשוט משאירים את המצב הישן —
             // הלקוח עדיין יכול לנסות שוב מהשלב הקודם
           }
-          setSlot(null);
-          setSelectedEditionIds([]);
+          handleResetSelection();
           goTo(2);
           return;
         }
@@ -357,49 +411,57 @@ export function OrderWizard({
             editions={editions ?? []}
             viewedEditionId={viewedEditionId}
             onViewedEditionChange={setViewedEditionId}
-            selectedSlotId={slot?.id ?? null}
-            onSelect={handleSlotClick}
+            anchorSlot={anchorSlot}
+            targetCount={targetEditionsCount}
+            selections={selections}
+            onSelect={handleGridSelect}
           />
 
-          {slot ? (
-            <TierPicker
-              slot={slot}
-              selectedEditionsCount={targetEditionsCount}
-              onSelect={handleTierSelect}
-            />
-          ) : null}
+          {anchorSlot ? (
+            <>
+              <TierPicker
+                slot={anchorSlot}
+                selectedEditionsCount={targetEditionsCount}
+                onSelect={handleTierSelect}
+              />
 
-          {slot && editions && viewedEditionId && targetEditionsCount && targetEditionsCount > 1 ? (
-            <EditionChecklist
-              slot={slot}
-              currentEditionId={viewedEditionId}
-              editions={editions}
-              targetCount={targetEditionsCount}
-              selectedEditionIds={selectedEditionIds}
-              onChange={setSelectedEditionIds}
-            />
+              {targetEditionsCount ? (
+                <div className="mt-4 flex items-center justify-between gap-3 rounded-md border border-line bg-surface-2 px-4 py-3">
+                  <p className="text-[13px] text-ink-2">
+                    {Object.keys(selections).length === targetEditionsCount
+                      ? `נבחרו ${targetEditionsCount} חודשים ✓ — דפדפו בין החודשים כדי לראות/לשנות`
+                      : `נבחרו ${Object.keys(selections).length} מתוך ${targetEditionsCount} חודשים — דפדפו בין החודשים ולחצו על משבצת מודגשת`}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleResetSelection}
+                    className="shrink-0 text-[12.5px] font-semibold text-accent underline underline-offset-2 hover:text-accent-strong"
+                  >
+                    בחירה מחדש
+                  </button>
+                </div>
+              ) : null}
+            </>
           ) : null}
 
           <NavRow
             onBack={() => {
               setCity(null);
-              setSlot(null);
-              setSelectedEditionIds([]);
-              setTargetEditionsCount(null);
+              handleResetSelection();
               goTo(1);
             }}
             backLabel="חזרה לבחירת עיר"
             next={
               <Button
                 disabled={
-                  !slot ||
+                  !anchorSlot ||
                   !targetEditionsCount ||
-                  selectedEditionIds.length !== targetEditionsCount
+                  Object.keys(selections).length !== targetEditionsCount
                 }
-                onClick={() => goTo(3)}
+                onClick={() => setTosOpen(true)}
                 className="shine-cta"
               >
-                המשך לפרטים
+                המשך לתנאי ההתקשרות
                 <ArrowLeft className="size-4" />
               </Button>
             }
@@ -408,7 +470,7 @@ export function OrderWizard({
       ) : null}
 
       {/* ============ שלב 3 — פרטים ============ */}
-      {step === 3 && slot && city ? (
+      {step === 3 && anchorSlot && city ? (
         <section className="animate-[fade-up_0.45s_var(--ease-out-soft)_both]">
           <StepHeading
             title={content.wizard.detailsTitle}
@@ -505,16 +567,15 @@ export function OrderWizard({
             </div>
 
             <OrderSummary
-              slot={slot}
+              slot={anchorSlot}
               city={city}
-              priceAgorot={packageTotalAgorotForEditions(
-                slot.priceAgorot,
-                selectedEditionIds.length,
+              priceAgorot={sumWithPackageDiscount(
+                Object.values(selections).map((s) => s.priceAgorot),
               )}
               packageLabel={
                 AD_PACKAGES.find(
                   (p) =>
-                    p.editions === selectedEditionIds.length &&
+                    p.editions === Object.keys(selections).length &&
                     p.id !== "SINGLE",
                 )?.label
               }
@@ -535,7 +596,7 @@ export function OrderWizard({
       ) : null}
 
       {/* ============ שלב 4 — קובץ ============ */}
-      {step === 4 && order && slot && city ? (
+      {step === 4 && order && anchorSlot && city ? (
         <section className="animate-[fade-up_0.45s_var(--ease-out-soft)_both]">
           <StepHeading
             title={content.wizard.uploadTitle}
@@ -557,7 +618,7 @@ export function OrderWizard({
             />
 
             <OrderSummary
-              slot={slot}
+              slot={anchorSlot}
               city={city}
               reference={order.reference}
               priceAgorot={order.priceAgorot}
@@ -577,7 +638,7 @@ export function OrderWizard({
       ) : null}
 
       {/* ============ שלב 5 — תשלום ============ */}
-      {step === 5 && order && slot && city ? (
+      {step === 5 && order && anchorSlot && city ? (
         <section className="animate-[fade-up_0.45s_var(--ease-out-soft)_both]">
           <StepHeading
             title={content.wizard.payTitle}
@@ -606,11 +667,10 @@ export function OrderWizard({
 
               <dl className="divide-y divide-line">
                 <SummaryRow label="מספר הזמנה" value={order.reference} mono />
-                <SummaryRow label="משבצת" value={slot.name} />
-                <SummaryRow label="מק״ט" value={slot.sku} mono />
+                <SummaryRow label="גודל משבצת" value={anchorSlot.name} />
                 <SummaryRow
                   label="מידות"
-                  value={formatCm(slot.widthCm, slot.heightCm)}
+                  value={formatCm(anchorSlot.widthCm, anchorSlot.heightCm)}
                 />
                 <SummaryRow label="עיר" value={city.name} />
                 <SummaryRow label="קובץ" value={uploaded?.name ?? "—"} />
@@ -658,7 +718,7 @@ export function OrderWizard({
             </div>
 
             <OrderSummary
-              slot={slot}
+              slot={anchorSlot}
               city={city}
               reference={order.reference}
               priceAgorot={order.priceAgorot}
@@ -671,11 +731,15 @@ export function OrderWizard({
       ) : null}
 
       <TosDialog
-        slot={pendingSlot}
+        slot={anchorSlot}
         tos={content.tos}
         open={tosOpen}
         onOpenChange={setTosOpen}
         onAccept={handleTosAccept}
+        editionsCount={Object.keys(selections).length}
+        totalPriceAgorot={sumWithPackageDiscount(
+          Object.values(selections).map((s) => s.priceAgorot),
+        )}
       />
 
       <MailingListDialog

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { releaseExpiredHolds } from "@/lib/availability";
+import { resolveOrderSelections } from "@/lib/orders";
 import { handle, ok, unauthorized } from "@/lib/api";
 
 export const runtime = "nodejs";
@@ -54,26 +55,16 @@ export async function GET(request: Request) {
       prisma.order.groupBy({ by: ["status"], _count: { _all: true } }),
     ]);
 
-    const allEditionIds = [...new Set(orders.flatMap((o) => o.editionIds))];
-    const editions = await prisma.edition.findMany({
-      where: { id: { in: allEditionIds } },
-      select: {
-        id: true,
-        hebrewLabel: true,
-        gregorianMonth: true,
-        gregorianYear: true,
-      },
-    });
-    const editionMap = new Map(editions.map((e) => [e.id, e]));
-    const ordersWithEditions = orders.map((o) => ({
+    const detailsMap = await resolveOrderSelections(
+      orders.map((o) => ({ id: o.id, selections: o.selections })),
+    );
+    const ordersWithSelections = orders.map((o) => ({
       ...o,
-      editions: o.editionIds
-        .map((id) => editionMap.get(id))
-        .filter((e): e is NonNullable<typeof e> => !!e),
+      selectionDetails: detailsMap.get(o.id) ?? [],
     }));
 
     return ok({
-      orders: ordersWithEditions,
+      orders: ordersWithSelections,
       total,
       page,
       pageSize,

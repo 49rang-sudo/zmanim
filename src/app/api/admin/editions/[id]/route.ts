@@ -10,6 +10,7 @@ const patchEditionSchema = z.object({
   capacity: z.coerce.number().int().min(1).max(200).optional(),
   closesAt: z.coerce.date().optional(),
   status: z.enum(["OPEN", "CLOSED"]).optional(),
+  marketingNote: z.string().trim().max(400).optional().nullable(),
 });
 
 export async function PATCH(

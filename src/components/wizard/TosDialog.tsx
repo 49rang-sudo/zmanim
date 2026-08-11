@@ -23,9 +23,21 @@ type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onAccept: () => void;
+  /** כמה מהדורות (חודשים) בסך הכול בהזמנה — 1 = פרסום חד-פעמי */
+  editionsCount?: number;
+  /** הסכום הכולל בפועל, אחרי הנחת חבילה אם רלוונטי */
+  totalPriceAgorot?: number;
 };
 
-export function TosDialog({ slot, tos, open, onOpenChange, onAccept }: Props) {
+export function TosDialog({
+  slot,
+  tos,
+  open,
+  onOpenChange,
+  onAccept,
+  editionsCount = 1,
+  totalPriceAgorot,
+}: Props) {
   const [accepted, setAccepted] = React.useState(false);
   const scrollRef = React.useRef<HTMLDivElement>(null);
 
@@ -50,9 +62,13 @@ export function TosDialog({ slot, tos, open, onOpenChange, onAccept }: Props) {
               {slot.name}
             </Badge>
             <Badge tone="neutral">{formatCm(slot.widthCm, slot.heightCm)}</Badge>
-            <Badge tone="neutral">{slot.sku}</Badge>
+            {editionsCount > 1 ? (
+              <Badge tone="neutral">{editionsCount} מהדורות</Badge>
+            ) : (
+              <Badge tone="neutral">{slot.sku}</Badge>
+            )}
             <span className="tnum mr-auto font-display text-lg font-bold text-accent">
-              {formatPrice(slot.priceAgorot)}
+              {formatPrice(totalPriceAgorot ?? slot.priceAgorot)}
             </span>
           </div>
 

@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { prisma } from "./prisma";
-import { confirmReservation } from "./availability";
+import { confirmReservation, type SlotSelection } from "./availability";
 
 /**
  * חתימת HMAC על גוף ה-webhook.
@@ -87,8 +87,7 @@ export async function markOrderPaid(
   const reservation = await confirmReservation(
     order.id,
     order.cityId,
-    order.slotId,
-    order.editionIds,
+    order.selections as SlotSelection[],
   );
 
   if (!reservation.ok) {

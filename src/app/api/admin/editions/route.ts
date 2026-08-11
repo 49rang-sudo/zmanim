@@ -14,6 +14,7 @@ const createEditionSchema = z.object({
   capacity: z.coerce.number().int().min(1).max(200),
   closesAt: z.coerce.date(),
   status: z.enum(["OPEN", "CLOSED"]).default("OPEN"),
+  marketingNote: z.string().trim().max(400).optional().nullable(),
 });
 
 /** GET /api/admin/editions?cityId=<id> — ברירת מחדל: כל הערים */
@@ -51,6 +52,7 @@ export async function GET(request: Request) {
         isFull: e._count.reservations >= e.capacity,
         closesAt: e.closesAt,
         status: e.status,
+        marketingNote: e.marketingNote,
       })),
     });
   });
@@ -94,6 +96,7 @@ export async function POST(request: Request) {
         capacity: data.capacity,
         closesAt: data.closesAt,
         status: data.status,
+        marketingNote: data.marketingNote ?? null,
       },
     });
 

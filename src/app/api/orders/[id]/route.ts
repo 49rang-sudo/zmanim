@@ -1,4 +1,8 @@
-import { extractOrderToken, findOrderByToken } from "@/lib/orders";
+import {
+  extractOrderToken,
+  findOrderByToken,
+  resolveOrderSelections,
+} from "@/lib/orders";
 import { handle, notFound, ok } from "@/lib/api";
 
 export const runtime = "nodejs";
@@ -14,6 +18,10 @@ export async function GET(
     const order = await findOrderByToken(id, extractOrderToken(request));
 
     if (!order) return notFound("ההזמנה");
+
+    const detailsMap = await resolveOrderSelections([
+      { id: order.id, selections: order.selections },
+    ]);
 
     return ok({
       id: order.id,
@@ -39,7 +47,7 @@ export async function GET(
           }
         : null,
       holdExpiresAt: order.reservations[0]?.expiresAt ?? null,
-      editionIds: order.editionIds,
+      selections: detailsMap.get(order.id) ?? [],
       paidAt: order.paidAt,
       createdAt: order.createdAt,
     });

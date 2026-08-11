@@ -27,12 +27,14 @@ type AdminOrder = {
   paidAt: string | null;
   packageTier: string | null;
   packageEditions: number;
-  editionIds: string[];
-  editions: {
-    id: string;
-    hebrewLabel: string;
+  selectionDetails: {
+    editionId: string;
+    slotId: string;
+    editionLabel: string;
     gregorianMonth: number;
     gregorianYear: number;
+    slotName: string;
+    slotSku: string;
   }[];
   slot: { name: string; sku: string; widthCm: number; heightCm: number };
   city: { name: string };
@@ -191,7 +193,7 @@ export function OrdersTab() {
                         <Badge tone="accent" className="mt-1">
                           {AD_PACKAGES.find((p) => p.id === order.packageTier)?.label ?? order.packageTier}
                           {" · "}
-                          {order.editionIds.length} מהדורות
+                          {order.selectionDetails.length} מהדורות
                         </Badge>
                       ) : null}
                     </td>
@@ -297,13 +299,17 @@ export function OrdersTab() {
                             </div>
                           </DetailBlock>
 
-                          {order.editions.length > 0 ? (
-                            <DetailBlock title="מהדורות שנרכשו">
+                          {order.selectionDetails.length > 0 ? (
+                            <DetailBlock
+                              title="מהדורות ומשבצות שנרכשו"
+                              className="md:col-span-3"
+                            >
                               <div className="flex flex-wrap gap-1.5">
-                                {order.editions.map((e) => (
-                                  <Badge key={e.id} tone="accent">
-                                    {e.hebrewLabel} ({e.gregorianMonth}/
-                                    {e.gregorianYear})
+                                {order.selectionDetails.map((sel) => (
+                                  <Badge key={sel.editionId} tone="accent">
+                                    {sel.editionLabel} ({sel.gregorianMonth}/
+                                    {sel.gregorianYear}) · {sel.slotName} (
+                                    {sel.slotSku})
                                   </Badge>
                                 ))}
                               </div>

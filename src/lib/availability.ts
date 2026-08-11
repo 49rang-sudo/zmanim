@@ -1,6 +1,9 @@
 import { prisma } from "./prisma";
 import { env } from "./env";
 
+/** בחירה בודדת בתוך הזמנה: איזו משבצת נבחרה באיזו מהדורה */
+export type SlotSelection = { editionId: string; slotId: string };
+
 export type EditionAvailability = {
   id: string;
   cityId: string;
@@ -15,6 +18,8 @@ export type EditionAvailability = {
   status: "OPEN" | "CLOSED";
   /** מזהי המשבצות התפוסות (זמנית או קבוע) במהדורה הזו — לצביעת המוקאפ */
   occupiedSlotIds: string[];
+  /** טקסט שיווקי קצר: למה כדאי לפרסם דווקא במהדורה הזו */
+  marketingNote: string | null;
 };
 
 export type CityAvailability = {
@@ -177,6 +182,7 @@ export async function getOpenEditionsForCity(
       isFull: taken >= edition.capacity,
       status: edition.status,
       occupiedSlotIds,
+      marketingNote: edition.marketingNote,
     };
   });
 }
@@ -195,15 +201,16 @@ export class SlotUnavailableError extends Error {
 }
 
 /**
- * תופס משבצת ספציפית בכל אחת מהמהדורות שברשימה, אטומית — הכול
- * או כלום. נועלים בדיוק את שורות ה-Edition המעורבות, בסדר קבוע
- * (ORDER BY id) כדי ששתי תפיסות מרובות-מהדורות שחופפות תמיד ננעלות
- * באותו סדר יחסי — כך אי אפשר להגיע למבוי סתום (deadlock).
+ * תופס את הבחירות שברשימה, אטומית — הכול או כלום. כל בחירה יכולה
+ * להצביע על משבצת אחרת (אותו סוג/גודל, מיקום שונה בכל חודש — לא
+ * חובה שתהיה אותה משבצת מדויקת). נועלים בדיוק את שורות ה-Edition
+ * המעורבות, בסדר קבוע (ORDER BY id) כדי ששתי תפיסות מרובות-מהדורות
+ * שחופפות תמיד ננעלות באותו סדר יחסי — כך אי אפשר להגיע למבוי סתום
+ * (deadlock).
  */
 export async function reserveSlot(
   cityId: string,
-  slotId: string,
-  editionIds: string[],
+  selections: SlotSelection[],
   orderId: string,
 ): Promise<Date> {
   await releaseExpiredHolds();
@@ -211,6 +218,7 @@ export async function reserveSlot(
   const holdMinutes = env().SLOT_HOLD_MINUTES;
   const expiresAt = new Date(Date.now() + holdMinutes * 60 * 1000);
   const now = new Date();
+  const editionIds = selections.map((s) => s.editionId);
 
   await prisma.$transaction(async (tx) => {
     const locked = await tx.$queryRaw<
@@ -236,7 +244,12 @@ export async function reserveSlot(
       select: { editionId: true, slotId: true },
     });
 
-    if (existing.some((r) => r.slotId === slotId)) {
+    const takenPairs = new Set(
+      existing.map((r) => `${r.editionId}:${r.slotId}`),
+    );
+    if (
+      selections.some((s) => takenPairs.has(`${s.editionId}:${s.slotId}`))
+    ) {
       throw new SlotUnavailableError("SLOT_TAKEN");
     }
 
@@ -249,7 +262,7 @@ export async function reserveSlot(
     }
 
     await tx.slotReservation.createMany({
-      data: editionIds.map((editionId) => ({
+      data: selections.map(({ editionId, slotId }) => ({
         cityId,
         slotId,
         editionId,
@@ -280,9 +293,13 @@ export type ConfirmReservationResult =
 export async function confirmReservation(
   orderId: string,
   cityId: string,
-  slotId: string,
-  editionIds: string[],
+  selections: SlotSelection[],
 ): Promise<ConfirmReservationResult> {
+  const editionIds = selections.map((s) => s.editionId);
+  const slotIdByEdition = new Map(
+    selections.map((s) => [s.editionId, s.slotId]),
+  );
+
   return prisma.$transaction(async (tx) => {
     const updated = await tx.slotReservation.updateMany({
       where: { orderId, editionId: { in: editionIds } },
@@ -314,7 +331,8 @@ export async function confirmReservation(
     const failed: string[] = [];
     for (const editionId of missingIds) {
       const edition = lockedById.get(editionId);
-      if (!edition) {
+      const slotId = slotIdByEdition.get(editionId);
+      if (!edition || !slotId) {
         failed.push(editionId);
         continue;
       }

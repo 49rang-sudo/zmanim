@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { CheckCircle2, Clock, FileText, XCircle } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSiteSettings } from "@/lib/site";
+import { resolveOrderSelections } from "@/lib/orders";
 import { formatCm, formatDateTime, formatPrice } from "@/lib/utils";
 import { Badge } from "@/components/ui/primitives";
 import { SiteFooter, SiteHeader } from "@/components/landing/Landing";
@@ -54,6 +55,11 @@ export default async function OrderStatusPage({
 
   if (!order) notFound();
 
+  const detailsMap = await resolveOrderSelections([
+    { id: order.id, selections: order.selections },
+  ]);
+  const selectionDetails = detailsMap.get(order.id) ?? [];
+
   const view = STATUS_VIEW[order.status];
   const Icon = view.icon;
   const paid = order.status === "PAID";
@@ -92,8 +98,6 @@ export default async function OrderStatusPage({
           </div>
 
           <dl className="mt-7 divide-y divide-line border-y border-line">
-            <Row label="משבצת" value={order.slot.name} />
-            <Row label="מק״ט" value={order.sku} />
             <Row
               label="מידות"
               value={formatCm(order.slot.widthCm, order.slot.heightCm)}
@@ -108,6 +112,21 @@ export default async function OrderStatusPage({
               <Row label="שולמה" value={formatDateTime(order.paidAt)} />
             ) : null}
           </dl>
+
+          <div className="mt-6">
+            <p className="mb-2 text-[13px] font-semibold text-ink">
+              {selectionDetails.length > 1
+                ? "המשבצות שנרכשו"
+                : "המשבצת שנרכשה"}
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {selectionDetails.map((sel) => (
+                <Badge key={sel.editionId} tone="accent">
+                  {sel.editionLabel} · {sel.slotName} ({sel.slotSku})
+                </Badge>
+              ))}
+            </div>
+          </div>
 
           <div className="mt-6 flex items-baseline justify-between">
             <span className="font-display text-lg font-semibold text-ink">
