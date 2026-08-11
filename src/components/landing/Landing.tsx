@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { ArrowLeft, Calendar, ChevronDown, MapPin, Sparkles, type LucideIcon } from "lucide-react";
 import { Eyebrow } from "@/components/ui/primitives";
+import { CountUpStat } from "./CountUpStat";
 import type { SiteContentData } from "@/lib/content";
 
 const HIGHLIGHT_ICONS: Record<string, LucideIcon> = {
@@ -8,19 +9,24 @@ const HIGHLIGHT_ICONS: Record<string, LucideIcon> = {
   "map-pin": MapPin,
 };
 
-/**
- * מפצל את כותרת ההירו לשני חלקים לפי הנקודה הראשונה — החלק
- * השני (לרוב "נוכחות חזקה") מקבל את אפקט הפעימה, הראשון נשאר
- * דומם. אם אין נקודה, כל הכותרת נשארת דוממת (fallback בטוח).
- */
-function splitHeroTitle(title: string): [string, string] {
-  const idx = title.indexOf(". ");
-  if (idx === -1) return [title, ""];
-  return [title.slice(0, idx + 1), title.slice(idx + 2)];
+/** מפצל את כותרת ההירו למשפטים לפי נקודה, עם הנקודה חזרה בסוף כל אחד */
+function splitHeroTitle(title: string): string[] {
+  const parts = title
+    .split(". ")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return parts.map((s, i) => (i < parts.length - 1 ? `${s}.` : s));
 }
 
 export function Hero({ content }: { content: SiteContentData }) {
-  const [stillPart, pulsePart] = splitHeroTitle(content.hero.title);
+  const sentences = splitHeroTitle(content.hero.title);
+  // משפט ראשון דומם; משפטים אמצעיים מקבלים גרדיאנט המותג + פעימה
+  // ("רגע זהות" ספציפי, לפי חוק הגרדיאנט); המשפט האחרון תמיד עובר
+  // לשורה חדשה — בלי לצייר ידנית מקרים לפי מספר הנקודות בטקסט.
+  const stillPart = sentences[0] ?? "";
+  const accentPart =
+    sentences.length >= 2 ? sentences.slice(1, -1).join(" ") : "";
+  const lastLinePart = sentences.length >= 2 ? sentences[sentences.length - 1] : "";
 
   return (
     <section className="snap-section dark-zone relative overflow-hidden border-b border-line-2">
@@ -40,15 +46,21 @@ export function Hero({ content }: { content: SiteContentData }) {
             className="display-hero text-ink animate-[fade-up_0.5s_var(--ease-out-soft)_60ms_both]"
           >
             {stillPart}
-            {pulsePart ? (
+            {accentPart ? (
               <>
                 {" "}
                 <span
-                  className="inline-block"
+                  className="gradient-num inline-block"
                   style={{ animation: "hero-pulse 1.6s ease-in-out 0.6s infinite" }}
                 >
-                  {pulsePart}
+                  {accentPart}
                 </span>
+              </>
+            ) : null}
+            {lastLinePart ? (
+              <>
+                <br />
+                {lastLinePart}
               </>
             ) : null}
           </h1>
@@ -89,8 +101,8 @@ export function Hero({ content }: { content: SiteContentData }) {
                   <dt className="mono-label text-[11px] text-ink-2">
                     {stat.label}
                   </dt>
-                  <dd className="tnum mt-1.5 text-2xl font-black leading-none text-ink">
-                    {stat.value}
+                  <dd className="mt-1.5 text-2xl font-black leading-none text-ink">
+                    <CountUpStat value={stat.value} />
                   </dd>
                 </div>
               ))}
