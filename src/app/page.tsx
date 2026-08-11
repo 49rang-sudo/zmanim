@@ -38,7 +38,6 @@ export default async function HomePage() {
             <Hero content={settings.content} />
             <Highlights content={settings.content} />
             <HowItWorks content={settings.content} />
-            <FAQ content={settings.content} />
           </>
         ) : null}
 
@@ -65,6 +64,8 @@ export default async function HomePage() {
             />
           </div>
         </section>
+
+        {settings.landingEnabled ? <FAQ content={settings.content} /> : null}
       </main>
 
       <SiteFooter content={settings.content} />

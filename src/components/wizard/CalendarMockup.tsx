@@ -91,7 +91,7 @@ export function CalendarMockup({
       </p>
 
       {editions.length > 0 ? (
-        <div className="mb-3 flex items-center justify-between gap-2 rounded-md border border-line bg-surface-2 px-3 py-2">
+        <div className="mb-3 flex items-center justify-between gap-2 rounded-lg border border-line bg-surface-2 px-3 py-2.5">
           <button
             type="button"
             disabled={viewedIndex <= 0}
@@ -100,19 +100,46 @@ export function CalendarMockup({
               onViewedEditionChange(editions[viewedIndex - 1].id)
             }
             aria-label="חודש קודם"
-            className="grid size-7 place-items-center rounded-full text-ink-2 transition-colors duration-150 hover:bg-surface-3 disabled:pointer-events-none disabled:opacity-30"
+            className={cn(
+              "grid size-9 shrink-0 place-items-center rounded-full border border-line bg-surface text-ink-2 shadow-e1",
+              "transition-[transform,background-color,border-color] duration-150 ease-smooth",
+              "hover:-translate-x-0.5 hover:border-accent hover:text-accent",
+              "disabled:pointer-events-none disabled:opacity-30",
+            )}
           >
             <ArrowRight className="size-4" />
           </button>
 
-          <div className="flex items-center gap-2">
-            <span className="font-display text-[14px] font-bold text-ink">
-              {viewedEdition?.hebrewLabel ?? "—"}
-            </span>
-            {viewedEdition ? (
-              <Badge tone={viewedEdition.remaining <= 3 ? "warn" : "success"}>
-                {viewedEdition.remaining} פנויות מתוך {viewedEdition.capacity}
-              </Badge>
+          <div className="flex flex-col items-center gap-1">
+            <div className="flex items-center gap-2">
+              <span className="font-display text-[15px] font-bold text-ink">
+                {viewedEdition?.hebrewLabel ?? "—"}
+              </span>
+              {viewedEdition ? (
+                <Badge tone={viewedEdition.remaining <= 3 ? "warn" : "success"}>
+                  {viewedEdition.remaining} פנויות מתוך {viewedEdition.capacity}
+                </Badge>
+              ) : null}
+            </div>
+            {/* נקודות מיקום — "יש עוד עמודים, אפשר לדפדף" במבט אחד */}
+            {editions.length > 1 ? (
+              <div className="flex items-center gap-1.5">
+                {editions.map((edition, i) => (
+                  <button
+                    key={edition.id}
+                    type="button"
+                    onClick={() => onViewedEditionChange(edition.id)}
+                    aria-label={edition.hebrewLabel}
+                    aria-current={i === viewedIndex}
+                    className={cn(
+                      "rounded-full transition-[width,background-color] duration-200 ease-smooth",
+                      i === viewedIndex
+                        ? "h-1.5 w-4 bg-accent"
+                        : "size-1.5 bg-line-2 hover:bg-muted",
+                    )}
+                  />
+                ))}
+              </div>
             ) : null}
           </div>
 
@@ -125,7 +152,12 @@ export function CalendarMockup({
               onViewedEditionChange(editions[viewedIndex + 1].id)
             }
             aria-label="חודש הבא"
-            className="grid size-7 place-items-center rounded-full text-ink-2 transition-colors duration-150 hover:bg-surface-3 disabled:pointer-events-none disabled:opacity-30"
+            className={cn(
+              "grid size-9 shrink-0 place-items-center rounded-full border border-line bg-surface text-ink-2 shadow-e1",
+              "transition-[transform,background-color,border-color] duration-150 ease-smooth",
+              "hover:translate-x-0.5 hover:border-accent hover:text-accent",
+              "disabled:pointer-events-none disabled:opacity-30",
+            )}
           >
             <ArrowLeft className="size-4" />
           </button>
@@ -166,6 +198,29 @@ export function CalendarMockup({
           </div>
         </div>
 
+        {editions.length > 1 ? (
+          <>
+            {/* ====== "ערימת עמודים" מאחורי הגיליון — רומזת שיש עוד
+                חודשים לדפדוף לפני שבכלל נוגעים בחצים ====== */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-x-3 -bottom-1.5 top-2.5 -z-10 rounded-lg border sm:inset-x-4"
+              style={{
+                borderColor: "var(--color-paper-line-2)",
+                background: "var(--color-paper-2)",
+              }}
+            />
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-x-6 -bottom-3 top-5 -z-20 rounded-lg border sm:inset-x-8"
+              style={{
+                borderColor: "var(--color-paper-line)",
+                background: "var(--color-paper-3)",
+              }}
+            />
+          </>
+        ) : null}
+
         <div className="overflow-x-auto pb-2">
             {/* --- גיליון A4 — נייר אמיתי, קבוע לבן ללא קשר לערכת הנושא --- */}
             <div
@@ -175,6 +230,13 @@ export function CalendarMockup({
               )}
               onMouseLeave={() => setHovered(null)}
             >
+              {/* מפתח לפי המהדורה הנצפית — כשעוברים חודש, התוכן דוהה
+                  ונכנס מחדש, כדי שהדפדוף ירגיש כמו הפיכת עמוד בפועל
+                  ולא רק החלפת טקסט יבשה. */}
+              <div
+                key={viewedEditionId ?? "static"}
+                className="flex min-h-0 flex-1 flex-col animate-[fade-in_0.35s_ease-out_both]"
+              >
               {/* ====== חצי עליון: A5 — אזור המפרסמים ====== */}
               <div className="flex min-h-0 flex-1 flex-col">
                 <div className="mb-2 flex shrink-0 items-baseline justify-between">
@@ -309,6 +371,7 @@ export function CalendarMockup({
 
               {/* ====== חצי תחתון: A5 — לוח השנה ====== */}
               <MonthSheet calendar={displayCalendar} />
+              </div>
             </div>
           </div>
 
