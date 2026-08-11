@@ -1,7 +1,6 @@
 import Image from "next/image";
-import { ArrowLeft, BadgePercent, Calendar, ChevronDown, MapPin, Sparkles, type LucideIcon } from "lucide-react";
+import { ArrowLeft, Calendar, ChevronDown, MapPin, Sparkles, type LucideIcon } from "lucide-react";
 import { Eyebrow } from "@/components/ui/primitives";
-import { AD_PACKAGES } from "@/lib/packages";
 import type { SiteContentData } from "@/lib/content";
 
 const HIGHLIGHT_ICONS: Record<string, LucideIcon> = {
@@ -237,73 +236,6 @@ export function HowItWorks({ content }: { content: SiteContentData }) {
   );
 }
 
-export function Packages() {
-  const packages = AD_PACKAGES.filter((p) => p.id !== "SINGLE");
-
-  return (
-    <section id="packages" className="snap-section border-b border-line-2 scroll-mt-20">
-      <div className="mx-auto max-w-[1200px] px-5 pt-16 lg:px-8">
-        <Eyebrow>חבילות</Eyebrow>
-        <h2 className="mt-3 font-display text-[2.1rem] font-black leading-tight tracking-tight text-ink">
-          חסכו עם פרסום חוזר
-        </h2>
-        <p className="mt-3 max-w-xl text-[15.5px] leading-relaxed text-ink-2">
-          קונים משבצת אחת ומתחייבים למספר מהדורות מראש — 5% הנחה על הסכום
-          הכולל, והמשבצת שלכם ממשיכה להתפרסם בלי לחזור ולהזמין כל פעם מחדש.
-          המחיר הסופי נקבע לפי המשבצת שתבחרו בהמשך.
-        </p>
-      </div>
-
-      <div className="mx-auto max-w-[1200px] px-5 py-12 lg:px-8">
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4 lg:items-start">
-          {packages.map((pkg) => {
-            const featured = pkg.id === "GOLD";
-            return (
-              <a
-                key={pkg.id}
-                href={`/?package=${pkg.id}#order`}
-                className={[
-                  "pkg-card group relative flex flex-col overflow-hidden border p-6",
-                  "transition-[transform,border-color,background-image] duration-300 ease-smooth",
-                  "hover:-translate-y-2 hover:scale-[1.06]",
-                  "hover:[animation:card-pulse_1.8s_ease-in-out_infinite]",
-                  featured
-                    ? "border-2 border-accent lg:-translate-y-2 lg:scale-[1.04]"
-                    : "border-line-2 hover:border-accent",
-                ].join(" ")}
-              >
-                <span className="pkg-ribbon" aria-hidden>
-                  {Math.round(pkg.discount * 100)}% הנחה
-                </span>
-
-                {featured ? (
-                  <span className="mono-label mb-3 inline-block w-fit rounded-full bg-accent px-3 py-1 text-[10.5px] font-bold text-accent-ink">
-                    הכי משתלם
-                  </span>
-                ) : null}
-
-                <span className="pkg-icon grid size-11 place-items-center rounded-full text-white transition-transform duration-300 ease-smooth group-hover:scale-110">
-                  <BadgePercent className="size-5" strokeWidth={1.75} />
-                </span>
-                <p className="mt-5 font-display text-xl font-extrabold tracking-tight text-ink">
-                  {pkg.label}
-                </p>
-                <p className="mt-1.5 text-[14px] leading-relaxed text-ink-2">
-                  {pkg.editions} מהדורות · {Math.round(pkg.discount * 100)}% הנחה
-                  על הסכום הכולל
-                </p>
-                <span className="mt-5 inline-flex items-center gap-1.5 text-[13px] font-semibold text-accent">
-                  בחירת חבילה זו
-                  <ArrowLeft className="size-3.5 transition-transform duration-300 ease-smooth group-hover:-translate-x-1" />
-                </span>
-              </a>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
-}
 
 export function FAQ({ content }: { content: SiteContentData }) {
   if (content.faq.items.length === 0) return null;

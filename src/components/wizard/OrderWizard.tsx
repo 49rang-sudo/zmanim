@@ -7,7 +7,6 @@ import {
   AlertTriangle,
   ArrowLeft,
   ArrowRight,
-  BadgePercent,
   CheckCircle2,
   Clock,
   Mail,
@@ -97,25 +96,8 @@ export function OrderWizard({
     notes: "",
   });
   const [errors, setErrors] = React.useState<Record<string, string>>({});
-  const [incomingPackageLabel, setIncomingPackageLabel] = React.useState<
-    string | null
-  >(null);
-  const presetEditionCountRef = React.useRef<number | null>(null);
-  const presetAppliedRef = React.useRef(false);
 
   const topRef = React.useRef<HTMLDivElement>(null);
-
-  // הגעה מקישור "בחירת חבילה" בסקשן החבילות בדף הבית (?package=GOLD#order)
-  // — רק שומר כמה מהדורות להציע כברירת מחדל בצ'קליסט של שלב 2,
-  // לא קובע חבילה נוקשה. הבחירה בפועל תמיד חופשית וניתנת לשינוי.
-  React.useEffect(() => {
-    const id = new URLSearchParams(window.location.search).get("package");
-    const pkg = AD_PACKAGES.find((p) => p.id === id);
-    if (pkg && pkg.id !== "SINGLE") {
-      presetEditionCountRef.current = pkg.editions;
-      setIncomingPackageLabel(pkg.label);
-    }
-  }, []);
 
   // בחירת עיר טוענת את המהדורות הפתוחות שלה — זה מה שמניע את
   // דפדוף החודשים ואת צביעת התפוסה בשלב הבא.
@@ -143,38 +125,6 @@ export function OrderWizard({
       cancelled = true;
     };
   }, [city]);
-
-  // מיישם פריסט "?package=" בפעם הראשונה שיש גם משבצת נבחרת וגם
-  // רשימת מהדורות — קובע מראש את דרגת החבילה (TierPicker), ומסמן
-  // עד N-1 חודשים נוספים פנויים לאותה משבצת בצ'קליסט. עדיין ניתן
-  // לשינוי חופשי לאחר מכן.
-  React.useEffect(() => {
-    if (
-      !slot ||
-      !editions ||
-      !viewedEditionId ||
-      presetAppliedRef.current ||
-      !presetEditionCountRef.current
-    ) {
-      return;
-    }
-    presetAppliedRef.current = true;
-
-    const target = presetEditionCountRef.current;
-    setTargetEditionsCount(target);
-
-    const eligible = editions
-      .filter(
-        (e) =>
-          e.id !== viewedEditionId &&
-          !e.isFull &&
-          !e.occupiedSlotIds.includes(slot.id),
-      )
-      .slice(0, target - 1)
-      .map((e) => e.id);
-
-    setSelectedEditionIds((prev) => [...new Set([...prev, ...eligible])]);
-  }, [slot, editions, viewedEditionId]);
 
   // שלב נוכחי דרך ref כדי לא לפרק ולבנות מחדש את מאזיני היציאה (ואת
   // "בליעת" ההיסטוריה) בכל מעבר שלב — רק כדי לקרוא את הערך העדכני.
@@ -369,16 +319,6 @@ export function OrderWizard({
     <div ref={topRef} className="scroll-mt-24">
       <Stepper current={step} onJump={goTo} />
 
-      {incomingPackageLabel && step <= 2 ? (
-        <div className="mb-6 flex items-center gap-2.5 border border-accent bg-accent-soft px-4 py-3 text-[13.5px] text-accent-strong">
-          <BadgePercent className="size-4 shrink-0" />
-          <span>
-            נבחרה חבילת <strong>{incomingPackageLabel}</strong> — הצ׳קליסט
-            יסמן אוטומטית את החודשים הבאים אחרי שתבחרו עיר ומשבצת. עדיין
-            אפשר לשנות בחירה.
-          </span>
-        </div>
-      ) : null}
 
       {/* ============ שלב 1 — עיר ============ */}
       {step === 1 ? (

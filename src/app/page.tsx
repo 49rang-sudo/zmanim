@@ -7,7 +7,6 @@ import {
   Hero,
   Highlights,
   HowItWorks,
-  Packages,
   SiteFooter,
   SiteHeader,
 } from "@/components/landing/Landing";
@@ -39,7 +38,6 @@ export default async function HomePage() {
             <Hero content={settings.content} />
             <Highlights content={settings.content} />
             <HowItWorks content={settings.content} />
-            <Packages />
             <FAQ content={settings.content} />
           </>
         ) : null}

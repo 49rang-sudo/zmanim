@@ -3,6 +3,7 @@
 import * as React from "react";
 import { ArrowLeft, ArrowRight, Check, MoveHorizontal } from "lucide-react";
 import { cn, formatCm, formatPrice } from "@/lib/utils";
+import { packageTotalAgorotForEditions } from "@/lib/packages";
 import type { SiteContentData } from "@/lib/content";
 import type { EditionAvailability } from "@/lib/availability";
 import { Badge } from "@/components/ui/primitives";
@@ -413,10 +414,17 @@ function FocusPanel({
       </dl>
 
       <div className="mt-4">
-        <p className="text-[11.5px] text-muted">מחיר למהדורה</p>
+        <p className="text-[11.5px] text-muted">מחיר למהדורה (חודש בודד)</p>
         <p className="tnum font-display text-3xl leading-tight text-accent">
           {formatPrice(slot.priceAgorot)}
         </p>
+      </div>
+
+      <div className="mt-2.5 flex items-center justify-between rounded-md bg-surface-2 px-3 py-2">
+        <span className="text-[11.5px] text-ink-2">ל-3 חודשים · 5% הנחה</span>
+        <span className="tnum text-[13px] font-bold text-ink">
+          {formatPrice(packageTotalAgorotForEditions(slot.priceAgorot, 3))}
+        </span>
       </div>
 
       {slot.description ? (
