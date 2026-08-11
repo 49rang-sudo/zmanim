@@ -58,10 +58,9 @@ export function Hero({ content }: { content: SiteContentData }) {
               </>
             ) : null}
             {lastLinePart ? (
-              <>
-                <br />
+              <span className="mt-1 block text-[0.5em] leading-tight">
                 {lastLinePart}
-              </>
+              </span>
             ) : null}
           </h1>
 
@@ -205,12 +204,7 @@ export function HowItWorks({ content }: { content: SiteContentData }) {
           4 צעדים — והמודעה שלכם על הקיר
         </h2>
 
-        <ol
-          className="mt-12 grid gap-5 sm:grid-cols-2"
-          style={{
-            gridTemplateColumns: `repeat(${Math.min(content.howItWorks.length, 4)}, minmax(0,1fr))`,
-          }}
-        >
+        <ol className="mt-12 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {content.howItWorks.map((step, index) => (
             <li
               key={index}
