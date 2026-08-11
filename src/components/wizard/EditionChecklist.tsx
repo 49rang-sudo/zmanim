@@ -10,19 +10,24 @@ type Props = {
   slot: MockupSlot;
   currentEditionId: string;
   editions: EditionAvailability[];
+  /** כמה חודשים בסך הכול צריך לבחור — נקבע בבחירת הדרגה ב-TierPicker */
+  targetCount: number;
   selectedEditionIds: string[];
   onChange: (ids: string[]) => void;
 };
 
 /**
- * צ'קליסט "גם בחודשים נוספים" — נבחר על ידי הלקוח ולא מחושב
- * אוטומטית. רק מהדורות שבהן אותה משבצת (slot.id) עדיין פנויה
- * מוצעות; ה-5% הנחה חלים ברגע שנבחר יותר מחודש אחד.
+ * צ'קליסט "באילו חודשים בדיוק" — מוצג רק אחרי שנבחרה דרגת חבילה
+ * (targetCount > 1) ב-TierPicker. רק מהדורות שבהן אותה משבצת
+ * (slot.id) עדיין פנויה מוצעות — "מזהה קוביות זהות פנויות" בשביל
+ * הלקוח, בלי שיצטרך לבדוק ידנית חודש-חודש. לא ניתן לסמן מעבר
+ * ל-targetCount, כדי שהבחירה תישאר תואמת למחיר שכבר הוצג.
  */
 export function EditionChecklist({
   slot,
   currentEditionId,
   editions,
+  targetCount,
   selectedEditionIds,
   onChange,
 }: Props) {
@@ -35,26 +40,30 @@ export function EditionChecklist({
   );
 
   const toggle = (id: string) => {
-    onChange(
-      selectedEditionIds.includes(id)
-        ? selectedEditionIds.filter((x) => x !== id)
-        : [...selectedEditionIds, id],
-    );
+    if (selectedEditionIds.includes(id)) {
+      onChange(selectedEditionIds.filter((x) => x !== id));
+      return;
+    }
+    if (selectedEditionIds.length >= targetCount) return;
+    onChange([...selectedEditionIds, id]);
   };
 
   const total = packageTotalAgorotForEditions(
     slot.priceAgorot,
     selectedEditionIds.length,
   );
+  const remaining = targetCount - selectedEditionIds.length;
 
   return (
     <div className="mt-6 rounded-lg border border-line bg-surface-2 p-5">
       <p className="text-[13.5px] font-semibold text-ink">
-        רוצים לשריין את אותה המשבצת גם בחודשים נוספים?
+        {remaining > 0
+          ? `בחרו עוד ${remaining} ${remaining === 1 ? "חודש" : "חודשים"} מתוך ${targetCount}`
+          : `נבחרו ${targetCount} חודשים ✓`}
       </p>
       <p className="mt-1 text-[12.5px] text-ink-2">
-        5% הנחה על הסכום הכולל כשבוחרים יותר מחודש אחד — ומבטיחים שהמיקום
-        לא יתפס על ידי מישהו אחר בחודשים הבאים.
+        מוצגים רק חודשים שבהם אותה משבצת עדיין פנויה — כך אתם יודעים מראש
+        שהמיקום שמור לכם בהם.
       </p>
 
       <div className="mt-4 flex flex-wrap gap-2">
@@ -67,17 +76,21 @@ export function EditionChecklist({
 
         {eligible.map((edition) => {
           const checked = selectedEditionIds.includes(edition.id);
+          const disabled = !checked && selectedEditionIds.length >= targetCount;
           return (
             <button
               key={edition.id}
               type="button"
+              disabled={disabled}
               onClick={() => toggle(edition.id)}
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-semibold",
                 "transition-colors duration-150 ease-smooth",
                 checked
                   ? "border-accent bg-accent-soft text-accent-strong"
-                  : "border-line bg-surface text-ink-2 hover:border-line-2",
+                  : disabled
+                    ? "cursor-not-allowed border-line bg-surface text-muted opacity-50"
+                    : "border-line bg-surface text-ink-2 hover:border-line-2",
               )}
             >
               {checked ? <Check className="size-3.5" strokeWidth={3} /> : null}

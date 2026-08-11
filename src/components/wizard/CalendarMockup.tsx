@@ -192,7 +192,7 @@ export function CalendarMockup({
                 </div>
 
                 <div
-                  className="grid min-h-0 flex-1 gap-1.5"
+                  className="grid min-h-0 flex-1 gap-2"
                   style={{
                     gridTemplateColumns: "repeat(6, minmax(0, 1fr))",
                     gridTemplateRows: "repeat(4, minmax(0, 1fr))",
@@ -201,6 +201,12 @@ export function CalendarMockup({
                   {slots.map((slot, index) => {
                     const isSelected = selectedSlotId === slot.id;
                     const isOccupied = occupiedSet.has(slot.id) && !isSelected;
+                    // 10 מתוך 14 המשבצות זהות (1×1, "משבצת" גנרית) — שם
+                    // ומידות זהים חוזרים על עצמם ומרעישים חזותית. עליהן
+                    // מציגים רק את המחיר; הפרטים המלאים תמיד זמינים
+                    // ב-FocusPanel ברחיפה/פוקוס. הריבועים הייחודיים
+                    // (רצועה/כפולה/רחבה) גדולים מספיק לשאת את הטקסט המלא.
+                    const isGenericSquare = slot.colSpan === 1 && slot.rowSpan === 1;
 
                     return (
                       <button
@@ -240,7 +246,9 @@ export function CalendarMockup({
                             ? "cursor-not-allowed border-dashed"
                             : isSelected
                               ? "cursor-pointer border-2"
-                              : "cursor-pointer border-dashed hover:-translate-y-1 hover:scale-[1.04] hover:border-solid",
+                              : isGenericSquare
+                                ? "cursor-pointer border-solid hover:-translate-y-1 hover:scale-[1.04]"
+                                : "cursor-pointer border-dashed hover:-translate-y-1 hover:scale-[1.04] hover:border-solid",
                         )}
                       >
                         {isSelected ? (
@@ -255,21 +263,28 @@ export function CalendarMockup({
                           </>
                         ) : null}
 
-                        <span
-                          className="text-[9.5px] font-semibold leading-tight"
-                          style={{ color: "var(--color-paper-ink-2)" }}
-                        >
-                          {slot.name}
-                        </span>
-                        <span
-                          className="tnum text-[8.5px] leading-none"
-                          style={{ color: "var(--color-paper-muted)" }}
-                        >
-                          {formatCm(slot.widthCm, slot.heightCm)}
-                        </span>
+                        {isGenericSquare ? null : (
+                          <>
+                            <span
+                              className="text-[9.5px] font-semibold leading-tight"
+                              style={{ color: "var(--color-paper-ink-2)" }}
+                            >
+                              {slot.name}
+                            </span>
+                            <span
+                              className="tnum text-[8.5px] leading-none"
+                              style={{ color: "var(--color-paper-muted)" }}
+                            >
+                              {formatCm(slot.widthCm, slot.heightCm)}
+                            </span>
+                          </>
+                        )}
                         {/* המחיר על הריבוע עצמו — בלי צורך לרחף */}
                         <span
-                          className="tnum text-[10px] font-bold leading-none"
+                          className={cn(
+                            "tnum font-bold leading-none",
+                            isGenericSquare ? "text-[11px]" : "text-[10px]",
+                          )}
                           style={{ color: "var(--color-paper-accent)" }}
                         >
                           {isOccupied ? "תפוס" : formatPrice(slot.priceAgorot)}

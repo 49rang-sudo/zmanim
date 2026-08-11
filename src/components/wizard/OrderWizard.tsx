@@ -16,6 +16,7 @@ import {
 import { CalendarMockup, type MockupSlot } from "./CalendarMockup";
 import { CityPicker } from "./CityPicker";
 import { EditionChecklist } from "./EditionChecklist";
+import { TierPicker } from "./TierPicker";
 import { TosDialog } from "./TosDialog";
 import { MailingListDialog } from "./MailingListDialog";
 import { UploadPanel } from "./UploadPanel";
@@ -77,6 +78,10 @@ export function OrderWizard({
   const [selectedEditionIds, setSelectedEditionIds] = React.useState<
     string[]
   >([]);
+  /** null = עדיין לא נבחרה דרגה (בודד/חבילה) עבור המשבצת הנוכחית */
+  const [targetEditionsCount, setTargetEditionsCount] = React.useState<
+    number | null
+  >(null);
   const [order, setOrder] = React.useState<OrderState | null>(null);
   const [uploaded, setUploaded] = React.useState<{
     name: string;
@@ -140,8 +145,9 @@ export function OrderWizard({
   }, [city]);
 
   // מיישם פריסט "?package=" בפעם הראשונה שיש גם משבצת נבחרת וגם
-  // רשימת מהדורות — מסמן מראש N-1 חודשים נוספים פנויים לאותה
-  // משבצת, אך עדיין ניתן לשינוי חופשי בצ'קליסט.
+  // רשימת מהדורות — קובע מראש את דרגת החבילה (TierPicker), ומסמן
+  // עד N-1 חודשים נוספים פנויים לאותה משבצת בצ'קליסט. עדיין ניתן
+  // לשינוי חופשי לאחר מכן.
   React.useEffect(() => {
     if (
       !slot ||
@@ -154,6 +160,9 @@ export function OrderWizard({
     }
     presetAppliedRef.current = true;
 
+    const target = presetEditionCountRef.current;
+    setTargetEditionsCount(target);
+
     const eligible = editions
       .filter(
         (e) =>
@@ -161,7 +170,7 @@ export function OrderWizard({
           !e.isFull &&
           !e.occupiedSlotIds.includes(slot.id),
       )
-      .slice(0, presetEditionCountRef.current - 1)
+      .slice(0, target - 1)
       .map((e) => e.id);
 
     setSelectedEditionIds((prev) => [...new Set([...prev, ...eligible])]);
@@ -229,9 +238,15 @@ export function OrderWizard({
 
   const handleTosAccept = () => {
     setSlot(pendingSlot);
-    // נשארים בשלב 2 — הצ'קליסט "גם בחודשים נוספים" נפתח מתחת
-    // למוקאפ, לא מתקדמים לשלב הבא אוטומטית
+    // נשארים בשלב 2 — קודם TierPicker (בודד/חבילה, בסכומים אמיתיים),
+    // ורק אחרי בחירת דרגה נפתח הצ'קליסט לבחירת החודשים בפועל
     setSelectedEditionIds(viewedEditionId ? [viewedEditionId] : []);
+    setTargetEditionsCount(null);
+  };
+
+  const handleTierSelect = (editionsCount: number) => {
+    setTargetEditionsCount(editionsCount);
+    setSelectedEditionIds((prev) => prev.slice(0, editionsCount));
   };
 
   const handleMailingDecision = (joined: boolean) => {
@@ -406,11 +421,20 @@ export function OrderWizard({
             onSelect={handleSlotClick}
           />
 
-          {slot && editions && viewedEditionId ? (
+          {slot ? (
+            <TierPicker
+              slot={slot}
+              selectedEditionsCount={targetEditionsCount}
+              onSelect={handleTierSelect}
+            />
+          ) : null}
+
+          {slot && editions && viewedEditionId && targetEditionsCount && targetEditionsCount > 1 ? (
             <EditionChecklist
               slot={slot}
               currentEditionId={viewedEditionId}
               editions={editions}
+              targetCount={targetEditionsCount}
               selectedEditionIds={selectedEditionIds}
               onChange={setSelectedEditionIds}
             />
@@ -421,12 +445,17 @@ export function OrderWizard({
               setCity(null);
               setSlot(null);
               setSelectedEditionIds([]);
+              setTargetEditionsCount(null);
               goTo(1);
             }}
             backLabel="חזרה לבחירת עיר"
             next={
               <Button
-                disabled={!slot || selectedEditionIds.length === 0}
+                disabled={
+                  !slot ||
+                  !targetEditionsCount ||
+                  selectedEditionIds.length !== targetEditionsCount
+                }
                 onClick={() => goTo(3)}
                 className="shine-cta"
               >
