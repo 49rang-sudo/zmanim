@@ -187,10 +187,8 @@ export async function getOpenEditionsForCity(
 
     const soldBySlotId: Record<string, string> = {};
     for (const reservation of edition.reservations) {
-      const business = reservation.order?.businessName?.trim();
-      if (reservation.order?.status === "PAID" && business) {
-        soldBySlotId[reservation.slotId] = business;
-      }
+      const business = paidBusinessName(reservation.order);
+      if (business) soldBySlotId[reservation.slotId] = business;
     }
 
     return {
@@ -210,6 +208,24 @@ export async function getOpenEditionsForCity(
       marketingNote: edition.marketingNote,
     };
   });
+}
+
+/**
+ * הכלל היחיד שקובע "מי מפרסם חי" במהדורה — מקור אמת אחד, כדי
+ * שבורר החלונות (soldBySlotId למעלה) וטופס הקבלות הציבורי
+ * (src/lib/receipts.ts) לעולם לא יראו רשימות שונות של עסקים.
+ *
+ * שתי ההגבלות זהות בשני המקומות:
+ *  · רק PAID — החזקה זמנית שאולי לא תשולם לעולם אינה "מפרסם".
+ *  · רק businessName — contactName הוא שם פרטי של אדם ואסור
+ *    שידלוף לעמוד ציבורי.
+ */
+export function paidBusinessName(
+  order: { status: string; businessName: string | null } | null | undefined,
+): string | null {
+  if (!order || order.status !== "PAID") return null;
+  const name = order.businessName?.trim();
+  return name ? name : null;
 }
 
 export class SlotUnavailableError extends Error {

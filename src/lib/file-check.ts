@@ -145,6 +145,84 @@ export function checkImageFile(
   return { ok: true, extension };
 }
 
+/* ---------------------------------------------------------------
+   קבלות/חשבוניות — מסלול שלישי, צר בכוונה
+   ---------------------------------------------------------------
+   קונה מעלה צילום טלפון או סריקה, לא קובץ דפוס. לכן הרשימה כאן
+   מצומצמת בהרבה מ-ALLOWED_EXTENSIONS: אין zip, אין psd/ai/eps.
+   ככל שרשימת הסוגים שנכנסים לאחסון קצרה יותר, כך שטח התקיפה קטן.
+   --------------------------------------------------------------- */
+
+const RECEIPT_SIGNATURES: Record<string, Signature[]> = {
+  ".pdf": [{ bytes: [0x25, 0x50, 0x44, 0x46] }], // %PDF
+  ".jpg": [{ bytes: [0xff, 0xd8, 0xff] }],
+  ".jpeg": [{ bytes: [0xff, 0xd8, 0xff] }],
+  ".png": [{ bytes: [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a] }],
+  // RIFF בהיסט 0 ו-WEBP בהיסט 8 — שתי החתימות נבדקות יחד למטה
+  ".webp": [{ bytes: [0x52, 0x49, 0x46, 0x46] }],
+  // HEIC של אייפון: קופסת ftyp בהיסט 4, עם אחד ממותגי התאימות האלה
+  ".heic": [
+    { bytes: [0x66, 0x74, 0x79, 0x70, 0x68, 0x65, 0x69, 0x63], offset: 4 },
+    { bytes: [0x66, 0x74, 0x79, 0x70, 0x68, 0x65, 0x69, 0x78], offset: 4 },
+    { bytes: [0x66, 0x74, 0x79, 0x70, 0x6d, 0x69, 0x66, 0x31], offset: 4 },
+    { bytes: [0x66, 0x74, 0x79, 0x70, 0x6d, 0x73, 0x66, 0x31], offset: 4 },
+  ],
+  ".heif": [
+    { bytes: [0x66, 0x74, 0x79, 0x70, 0x6d, 0x69, 0x66, 0x31], offset: 4 },
+    { bytes: [0x66, 0x74, 0x79, 0x70, 0x68, 0x65, 0x69, 0x63], offset: 4 },
+  ],
+};
+
+export const ALLOWED_RECEIPT_EXTENSIONS = Object.keys(RECEIPT_SIGNATURES);
+
+/** MIME לשמירה באחסון — לא נלקח מהדפדפן, נגזר מהסיומת שאומתה */
+export const RECEIPT_MIME: Record<string, string> = {
+  ".pdf": "application/pdf",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".webp": "image/webp",
+  ".heic": "image/heic",
+  ".heif": "image/heif",
+};
+
+export function checkReceiptFile(
+  filename: string,
+  buffer: Buffer,
+): FileCheckResult {
+  const extension = extensionOf(filename);
+
+  if (!extension) {
+    return { ok: false, message: "לקובץ אין סיומת" };
+  }
+
+  const signatures = RECEIPT_SIGNATURES[extension];
+
+  if (!signatures) {
+    return {
+      ok: false,
+      message: `אפשר להעלות תמונה או PDF בלבד (${ALLOWED_RECEIPT_EXTENSIONS.join(", ")})`,
+    };
+  }
+
+  if (!signatures.some((sig) => matches(buffer, sig))) {
+    return {
+      ok: false,
+      message: `תוכן הקובץ אינו תואם לסיומת ${extension}. נסו לצלם או לייצא את הקבלה מחדש.`,
+    };
+  }
+
+  // WEBP הוא מכולת RIFF כללית — בלי הבדיקה השנייה גם WAV היה עובר
+  if (
+    extension === ".webp" &&
+    !matches(buffer, { bytes: [0x57, 0x45, 0x42, 0x50], offset: 8 })
+  ) {
+    return { ok: false, message: "הקובץ אינו WEBP תקין" };
+  }
+
+  return { ok: true, extension };
+}
+
 /** שם קובץ נקי לשמירה במטא-דאטה — בלי נתיבים ובלי תווי בקרה */
 export function sanitizeFilename(filename: string): string {
   return filename

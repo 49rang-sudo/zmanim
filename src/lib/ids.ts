@@ -18,11 +18,24 @@ export function generateAccessToken(): string {
 }
 
 export function generateStorageKey(orderRef: string, filename: string): string {
+  return storageKey("artwork", orderRef, filename);
+}
+
+/**
+ * קבלה של קונה — קידומת נפרדת (receipts/) מקבצי האמנות, כדי
+ * שאפשר יהיה להחיל עליה מדיניות שמירה/הרשאות משלה. מסמך פרטי:
+ * שמור באותו דלי פרטי, בלי כתובת ציבורית.
+ */
+export function generateReceiptKey(orderRef: string, filename: string): string {
+  return storageKey("receipts", orderRef, filename);
+}
+
+function storageKey(prefix: string, orderRef: string, filename: string): string {
   const ext = filename.includes(".")
     ? filename.slice(filename.lastIndexOf(".")).toLowerCase()
     : "";
   const stamp = new Date().toISOString().slice(0, 10);
-  return `artwork/${stamp}/${orderRef}-${randomBytes(8).toString("hex")}${ext}`;
+  return `${prefix}/${stamp}/${orderRef}-${randomBytes(8).toString("hex")}${ext}`;
 }
 
 /**
