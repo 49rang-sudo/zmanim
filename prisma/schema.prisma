@@ -26,16 +26,16 @@ enum AdminRole {
 /// כניסה דרך Google בלבד — אין סיסמה. מייל שלא מופיע כאן נדחה
 /// ב-signIn callback (src/lib/auth.ts) גם אם יש לו חשבון Google תקין.
 model AdminUser {
-  id          String    @id @default(cuid())
-  email       String    @unique
-  name        String?
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String?
   /// אופציונלי בכוונה — מנהל/ת שנכנסים רק דרך Google לא צריכים סיסמה.
   /// כשמוגדר, מאפשר גם כניסה עם אימייל+סיסמה (src/lib/auth.ts).
   passwordHash String?
-  role        AdminRole @default(ADMIN)
-  lastLoginAt DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  role         AdminRole @default(ADMIN)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   @@map("admin_users")
 }
@@ -45,23 +45,23 @@ model AdminUser {
 // ---------------------------------------------------------------
 
 model City {
-  id       String  @id @default(cuid())
-  name     String  @unique
-  region   String?
-  slug     String  @unique
+  id               String   @id @default(cuid())
+  name             String   @unique
+  region           String?
+  slug             String   @unique
   /// ברירת מחדל בזמן יצירת מהדורה חדשה (Edition.capacity) — לא
   /// חוסמת כלום בעצמה יותר, המלאי החי נספר ברמת המהדורה.
-  capacity Int     @default(14)
+  capacity         Int      @default(14)
   /// הצגה ידנית בבורר הערים
-  visible  Boolean @default(true)
+  visible          Boolean  @default(true)
   /// הסתרה אוטומטית ברגע שהמלאי נגמר
-  autoHideWhenFull Boolean @default(true)
+  autoHideWhenFull Boolean  @default(true)
   /// כמות לוחות שמחולקת בעיר — טקסט שיווקי בכרטיס העיר
-  distribution Int?
-  note      String?
-  sortOrder Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  distribution     Int?
+  note             String?
+  sortOrder        Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   orders       Order[]
   reservations SlotReservation[]
@@ -112,8 +112,96 @@ model Edition {
 }
 
 // ---------------------------------------------------------------
-//  משבצות — הפריסה הוויזואלית של העמוד המודפס
-//  col/row/span מגדירים את המיקום ב-CSS grid של המוקאפ
+//  תמונות השראה — שטח המכירה החדש של הלוח.
+//
+//  במקום רשת ריבועים אחידה, האזור הנמכר הוא תמונת אורח-חיים אחת
+//  או יותר (קיר מטבח, עגלת תינוק), וכל תמונה נושאת "חלונות"
+//  (Hotspot) במיקומים מדויקים בתוכה. כל חלון קשור לקטגוריית עסק
+//  שמתאימה להקשר של התמונה.
+//
+//  התבנית (תמונות + חלונות) היא *גלובלית ומשותפת* לכל הערים וכל
+//  המהדורות — אישור מפורש של הלקוחה. רק המכירה עצמה (איזה עסק קנה
+//  איזה חלון, באיזו מהדורה) היא לפי מהדורה, בדיוק כמו AdSlot היום.
+// ---------------------------------------------------------------
+
+model InspirationImage {
+  id String @id @default(cuid())
+
+  /// שם פנימי לזיהוי — "קיר מטבח", "עגלת תינוק"
+  label String
+
+  /// כתובת יציבה בתבנית /api/media/<key> — בדיוק כמו content.brand.logoUrl.
+  /// הקובץ עצמו יושב באחסון הפרטי תחת media/ (ראו src/lib/s3.ts
+  /// ו-src/app/api/admin/media/route.ts). לא מנגנון אחסון חדש.
+  imageUrl String
+
+  /// יחס רוחב/גובה מקורי — משמש לשריון מקום לפני שהתמונה נטענת,
+  /// כדי שהחלונות לא "יקפצו" ממקומם בזמן הטעינה.
+  aspectRatio Float @default(1.5)
+
+  active    Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  hotspots Hotspot[]
+
+  @@index([active, sortOrder])
+  @@map("inspiration_images")
+}
+
+/// חלון בודד בתוך תמונת השראה. תופס את התפקיד ש-col/row/colSpan/
+/// rowSpan ממלאים ב-AdSlot בפריסת הרשת הישנה — אבל *רק* את התפקיד
+/// הוויזואלי. היחידה הנמכרת נשארת AdSlot (ראו AdSlot.hotspotId),
+/// כדי שכל לוגיקת התפיסה והקיבולת ב-src/lib/availability.ts תמשיך
+/// לעבוד כמו שהיא, בלי כפילות.
+model Hotspot {
+  id                 String           @id @default(cuid())
+  inspirationImageId String
+  inspirationImage   InspirationImage @relation(fields: [inspirationImageId], references: [id], onDelete: Cascade)
+
+  /// קטגוריית העסק שהחלון שמור לה — טקסט חופשי, למשל "חנות תינוקות".
+  /// כל עוד החלון פנוי הוא מוצג כ"מקום זה שמור לחנות תינוקות";
+  /// אחרי מכירה מוחלף בשם העסק שקנה.
+  category String
+
+  /// מיקום וגודל באחוזים (0–100) מרוחב/גובה התמונה. אחוזים ולא
+  /// פיקסלים — כך החלון נשאר מוצמד לאותה נקודה בתמונה בכל רוחב מסך.
+  x      Float
+  y      Float
+  width  Float
+  height Float
+
+  /// מחיר באגורות. שדה *אפיון* בלבד — מה שנגבה בפועל בקופה הוא תמיד
+  /// AdSlot.priceAgorot של המשבצת המקושרת (ראו src/app/api/orders/route.ts),
+  /// וגם מה שמוצג ללקוח בבורר מגיע משם. הערך כאן הוא ברירת המחדל
+  /// שממנה נכתב מחיר המשבצת בעת יצירת החלון. מקור אמת אחד לכסף.
+  priceAgorot Int
+
+  active    Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /// המשבצת הנמכרת שמוצגת בחלון הזה. יחס 1:1 — AdSlot.hotspotId ייחודי.
+  slot AdSlot?
+
+  @@index([inspirationImageId, sortOrder])
+  @@index([active, sortOrder])
+  @@map("hotspots")
+}
+
+// ---------------------------------------------------------------
+//  משבצות — היחידה הנמכרת. זו עדיין הישות היחידה ש-Order ו-
+//  SlotReservation מצביעים עליה, ולכן כל חישוב הקיבולת והתפיסה
+//  בטוח-מרוצים נשאר ללא שינוי.
+//
+//  שתי פריסות ויזואליות אפשריות:
+//   · ישנה — col/row/colSpan/rowSpan על רשת CSS (נשמר, הזמנות עבר
+//     מצביעות עליו).
+//   · חדשה — hotspotId: החלון על תמונת ההשראה שבו המשבצת מוצגת.
 // ---------------------------------------------------------------
 
 model AdSlot {
@@ -126,6 +214,12 @@ model AdSlot {
   row     Int
   colSpan Int @default(1)
   rowSpan Int @default(1)
+
+  /// הפריסה החדשה. null = משבצת רשת ישנה. ייחודי — חלון אחד מוכר
+  /// משבצת אחת בדיוק. SetNull ולא Cascade: מחיקת חלון לעולם לא
+  /// תמחוק משבצת שהזמנות קיימות מצביעות עליה.
+  hotspotId String?  @unique
+  hotspot   Hotspot? @relation(fields: [hotspotId], references: [id], onDelete: SetNull)
 
   widthCm  Float
   heightCm Float
@@ -193,7 +287,7 @@ model Order {
   /// עכשיו רק תוויות פריסט לתצוגה, לא מקור האמת למה שנתפס בפועל.
   packageTier     String?
   /// שדה תצוגה מוכפל בכוונה — חייב להיות שווה selections.length.
-  packageEditions Int      @default(1)
+  packageEditions Int     @default(1)
   /// כל הבחירות בפועל בהזמנה: לכל מהדורה — איזו משבצת נבחרה בה.
   /// יכולות להיות משבצות שונות (באותו סוג/גודל) בכל חודש — ראו
   /// SlotSelection ב-src/lib/availability.ts. קפוא בזמן היצירה, כדי
@@ -206,6 +300,11 @@ model Order {
   phone        String
   email        String
   notes        String?
+
+  /// ההטבה החודשית שהעסק מציע לקוני הלוח — למשל "בין כל הקונים
+  /// עגלה החודש יוגרל כיסוי גשם לעגלה". נאסף באותו שלב כמו פרטי
+  /// הקשר באשף. זה גם הטקסט שההגרלה (שלב 3) מתנהלת סביבו.
+  monthlyBenefit String?
 
   tosAcceptedAt DateTime?
   tosVersion    String?
@@ -228,13 +327,15 @@ model Order {
   productionNote      String?
 
   /// טוקן יכולת — מאפשר ללקוח להמשיך את ההזמנה שלו בלי התחברות
-  accessToken String   @unique
+  accessToken String  @unique
   adminNotes  String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  reservations SlotReservation[]
+  reservations       SlotReservation[]
+  receiptSubmissions ReceiptSubmission[]
+  raffleDraws        RaffleDraw[]
 
   @@index([status, createdAt])
   @@index([cityId, slotId])
@@ -323,4 +424,74 @@ model MailingListSubscriber {
   createdAt DateTime @default(now())
 
   @@map("mailing_list_subscribers")
+}
+
+// ---------------------------------------------------------------
+//  קבלות והגרלות — שלבים 2 ו-3 של הפרויקט.
+//
+//  הטבלאות נוצרות כאן כבר עכשיו כדי שהסכמה תשתנה פעם אחת בלבד.
+//  אף ממשק עדיין לא כותב אליהן: טופס העלאת הקבלות (שלב 2) וניהול
+//  ההגרלות בלוח הניהול (שלב 3) ייבנו בהמשך.
+// ---------------------------------------------------------------
+
+enum ReceiptStatus {
+  /// הועלתה, ממתינה לאישור המנהלת
+  PENDING
+  /// אושרה — משתתפת בהגרלה
+  APPROVED
+  /// נדחתה (לא קריאה, לא מהעסק הנכון, כפולה)
+  REJECTED
+}
+
+/// קבלה שקונה העלה כדי להשתתף בהגרלה החודשית של עסק מסוים.
+///
+/// הקישור הוא ל-Order ולא לקטגוריה: הלקוחה אישרה מפורשות שקבלה
+/// נספרת רק אם היא מהעסק המפרסם עצמו — התאמת קטגוריה לא מספיקה.
+/// דרך ה-Order יש גם את המהדורה/העיר וגם את ההטבה (monthlyBenefit).
+model ReceiptSubmission {
+  id      String @id @default(cuid())
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  submitterName String
+  phone         String
+
+  /// סכום הרכישה באגורות — מספר שלם, לעולם לא Float
+  amountAgorot Int
+
+  /// מפתח הקובץ באחסון הפרטי (ראו src/lib/s3.ts). לא כתובת ציבורית:
+  /// קבלה היא מסמך פרטי, ההורדה עוברת דרך presigned URL לאחר אימות.
+  fileKey String
+
+  status      ReceiptStatus @default(PENDING)
+  submittedAt DateTime      @default(now())
+
+  /// ההגרלות שבהן הקבלה הזו יצאה זוכה
+  wonDraws RaffleDraw[] @relation("RaffleWinner")
+
+  @@index([orderId, status])
+  @@index([status, submittedAt])
+  @@map("receipt_submissions")
+}
+
+/// הגרלה שבוצעה על הקבלות של הזמנה אחת. שומרת גם את הסיכומים
+/// (כמה משתתפים, כמה כסף) כדי שהדוח למפרסם יישאר נכון גם אם קבלות
+/// נמחקו או שונו אחרי ההגרלה.
+model RaffleDraw {
+  id      String @id @default(cuid())
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  drawnAt DateTime @default(now())
+
+  /// null עד שההגרלה בוצעה בפועל / אם לא היו משתתפים כלל.
+  /// SetNull ולא Cascade — מחיקת קבלה לא מוחקת את רשומת ההגרלה.
+  winningSubmissionId String?
+  winningSubmission   ReceiptSubmission? @relation("RaffleWinner", fields: [winningSubmissionId], references: [id], onDelete: SetNull)
+
+  totalParticipants Int
+  totalAmountAgorot Int
+
+  @@index([orderId, drawnAt])
+  @@map("raffle_draws")
 }
