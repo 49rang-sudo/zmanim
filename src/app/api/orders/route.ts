@@ -36,6 +36,9 @@ const createOrderSchema = z.object({
     .trim()
     .regex(/^[0-9+\-\s()]{9,20}$/, "מספר טלפון לא תקין"),
   email: z.string().trim().toLowerCase().email("כתובת אימייל לא תקינה"),
+  /// ההטבה החודשית שהעסק מציע לקוני הלוח — הבסיס להגרלה החודשית.
+  /// אופציונלי: מי שלא מציע הטבה עדיין יכול לפרסם.
+  monthlyBenefit: z.string().trim().max(500).optional().nullable(),
   notes: z.string().trim().max(2000).optional().nullable(),
 });
 
@@ -124,6 +127,7 @@ export async function POST(request: Request) {
         businessName: input.businessName ?? null,
         phone: input.phone,
         email: input.email,
+        monthlyBenefit: input.monthlyBenefit ?? null,
         notes: input.notes ?? null,
         tosAcceptedAt: new Date(),
         tosVersion: settings.tosVersion,

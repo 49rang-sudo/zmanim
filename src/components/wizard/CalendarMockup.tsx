@@ -1,11 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { ArrowLeft, ArrowRight, Check, MoveHorizontal, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, MousePointerClick, Sparkles } from "lucide-react";
 import { cn, formatCm, formatPrice } from "@/lib/utils";
 import { packageTotalAgorotForEditions } from "@/lib/packages";
 import type { SiteContentData } from "@/lib/content";
 import type { EditionAvailability } from "@/lib/availability";
+import type { BoardHotspot, BoardImage } from "@/lib/site";
 import { Badge } from "@/components/ui/primitives";
 import { MonthSheet } from "./MonthSheet";
 
@@ -24,6 +25,8 @@ export type MockupSlot = {
   badge: string | null;
 };
 
+export type { BoardHotspot, BoardImage };
+
 /** "אותו סוג" = אותו גודל פיזי — קובע אילו משבצות מתאימות זו לזו לחבילה */
 export function isSameType(a: MockupSlot, b: MockupSlot): boolean {
   return (
@@ -35,7 +38,8 @@ export function isSameType(a: MockupSlot, b: MockupSlot): boolean {
 }
 
 type Props = {
-  slots: MockupSlot[];
+  /** תמונות ההשראה והחלונות שעליהן — תבנית גלובלית, זהה לכל עיר/מהדורה */
+  board: BoardImage[];
   calendar: SiteContentData["calendar"];
   /** מהדורות פתוחות של העיר שנבחרה — מניעות את הדפדוף בין החודשים */
   editions: EditionAvailability[];
@@ -51,18 +55,23 @@ type Props = {
 };
 
 /* ---------------------------------------------------------------
-   הגיליון הוא A4 מקופל: 210×297 מ"מ.
-   החצי העליון הוא A5 (210×148.5) ומוקצה למפרסמים, החצי התחתון
-   הוא לוח השנה.
+   שטח המכירה הוא תמונות השראה, לא רשת ריבועים.
 
-   הריבועים כאן הם בחירת גודל ומחיר. הזמינות בפועל (תפוס/פנוי)
-   נמדדת ברמת (מהדורה, משבצת) — ריבוע יכול להיות תפוס בחודש אחד
-   ופנוי בחודש אחר של אותה עיר, ולכן צביעת "תפוס" תלויה בחודש
-   שמוצג כרגע (viewedEditionId), לא קבועה.
+   כל תמונה נושאת "חלונות" (Hotspot) במיקומים מדויקים בתוכה,
+   והמיקום נשמר באחוזים — לכן החלון נשאר מוצמד לאותה נקודה בתמונה
+   בכל רוחב מסך, בלי חישובי פיקסלים.
+
+   חלון פנוי אומר למי הוא שמור ("מקום זה שמור לחנות תינוקות") ומה
+   מחירו. חלון שנמכר ושולם מציג את שם העסק שקנה אותו — כך הלוח
+   "מתמלא" לעיני המפרסמים הבאים. בקשה מפורשת של הלקוחה.
+
+   הזמינות נמדדת ברמת (מהדורה, משבצת): אותו חלון יכול להיות תפוס
+   בחודש אחד ופנוי בחודש אחר של אותה עיר, ולכן המצב תלוי בחודש
+   שמוצג כרגע (viewedEditionId) ואינו קבוע.
    --------------------------------------------------------------- */
 
 export function CalendarMockup({
-  slots,
+  board,
   calendar,
   editions,
   viewedEditionId,
@@ -74,18 +83,30 @@ export function CalendarMockup({
 }: Props) {
   const [hovered, setHovered] = React.useState<string | null>(null);
 
+  const allHotspots = React.useMemo(
+    () => board.flatMap((image) => image.hotspots),
+    [board],
+  );
+
   const viewedIndex = editions.findIndex((e) => e.id === viewedEditionId);
   const viewedEdition = viewedIndex >= 0 ? editions[viewedIndex] : null;
   const occupiedSet = React.useMemo(
     () => new Set(viewedEdition?.occupiedSlotIds ?? []),
     [viewedEdition],
   );
+  const soldBySlotId = viewedEdition?.soldBySlotId ?? {};
   // המשבצת שכבר נבחרה עבור החודש שמוצג כרגע (אם בכלל)
   const pickedForViewedMonth = viewedEditionId
     ? selections[viewedEditionId]
     : undefined;
 
-  const focused = slots.find((s) => s.id === hovered) ?? pickedForViewedMonth ?? null;
+  // הפוקוס עוקב אחרי החלון שמרחפים עליו, ובהיעדר ריחוף — אחרי
+  // הבחירה של החודש הנצפה, כדי שהחלונית לא תתרוקן סתם.
+  const focusedHotspot: BoardHotspot | null =
+    allHotspots.find((h) => h.hotspotId === hovered) ??
+    allHotspots.find((h) => h.slot.id === pickedForViewedMonth?.id) ??
+    null;
+  const focused = focusedHotspot?.slot ?? null;
   const focusedIsPicked = !!focused && focused.id === pickedForViewedMonth?.id;
   const focusedOccupied = focused
     ? occupiedSet.has(focused.id) && !focusedIsPicked
@@ -121,9 +142,9 @@ export function CalendarMockup({
 
   return (
     <div>
-      <p className="mb-2 flex items-center gap-1.5 text-[12px] text-muted lg:hidden">
-        <MoveHorizontal className="size-3.5 shrink-0" />
-        גללו לצדדים כדי לראות את כל העמוד
+      <p className="mb-2 flex items-center gap-1.5 text-[12px] text-muted">
+        <MousePointerClick className="size-3.5 shrink-0" />
+        לחצו על מקום פנוי בתמונה כדי לשריין אותו לעסק שלכם
       </p>
 
       {editions.length > 0 ? (
@@ -230,9 +251,11 @@ export function CalendarMockup({
               focused ? "pointer-events-auto" : "",
             )}
           >
-            {focused ? (
+            {focused && focusedHotspot ? (
               <FocusPanel
                 slot={focused}
+                category={focusedHotspot.category}
+                soldTo={soldBySlotId[focused.id] ?? null}
                 isPicked={focusedIsPicked}
                 isOccupied={focusedOccupied}
                 isEligible={focusedEligible}
@@ -266,12 +289,14 @@ export function CalendarMockup({
           </>
         ) : null}
 
-        <div className="overflow-x-auto pb-2">
-            {/* --- גיליון A4 — נייר אמיתי, קבוע לבן ללא קשר לערכת הנושא --- */}
+        <div className="pb-2">
+            {/* --- גיליון הלוח — נייר אמיתי, קבוע לבן ללא קשר לערכת הנושא ---
+                אין יותר יחס A4 קבוע: הגובה נקבע מתמונות ההשראה עצמן,
+                שיחס הגובה-רוחב שלהן משתנה. --- */}
             <div
               className={cn(
-                "paper relative mx-auto flex min-w-[520px] max-w-[620px] flex-col",
-                "aspect-[210/297] rounded-lg border border-[--color-paper-line] p-3 shadow-e3 sm:p-4",
+                "paper relative mx-auto flex w-full max-w-[620px] flex-col",
+                "rounded-lg border border-[--color-paper-line] p-3 shadow-e3 sm:p-4",
               )}
               onMouseLeave={() => setHovered(null)}
             >
@@ -282,139 +307,187 @@ export function CalendarMockup({
                 key={viewedEditionId ?? "static"}
                 className="flex min-h-0 flex-1 flex-col animate-[fade-in_0.35s_ease-out_both]"
               >
-              {/* ====== חצי עליון: A5 — אזור המפרסמים ====== */}
-              <div className="flex min-h-0 flex-1 flex-col">
-                <div className="mb-2 flex shrink-0 items-baseline justify-between">
-                  <p
-                    className="text-[10px] uppercase tracking-[0.16em]"
-                    style={{ color: "var(--color-paper-muted)" }}
+              {/* ====== אזור המפרסמים — תמונות ההשראה והחלונות ====== */}
+              <div className="flex flex-col gap-3">
+                {board.length === 0 ? (
+                  <div
+                    className="rounded-[4px] border border-dashed p-8 text-center text-[12px]"
+                    style={{
+                      borderColor: "var(--color-paper-line-2)",
+                      color: "var(--color-paper-muted)",
+                    }}
                   >
-                    אזור המפרסמים · A5
-                  </p>
-                  <p
-                    className="tnum text-[10px]"
-                    style={{ color: "var(--color-paper-muted)" }}
-                  >
-                    21 × 14.85 ס״מ
-                  </p>
-                </div>
+                    עדיין לא הוגדרו תמונות השראה ללוח.
+                  </div>
+                ) : null}
 
-                <div
-                  className="grid min-h-0 flex-1 gap-2"
-                  style={{
-                    gridTemplateColumns: "repeat(6, minmax(0, 1fr))",
-                    gridTemplateRows: "repeat(4, minmax(0, 1fr))",
-                  }}
-                >
-                  {slots.map((slot, index) => {
-                    const isPicked = pickedForViewedMonth?.id === slot.id;
-                    const isOccupied = occupiedSet.has(slot.id) && !isPicked;
-                    // "מתאימה" = אותו סוג/גודל כמו העוגן, פנויה, ולא כבר
-                    // הבחירה של החודש הזה — זה בדיוק ה"הדגשה לפי סוג"
-                    const isEligible =
-                      !!anchorSlot &&
-                      !!targetCount &&
-                      !isOccupied &&
-                      !isPicked &&
-                      isSameType(anchorSlot, slot);
-                    // 10 מתוך 14 המשבצות זהות (1×1, "משבצת" גנרית) — שם
-                    // ומידות זהים חוזרים על עצמם ומרעישים חזותית. עליהן
-                    // מציגים רק את המחיר; הפרטים המלאים תמיד זמינים
-                    // ב-FocusPanel ברחיפה/פוקוס. הריבועים הייחודיים
-                    // (רצועה/כפולה/רחבה) גדולים מספיק לשאת את הטקסט המלא.
-                    const isGenericSquare = slot.colSpan === 1 && slot.rowSpan === 1;
-
-                    return (
-                      <button
-                        key={slot.id}
-                        type="button"
-                        onClick={() => {
-                          if (isOccupied) return;
-                          onSelect(slot);
-                        }}
-                        onMouseEnter={() => setHovered(slot.id)}
-                        onFocus={() => setHovered(slot.id)}
-                        onBlur={() => setHovered(null)}
-                        aria-disabled={isOccupied}
-                        aria-label={
-                          isOccupied
-                            ? `${slot.name} — תפוס במהדורה זו`
-                            : `${slot.name}, ${formatCm(slot.widthCm, slot.heightCm)}, ${formatPrice(slot.priceAgorot)} — לחצו להזמנה`
-                        }
-                        style={{
-                          gridColumn: `${slot.col} / span ${slot.colSpan}`,
-                          gridRow: `${slot.row} / span ${slot.rowSpan}`,
-                          animationDelay: `${index * 35}ms`,
-                          borderColor: isPicked
-                            ? "var(--color-paper-accent)"
-                            : isEligible
-                              ? "var(--color-paper-accent)"
-                              : "var(--color-paper-line-2)",
-                          background: isPicked
-                            ? "var(--color-paper-accent-soft)"
-                            : isEligible
-                              ? "color-mix(in srgb, var(--color-paper-accent) 8%, var(--color-paper-2))"
-                              : "var(--color-paper-2)",
-                          opacity: isOccupied ? 0.45 : 1,
-                        }}
-                        className={cn(
-                          "group relative flex flex-col items-center justify-center gap-0.5",
-                          "gradient-ring rounded-[4px] border p-1 text-center",
-                          "transition-[transform,background-color,border-color] duration-200 ease-smooth",
-                          "animate-[pop-in_0.4s_var(--ease-out-soft)_both]",
-                          isOccupied
-                            ? "cursor-not-allowed border-dashed"
-                            : isPicked
-                              ? "cursor-pointer border-2"
-                              : isEligible
-                                ? "cursor-pointer border-2 [animation:card-pulse_1.8s_ease-in-out_infinite] hover:-translate-y-1 hover:scale-[1.04]"
-                                : isGenericSquare
-                                  ? "cursor-pointer border-solid hover:-translate-y-1 hover:scale-[1.04]"
-                                  : "cursor-pointer border-dashed hover:-translate-y-1 hover:scale-[1.04] hover:border-solid",
-                        )}
+                {board.map((image, imageIndex) => (
+                  <figure key={image.id} className="m-0">
+                    <div className="mb-1.5 flex items-baseline justify-between">
+                      <figcaption
+                        className="text-[10px] uppercase tracking-[0.16em]"
+                        style={{ color: "var(--color-paper-muted)" }}
                       >
-                        {isPicked ? (
-                          <>
-                            <ConfettiBurst />
-                            <span
-                              className="absolute right-1 top-1 grid size-4 place-items-center rounded-full text-white"
-                              style={{ background: "var(--color-paper-accent)" }}
-                            >
-                              <Check className="size-2.5" strokeWidth={3} />
-                            </span>
-                          </>
-                        ) : null}
+                        {image.label}
+                      </figcaption>
+                      <span
+                        className="tnum text-[10px]"
+                        style={{ color: "var(--color-paper-muted)" }}
+                      >
+                        {image.hotspots.length} מקומות
+                      </span>
+                    </div>
 
-                        {isGenericSquare ? null : (
-                          <>
-                            <span
-                              className="text-[9.5px] font-semibold leading-tight"
-                              style={{ color: "var(--color-paper-ink-2)" }}
-                            >
-                              {slot.name}
-                            </span>
-                            <span
-                              className="tnum text-[8.5px] leading-none"
-                              style={{ color: "var(--color-paper-muted)" }}
-                            >
-                              {formatCm(slot.widthCm, slot.heightCm)}
-                            </span>
-                          </>
-                        )}
-                        {/* המחיר על הריבוע עצמו — בלי צורך לרחף */}
-                        <span
-                          className={cn(
-                            "tnum font-bold leading-none",
-                            isGenericSquare ? "text-[11px]" : "text-[10px]",
-                          )}
-                          style={{ color: "var(--color-paper-accent)" }}
-                        >
-                          {isOccupied ? "תפוס" : formatPrice(slot.priceAgorot)}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
+                    {/* יחס הגובה-רוחב שמור מראש כדי שהחלונות לא יזוזו
+                        בזמן טעינת התמונה */}
+                    <div
+                      className="relative w-full overflow-hidden rounded-[4px] border"
+                      style={{
+                        aspectRatio: `${image.aspectRatio}`,
+                        borderColor: "var(--color-paper-line-2)",
+                        background: "var(--color-paper-2)",
+                      }}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={image.imageUrl}
+                        alt={image.label}
+                        className="absolute inset-0 size-full object-cover"
+                        loading={imageIndex === 0 ? "eager" : "lazy"}
+                      />
+
+                      {image.hotspots.map((spot, index) => {
+                        const slot = spot.slot;
+                        const isPicked = pickedForViewedMonth?.id === slot.id;
+                        const isOccupied = occupiedSet.has(slot.id) && !isPicked;
+                        const soldTo = soldBySlotId[slot.id] ?? null;
+                        // "מתאים" = אותו גודל דפוס כמו העוגן, פנוי, ולא
+                        // כבר הבחירה של החודש הזה — ההדגשה לפי סוג
+                        const isEligible =
+                          !!anchorSlot &&
+                          !!targetCount &&
+                          !isOccupied &&
+                          !isPicked &&
+                          isSameType(anchorSlot, slot);
+
+                        return (
+                          <button
+                            key={spot.hotspotId}
+                            type="button"
+                            onClick={() => {
+                              if (isOccupied) return;
+                              onSelect(slot);
+                            }}
+                            onMouseEnter={() => setHovered(spot.hotspotId)}
+                            onFocus={() => setHovered(spot.hotspotId)}
+                            onBlur={() => setHovered(null)}
+                            aria-disabled={isOccupied}
+                            aria-label={
+                              soldTo
+                                ? `${spot.category} — נמכר ל${soldTo}`
+                                : isOccupied
+                                  ? `${spot.category} — תפוס במהדורה זו`
+                                  : `מקום זה שמור ל${spot.category}, ${formatPrice(slot.priceAgorot)} — לחצו להזמנה`
+                            }
+                            style={{
+                              position: "absolute",
+                              // אחוזים בלבד — נשאר מוצמד לנקודה בתמונה
+                              insetInlineStart: `${spot.x}%`,
+                              top: `${spot.y}%`,
+                              width: `${spot.width}%`,
+                              height: `${spot.height}%`,
+                              animationDelay: `${index * 45}ms`,
+                              borderColor:
+                                isPicked || isEligible
+                                  ? "var(--color-paper-accent)"
+                                  : isOccupied
+                                    ? "var(--color-paper-line-2)"
+                                    : "var(--color-paper-ink-2)",
+                              background: isPicked
+                                ? "var(--color-paper-accent-soft)"
+                                : isOccupied
+                                  ? "color-mix(in srgb, var(--color-paper-3) 92%, transparent)"
+                                  : "color-mix(in srgb, var(--color-paper) 88%, transparent)",
+                            }}
+                            className={cn(
+                              "group flex flex-col items-center justify-center gap-0.5",
+                              "rounded-[3px] border p-1 text-center leading-tight",
+                              "transition-[transform,background-color,border-color] duration-200 ease-smooth",
+                              "animate-[pop-in_0.4s_var(--ease-out-soft)_both]",
+                              isOccupied
+                                ? "cursor-not-allowed border-solid"
+                                : isPicked
+                                  ? "cursor-pointer border-2"
+                                  : isEligible
+                                    ? "cursor-pointer border-2 [animation:card-pulse_1.8s_ease-in-out_infinite] hover:scale-[1.03]"
+                                    : "cursor-pointer border-dashed hover:scale-[1.03] hover:border-solid",
+                            )}
+                          >
+                            {isPicked ? (
+                              <>
+                                <ConfettiBurst />
+                                <span
+                                  className="absolute right-1 top-1 grid size-4 place-items-center rounded-full text-white"
+                                  style={{
+                                    background: "var(--color-paper-accent)",
+                                  }}
+                                >
+                                  <Check className="size-2.5" strokeWidth={3} />
+                                </span>
+                              </>
+                            ) : null}
+
+                            {soldTo ? (
+                              /* נמכר ושולם — הלוח מתמלא לעיני הבאים */
+                              <>
+                                <span
+                                  className="text-[8px] uppercase tracking-[0.12em]"
+                                  style={{ color: "var(--color-paper-muted)" }}
+                                >
+                                  כאן מפרסם
+                                </span>
+                                <span
+                                  className="line-clamp-2 text-[10.5px] font-bold"
+                                  style={{ color: "var(--color-paper-ink)" }}
+                                >
+                                  {soldTo}
+                                </span>
+                              </>
+                            ) : isOccupied ? (
+                              <span
+                                className="text-[10px] font-semibold"
+                                style={{ color: "var(--color-paper-muted)" }}
+                              >
+                                תפוס
+                              </span>
+                            ) : (
+                              <>
+                                <span
+                                  className="text-[8px]"
+                                  style={{ color: "var(--color-paper-muted)" }}
+                                >
+                                  מקום זה שמור ל
+                                </span>
+                                <span
+                                  className="line-clamp-2 text-[10px] font-semibold"
+                                  style={{ color: "var(--color-paper-ink-2)" }}
+                                >
+                                  {spot.category}
+                                </span>
+                                <span
+                                  className="tnum text-[10px] font-bold leading-none"
+                                  style={{ color: "var(--color-paper-accent)" }}
+                                >
+                                  {formatPrice(slot.priceAgorot)}
+                                </span>
+                              </>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </figure>
+                ))}
               </div>
 
               {/* --- קו הקיפול --- */}
@@ -503,6 +576,8 @@ function ConfettiBurst() {
 
 function FocusPanel({
   slot,
+  category,
+  soldTo,
   isPicked,
   isOccupied,
   isEligible,
@@ -510,6 +585,9 @@ function FocusPanel({
   onSelect,
 }: {
   slot: MockupSlot;
+  category: string;
+  /** שם העסק שקנה ושילם על החלון הזה במהדורה הנצפית, אם יש */
+  soldTo: string | null;
   isPicked: boolean;
   isOccupied: boolean;
   isEligible: boolean;
@@ -525,16 +603,23 @@ function FocusPanel({
   return (
     <div>
       <span className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-muted">
-        גודל מודעה
+        {soldTo ? "המקום נמכר" : "מקום זה שמור ל"}
       </span>
 
       <h3 className="mt-2 font-display text-2xl leading-tight text-ink">
-        {slot.name}
+        {soldTo ?? category}
       </h3>
+
+      {soldTo ? (
+        <p className="mt-1.5 text-[12.5px] leading-relaxed text-muted">
+          המקום הזה כבר נתפס על ידי {category} במהדורה הזו. אפשר לדפדף
+          לחודש אחר, או לבחור מקום אחר בלוח.
+        </p>
+      ) : null}
 
       <dl className="mt-4 space-y-2.5 border-y border-line py-4 text-[13px]">
         <div className="flex justify-between gap-2">
-          <dt className="text-muted">מידות</dt>
+          <dt className="text-muted">מידות בדפוס</dt>
           <dd className="tnum font-semibold text-ink">
             {formatCm(slot.widthCm, slot.heightCm)}
           </dd>

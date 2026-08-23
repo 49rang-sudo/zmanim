@@ -18,6 +18,17 @@ export type EditionAvailability = {
   status: "OPEN" | "CLOSED";
   /** מזהי המשבצות התפוסות (זמנית או קבוע) במהדורה הזו — לצביעת המוקאפ */
   occupiedSlotIds: string[];
+  /**
+   * slotId → שם העסק שקנה אותו, למשבצות *ששולמו בלבד*. זה מה
+   * שגורם ללוח "להתמלא" לעיני המפרסמים הבאים.
+   *
+   * שתי הגבלות מכוונות:
+   *  · רק PAID. החזקה זמנית של 30 דקות שאולי לא תשולם לעולם לא
+   *    תציג שם עסק על הלוח הציבורי.
+   *  · רק businessName. contactName הוא שם פרטי של אדם ואסור
+   *    שידלוף לעמוד ציבורי — מי שלא מילא שם עסק נשאר "תפוס".
+   */
+  soldBySlotId: Record<string, string>;
   /** טקסט שיווקי קצר: למה כדאי לפרסם דווקא במהדורה הזו */
   marketingNote: string | null;
 };
@@ -161,13 +172,26 @@ export async function getOpenEditionsForCity(
     where: { cityId, status: "OPEN", closesAt: { gt: now } },
     orderBy: [{ gregorianYear: "asc" }, { gregorianMonth: "asc" }],
     include: {
-      reservations: { select: { slotId: true } },
+      reservations: {
+        select: {
+          slotId: true,
+          order: { select: { status: true, businessName: true } },
+        },
+      },
     },
   });
 
   return editions.map((edition) => {
     const occupiedSlotIds = edition.reservations.map((r) => r.slotId);
     const taken = occupiedSlotIds.length;
+
+    const soldBySlotId: Record<string, string> = {};
+    for (const reservation of edition.reservations) {
+      const business = reservation.order?.businessName?.trim();
+      if (reservation.order?.status === "PAID" && business) {
+        soldBySlotId[reservation.slotId] = business;
+      }
+    }
 
     return {
       id: edition.id,
@@ -182,6 +206,7 @@ export async function getOpenEditionsForCity(
       isFull: taken >= edition.capacity,
       status: edition.status,
       occupiedSlotIds,
+      soldBySlotId,
       marketingNote: edition.marketingNote,
     };
   });

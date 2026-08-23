@@ -80,6 +80,121 @@ const SQUARE_DEFAULTS = {
   badge: null as string | null,
 };
 
+// ---------------------------------------------------------------
+//  תבנית החלונות — תמונות השראה והמקומות השמורים שעליהן.
+//
+//  תבנית אחת גלובלית לכל הערים והמהדורות (אישור הלקוחה). המכירה
+//  עצמה היא לפי מהדורה, דרך AdSlot/SlotReservation כמו תמיד.
+//
+//  x/y/width/height הם אחוזים מרוחב/גובה התמונה. widthCm/heightCm
+//  הם המידות בדפוס בפועל — הם שקובעים "אותו סוג" לצורך חבילות
+//  רב-חודשיות (ראו isSameType).
+// ---------------------------------------------------------------
+const INSPIRATION_IMAGES = [
+  {
+    label: "קיר מטבח",
+    key: "kitchen-wall",
+    // גווני קרם/חול חמים — קיר מטבח
+    gradient: { top: [232, 222, 206], bottom: [206, 190, 170] },
+    aspectRatio: 16 / 9,
+    hotspots: [
+      {
+        sku: "HS-KITCHEN-TILES",
+        category: "חנות חיפויים",
+        x: 8, y: 12, width: 26, height: 22,
+        widthCm: 6.1, heightCm: 3,
+        priceAgorot: 80_000,
+      },
+      {
+        sku: "HS-KITCHEN-CABINETS",
+        category: "נגריית מטבחים",
+        x: 40, y: 10, width: 26, height: 22,
+        widthCm: 6.1, heightCm: 3,
+        priceAgorot: 80_000,
+      },
+      {
+        sku: "HS-KITCHEN-APPLIANCES",
+        category: "חשמל ומוצרי חשמל",
+        x: 71, y: 14, width: 21, height: 18,
+        widthCm: 2.9, heightCm: 3,
+        priceAgorot: 45_000,
+      },
+      {
+        sku: "HS-KITCHEN-TEXTILE",
+        category: "טקסטיל לבית",
+        x: 12, y: 55, width: 21, height: 18,
+        widthCm: 2.9, heightCm: 3,
+        priceAgorot: 45_000,
+      },
+      {
+        sku: "HS-KITCHEN-CLEANING",
+        category: "חנות כלי בית",
+        x: 44, y: 58, width: 21, height: 18,
+        widthCm: 2.9, heightCm: 3,
+        priceAgorot: 45_000,
+      },
+      {
+        sku: "HS-KITCHEN-LIGHTING",
+        category: "חנות תאורה",
+        x: 71, y: 55, width: 21, height: 18,
+        widthCm: 2.9, heightCm: 3,
+        priceAgorot: 45_000,
+      },
+    ],
+  },
+  {
+    label: "פינת תינוק",
+    key: "baby-corner",
+    // תכלת/ורוד עדין — חדר תינוק
+    gradient: { top: [222, 231, 240], bottom: [238, 222, 228] },
+    aspectRatio: 16 / 9,
+    hotspots: [
+      {
+        sku: "HS-BABY-STROLLER",
+        category: "חנות תינוקות",
+        x: 9, y: 16, width: 28, height: 24,
+        widthCm: 6.1, heightCm: 3,
+        priceAgorot: 80_000,
+      },
+      {
+        sku: "HS-BABY-CLOTHES",
+        category: "חנות הלבשת ילדים",
+        x: 43, y: 14, width: 24, height: 20,
+        widthCm: 2.9, heightCm: 3,
+        priceAgorot: 45_000,
+      },
+      {
+        sku: "HS-BABY-TOYS",
+        category: "חנות צעצועים",
+        x: 72, y: 18, width: 20, height: 17,
+        widthCm: 2.9, heightCm: 3,
+        priceAgorot: 45_000,
+      },
+      {
+        sku: "HS-BABY-PHARMACY",
+        category: "בית מרקחת",
+        x: 14, y: 60, width: 20, height: 17,
+        widthCm: 2.9, heightCm: 3,
+        priceAgorot: 45_000,
+      },
+      {
+        sku: "HS-BABY-PHOTO",
+        category: "צלם/ת ניו-בורן",
+        x: 42, y: 57, width: 26, height: 22,
+        widthCm: 6.1, heightCm: 3,
+        priceAgorot: 80_000,
+      },
+      {
+        sku: "HS-BABY-FURNITURE",
+        category: "חנות רהיטים",
+        x: 73, y: 60, width: 20, height: 17,
+        widthCm: 2.9, heightCm: 3,
+        priceAgorot: 45_000,
+      },
+    ],
+  },
+] as const;
+
 const CITIES = [
   { name: "ירושלים", region: "ירושלים והסביבה", capacity: 14, distribution: 12_000 },
   { name: "בני ברק", region: "גוש דן", capacity: 14, distribution: 9_500 },
@@ -167,7 +282,134 @@ async function main() {
     });
     slotIndex += 1;
   }
-  console.log(`  ✓ ${SLOTS.length} משבצות`);
+  console.log(`  ✓ ${SLOTS.length} משבצות (פריסת הרשת הישנה)`);
+
+  // --- תמונות השראה וחלונות ---------------------------------------
+  // התמונות המחוללות כאן הן מציבות-מקום בלבד. הן עוברות בכוונה
+  // דרך אותו מסלול אחסון של כל מדיה אחרת (S3/MinIO תחת media/,
+  // הגשה דרך /api/media) — כך שהמסלול נבדק מקצה לקצה, והחלפתן
+  // בתמונות אמיתיות היא רק העלאה, בלי שינוי קוד.
+  try {
+    const { ensureBucket, putArtwork } = await import("../src/lib/s3");
+    const { gradientPng } = await import("./placeholder-image");
+
+    await ensureBucket();
+
+    let imageIndex = 0;
+    let hotspotTotal = 0;
+
+    for (const image of INSPIRATION_IMAGES) {
+      const key = `media/seed-${image.key}.png`;
+      const png = gradientPng(
+        1200,
+        675,
+        [...image.gradient.top] as [number, number, number],
+        [...image.gradient.bottom] as [number, number, number],
+      );
+      await putArtwork(key, png, "image/png");
+
+      const imageUrl = `/api/media/${key.replace(/^media\//, "")}`;
+
+      // אין מפתח טבעי ייחודי — מזהים לפי התווית, שהיא ייחודית בתבנית
+      const existing = await prisma.inspirationImage.findFirst({
+        where: { label: image.label },
+      });
+
+      const row = existing
+        ? await prisma.inspirationImage.update({
+            where: { id: existing.id },
+            data: {
+              imageUrl,
+              aspectRatio: image.aspectRatio,
+              sortOrder: imageIndex,
+              active: true,
+            },
+          })
+        : await prisma.inspirationImage.create({
+            data: {
+              label: image.label,
+              imageUrl,
+              aspectRatio: image.aspectRatio,
+              sortOrder: imageIndex,
+              active: true,
+            },
+          });
+
+      let hotspotIndex = 0;
+      for (const spot of image.hotspots) {
+        // המשבצת (AdSlot) היא היחידה הנמכרת ו-sku שלה ייחודי, ולכן
+        // היא נקודת העגינה של הזריעה החוזרת. החלון נתלה עליה.
+        const slot = await prisma.adSlot.findUnique({
+          where: { sku: spot.sku },
+          select: { id: true, hotspotId: true },
+        });
+
+        const hotspotData = {
+          inspirationImageId: row.id,
+          category: spot.category,
+          x: spot.x,
+          y: spot.y,
+          width: spot.width,
+          height: spot.height,
+          priceAgorot: spot.priceAgorot,
+          active: true,
+          sortOrder: hotspotIndex,
+        };
+
+        const hotspot = slot?.hotspotId
+          ? await prisma.hotspot.update({
+              where: { id: slot.hotspotId },
+              data: hotspotData,
+            })
+          : await prisma.hotspot.create({ data: hotspotData });
+
+        // מחיר המשבצת נכתב מ-Hotspot.priceAgorot — מקור אמת אחד
+        // לכסף, והוא זה שנגבה בקופה.
+        await prisma.adSlot.upsert({
+          where: { sku: spot.sku },
+          update: {
+            hotspotId: hotspot.id,
+            name: spot.category,
+            widthCm: spot.widthCm,
+            heightCm: spot.heightCm,
+            priceAgorot: spot.priceAgorot,
+            active: true,
+            sortOrder: 100 + imageIndex * 20 + hotspotIndex,
+          },
+          create: {
+            sku: spot.sku,
+            name: spot.category,
+            description: `מקום זה שמור ל${spot.category}.`,
+            hotspotId: hotspot.id,
+            // הרשת הישנה לא רלוונטית לחלון — ערכים ניטרליים
+            col: 1,
+            row: 1,
+            colSpan: 1,
+            rowSpan: 1,
+            widthCm: spot.widthCm,
+            heightCm: spot.heightCm,
+            priceAgorot: spot.priceAgorot,
+            active: true,
+            sortOrder: 100 + imageIndex * 20 + hotspotIndex,
+          },
+        });
+
+        hotspotIndex += 1;
+        hotspotTotal += 1;
+      }
+
+      imageIndex += 1;
+    }
+
+    console.log(
+      `  ✓ ${INSPIRATION_IMAGES.length} תמונות השראה · ${hotspotTotal} חלונות`,
+    );
+  } catch (error) {
+    console.warn(
+      "  ! זריעת תמונות ההשראה נכשלה — כנראה שהאחסון (MinIO) לא רץ.",
+    );
+    console.warn(`    ${(error as Error).message}`);
+  }
 
   // --- ערים -----------------------------------------------------
   let cityIndex = 0;

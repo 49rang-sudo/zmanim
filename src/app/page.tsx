@@ -1,4 +1,4 @@
-import { getSiteSettings, getActiveSlots } from "@/lib/site";
+import { getSiteSettings, getInspirationBoard } from "@/lib/site";
 import { env } from "@/lib/env";
 import { OrderWizard } from "@/components/wizard/OrderWizard";
 import { SnapScroll } from "@/components/SnapScroll";
@@ -16,9 +16,9 @@ import { Eyebrow } from "@/components/ui/primitives";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [settings, slots] = await Promise.all([
+  const [settings, board] = await Promise.all([
     getSiteSettings(),
-    getActiveSlots(),
+    getInspirationBoard(),
   ]);
 
   const e = env();
@@ -56,7 +56,7 @@ export default async function HomePage() {
             ) : null}
 
             <OrderWizard
-              slots={slots}
+              board={board}
               content={settings.content}
               maxUploadMb={maxUploadMb}
               sumitCompanyId={sumitCompanyId}

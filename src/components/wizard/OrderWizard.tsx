@@ -12,7 +12,12 @@ import {
   Mail,
   ShieldCheck,
 } from "lucide-react";
-import { CalendarMockup, isSameType, type MockupSlot } from "./CalendarMockup";
+import {
+  CalendarMockup,
+  isSameType,
+  type BoardImage,
+  type MockupSlot,
+} from "./CalendarMockup";
 import { CityPicker } from "./CityPicker";
 import { TierPicker } from "./TierPicker";
 import { TosDialog } from "./TosDialog";
@@ -37,7 +42,8 @@ type OrderState = {
 };
 
 type Props = {
-  slots: MockupSlot[];
+  /** תמונות ההשראה והחלונות שעליהן — שטח המכירה של הלוח */
+  board: BoardImage[];
   content: SiteContentData;
   maxUploadMb: number;
   /** null כשעדיין לא הוגדרו credentials אמיתיים מ-sumit */
@@ -50,7 +56,7 @@ const STEPS = ["עיר", "משבצת", "פרטים", "קובץ", "תשלום"] a
 const STORAGE_KEY = "luach:order";
 
 export function OrderWizard({
-  slots,
+  board,
   content,
   maxUploadMb,
   sumitCompanyId,
@@ -94,6 +100,8 @@ export function OrderWizard({
     businessName: "",
     phone: "",
     email: "",
+    /** ההטבה שהעסק מציע לקוני הלוח — הבסיס להגרלה החודשית */
+    monthlyBenefit: "",
     notes: "",
   });
   const [errors, setErrors] = React.useState<Record<string, string>>({});
@@ -288,6 +296,7 @@ export function OrderWizard({
           businessName: form.businessName.trim() || null,
           phone: form.phone.trim(),
           email: form.email.trim(),
+          monthlyBenefit: form.monthlyBenefit.trim() || null,
           notes: form.notes.trim() || null,
         }),
       });
@@ -406,7 +415,7 @@ export function OrderWizard({
             subtitle={content.wizard.chooseSubtitle}
           />
           <CalendarMockup
-            slots={slots}
+            board={board}
             calendar={content.calendar}
             editions={editions ?? []}
             viewedEditionId={viewedEditionId}
@@ -529,6 +538,20 @@ export function OrderWizard({
                   />
                 </Field>
               </div>
+
+              <Field
+                label="ההטבה החודשית שלכם"
+                htmlFor="monthlyBenefit"
+                hint="ההטבה שתוצע לקוני הלוח, ועליה תתבצע ההגרלה החודשית. לדוגמה: בין כל הקונים עגלה החודש יוגרל כיסוי גשם לעגלה."
+              >
+                <Textarea
+                  id="monthlyBenefit"
+                  value={form.monthlyBenefit}
+                  onChange={(e) =>
+                    setForm({ ...form, monthlyBenefit: e.target.value })
+                  }
+                />
+              </Field>
 
               <Field
                 label="הערות להזמנה"
