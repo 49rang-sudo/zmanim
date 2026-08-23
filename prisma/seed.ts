@@ -448,6 +448,14 @@ async function main() {
   const now = new Date();
   let editionCount = 0;
 
+  // המלאי האמיתי הנמכר הוא מספר החלונות (Hotspot) הפעילים — תבנית
+  // גלובלית אחת המשותפת לכל הערים. City.capacity הוא שריד מהמודל
+  // הישן (רשת per-city) ויכול להיות גבוה יותר; הקיבולת המוצגת
+  // בפועל לעולם לא תעלה על מה שבאמת ניתן למכור.
+  const activeHotspotCount = await prisma.hotspot.count({
+    where: { active: true },
+  });
+
   for (const city of cityRows) {
     for (let i = 0; i < 3; i += 1) {
       const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
@@ -471,7 +479,9 @@ async function main() {
           hebrewLabel: HEBREW_MONTH_APPROX[gregorianMonth % 12],
           gregorianMonth,
           gregorianYear,
-          capacity: city.capacity,
+          capacity: activeHotspotCount
+            ? Math.min(city.capacity, activeHotspotCount)
+            : city.capacity,
           closesAt,
           status: "OPEN",
         },
