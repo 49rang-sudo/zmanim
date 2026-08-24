@@ -7,6 +7,7 @@ import {
   CalendarDays,
   ChartColumn,
   FileText,
+  Inbox,
   LayoutGrid,
   LogOut,
   Mail,
@@ -25,12 +26,14 @@ import { SlotsTab } from "./SlotsTab";
 import { ContentTab } from "./ContentTab";
 import { TeamTab } from "./TeamTab";
 import { MailingListTab } from "./MailingListTab";
+import { InquiriesTab } from "./InquiriesTab";
 import { cn } from "@/lib/utils";
 
 const BASE_TABS = [
   { value: "overview", label: "סקירה", icon: ChartColumn },
   { value: "production", label: "גרפיקה", icon: Palette },
   { value: "orders", label: "הזמנות", icon: FileText },
+  { value: "inquiries", label: "פניות", icon: Inbox },
   { value: "cities", label: "ערים", icon: MapPin },
   { value: "editions", label: "מהדורות", icon: CalendarDays },
   { value: "slots", label: "משבצות", icon: LayoutGrid },
@@ -114,6 +117,9 @@ export function AdminShell({
           </Tabs.Content>
           <Tabs.Content value="orders" className="focus:outline-none">
             <OrdersTab />
+          </Tabs.Content>
+          <Tabs.Content value="inquiries" className="focus:outline-none">
+            <InquiriesTab />
           </Tabs.Content>
           <Tabs.Content value="cities" className="focus:outline-none">
             <CitiesTab />
