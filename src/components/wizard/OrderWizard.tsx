@@ -27,7 +27,11 @@ import { SumitCardForm } from "./SumitCardForm";
 import { Button } from "@/components/ui/button";
 import { Badge, Eyebrow, Field, Input, Textarea } from "@/components/ui/primitives";
 import { cn, formatCm, formatPrice } from "@/lib/utils";
-import { AD_PACKAGES, sumWithPackageDiscount } from "@/lib/packages";
+import {
+  AD_PACKAGES,
+  sumWithPackageDiscount,
+  TIER_LABELS,
+} from "@/lib/packages";
 import type { SiteContentData } from "@/lib/content";
 import type { CityAvailability, EditionAvailability } from "@/lib/availability";
 
@@ -206,7 +210,9 @@ export function OrderWizard({
 
     if (!isSameType(anchorSlot, clicked)) {
       toast.error(
-        'המשבצת הזו מסוג אחר — לחצו "בחירה מחדש" כדי להתחיל עם גודל חדש',
+        anchorSlot.tier !== clicked.tier
+          ? `החבילה שלכם היא ${TIER_LABELS[anchorSlot.tier]} — לחצו "בחירה מחדש" כדי לעבור ל${TIER_LABELS[clicked.tier]}`
+          : 'המקום הזה בגודל אחר — לחצו "בחירה מחדש" כדי להתחיל עם גודל חדש',
       );
       return;
     }
@@ -594,6 +600,7 @@ export function OrderWizard({
               city={city}
               priceAgorot={sumWithPackageDiscount(
                 Object.values(selections).map((s) => s.priceAgorot),
+                anchorSlot.tier,
               )}
               packageLabel={
                 AD_PACKAGES.find(
@@ -690,7 +697,11 @@ export function OrderWizard({
 
               <dl className="divide-y divide-line">
                 <SummaryRow label="מספר הזמנה" value={order.reference} mono />
-                <SummaryRow label="גודל משבצת" value={anchorSlot.name} />
+                <SummaryRow
+                  label="דרגת נוכחות"
+                  value={TIER_LABELS[anchorSlot.tier]}
+                />
+                <SummaryRow label="המקום" value={anchorSlot.name} />
                 <SummaryRow
                   label="מידות"
                   value={formatCm(anchorSlot.widthCm, anchorSlot.heightCm)}
@@ -762,6 +773,8 @@ export function OrderWizard({
         editionsCount={Object.keys(selections).length}
         totalPriceAgorot={sumWithPackageDiscount(
           Object.values(selections).map((s) => s.priceAgorot),
+          // לפני הבחירה הראשונה אין דרגה, ואז הסכום הוא 0 ממילא
+          anchorSlot?.tier ?? "COMPLEMENTARY",
         )}
       />
 
@@ -943,6 +956,11 @@ function OrderSummary({
       </p>
 
       <div className="mt-3 flex flex-wrap gap-1.5">
+        {/* הדרגה קודמת למידות: היא מה שקובע גם את הנוכחות בלוח וגם
+            את המחירון, ולכן היא הדבר הראשון שצריך להיות מאושר. */}
+        <Badge tone={slot.tier === "ANCHOR" ? "accent" : "neutral"}>
+          {TIER_LABELS[slot.tier]}
+        </Badge>
         <Badge tone="neutral">{formatCm(slot.widthCm, slot.heightCm)}</Badge>
         <Badge tone="neutral">{slot.sku}</Badge>
         <Badge tone="accent">{city.name}</Badge>

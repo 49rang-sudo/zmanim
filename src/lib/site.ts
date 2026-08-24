@@ -1,5 +1,6 @@
 import { prisma } from "./prisma";
 import { contentSchema, defaultContent, type SiteContentData } from "./content";
+import type { PresenceTier } from "./packages";
 
 export type SiteSettings = {
   content: SiteContentData;
@@ -69,10 +70,13 @@ export async function getActiveSlots() {
 export type PublicSlot = Awaited<ReturnType<typeof getActiveSlots>>[number];
 
 /**
- * לוח החלונות — תמונות ההשראה הפעילות והחלונות שעליהן.
+ * לוח החלונות — סצנות הקונספט הפעילות והחלונות שעליהן.
  *
- * זו התבנית הגלובלית: אותן תמונות ואותם חלונות בכל עיר ובכל
- * מהדורה. מה שמשתנה בין מהדורות הוא רק *מי קנה מה*, וזה מגיע
+ * מוחזרות *כל* הסצנות, מכל החודשים, במכה אחת. הסינון לחודש עצמו
+ * קורה בצד הלקוח (boardForMonth) כי דפדוף החודשים באשף הוא לקוחי
+ * — כך אין קריאת רשת בכל הפיכת עמוד, והלוח נשאר מקור אמת אחד.
+ *
+ * מה שמשתנה בין *מהדורות של אותו חודש* הוא רק מי קנה מה, וזה מגיע
  * בנפרד מ-getOpenEditionsForCity (occupiedSlotIds / soldBySlotId).
  *
  * מוחזרים רק חלונות פעילים שיש להם משבצת פעילה מקושרת — חלון בלי
@@ -81,10 +85,11 @@ export type PublicSlot = Awaited<ReturnType<typeof getActiveSlots>>[number];
 export async function getInspirationBoard() {
   const images = await prisma.inspirationImage.findMany({
     where: { active: true },
-    orderBy: { sortOrder: "asc" },
+    orderBy: [{ gregorianMonth: "asc" }, { sortOrder: "asc" }],
     select: {
       id: true,
       label: true,
+      gregorianMonth: true,
       imageUrl: true,
       aspectRatio: true,
       hotspots: {
@@ -93,6 +98,7 @@ export async function getInspirationBoard() {
         select: {
           id: true,
           category: true,
+          tier: true,
           x: true,
           y: true,
           width: true,
@@ -125,6 +131,8 @@ export async function getInspirationBoard() {
     .map((image) => ({
       id: image.id,
       label: image.label,
+      /** null = סצנה כללית, גיבוי לחודשים שאין להם אמנות ייעודית */
+      gregorianMonth: image.gregorianMonth,
       imageUrl: image.imageUrl,
       aspectRatio: image.aspectRatio,
       hotspots: image.hotspots
@@ -138,7 +146,12 @@ export async function getInspirationBoard() {
             y: h.y,
             width: h.width,
             height: h.height,
-            slot,
+            // הדרגה נשמרת על החלון, אבל היא נצרבת גם לתוך אובייקט
+            // המשבצת שעובר דרך האשף (MockupSlot) — כך TierPicker,
+            // TosDialog ו-OrderSummary מקבלים אותה בלי לגרור איתם
+            // את החלון כולו, ואי אפשר לתמחר משבצת בלי לדעת דרגה.
+            tier: h.tier as PresenceTier,
+            slot: { ...slot, tier: h.tier as PresenceTier },
           };
         }),
     }))
@@ -147,3 +160,9 @@ export async function getInspirationBoard() {
 
 export type BoardImage = Awaited<ReturnType<typeof getInspirationBoard>>[number];
 export type BoardHotspot = BoardImage["hotspots"][number];
+
+/**
+ * כלל בחירת הסצנה של חודש. מוגדר ב-src/lib/board.ts כדי שגם רכיבי
+ * לקוח יוכלו לייבא אותו בלי לגרור את prisma לדפדפן.
+ */
+export { boardForMonth } from "./board";

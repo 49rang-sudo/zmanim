@@ -3,9 +3,15 @@
 import * as React from "react";
 import { ArrowLeft, ArrowRight, Check, MousePointerClick, Sparkles } from "lucide-react";
 import { cn, formatCm, formatPrice } from "@/lib/utils";
-import { packageTotalAgorotForEditions } from "@/lib/packages";
+import {
+  packageTotalAgorotForEditions,
+  TIER_DESCRIPTIONS,
+  TIER_LABELS,
+  type PresenceTier,
+} from "@/lib/packages";
+import { boardForMonth } from "@/lib/board";
 import type { SiteContentData } from "@/lib/content";
-import type { EditionAvailability } from "@/lib/availability";
+import type { EditionAvailability, TierAvailability } from "@/lib/availability";
 import type { BoardHotspot, BoardImage } from "@/lib/site";
 import { Badge } from "@/components/ui/primitives";
 import { MonthSheet } from "./MonthSheet";
@@ -23,13 +29,22 @@ export type MockupSlot = {
   heightCm: number;
   priceAgorot: number;
   badge: string | null;
+  /** דרגת הנוכחות — עוגן או משלים. נצרבת מהחלון (ראו src/lib/site.ts) */
+  tier: PresenceTier;
 };
 
 export type { BoardHotspot, BoardImage };
 
-/** "אותו סוג" = אותו גודל פיזי — קובע אילו משבצות מתאימות זו לזו לחבילה */
+/**
+ * "אותו סוג" = אותו גודל פיזי *ואותה דרגה* — קובע אילו מקומות
+ * מתאימים זה לזה לחבילה רב-חודשית. הדרגה נכללת כי היא קלט תמחור:
+ * חבילה מעורבת (עוגן בחודש אחד, משלים באחר) הייתה מתומחרת כולה
+ * בסולם של הראשון. אותה בדיקה בדיוק נאכפת שוב בשרת
+ * (src/app/api/orders/route.ts, TIER_MISMATCH).
+ */
 export function isSameType(a: MockupSlot, b: MockupSlot): boolean {
   return (
+    a.tier === b.tier &&
     a.colSpan === b.colSpan &&
     a.rowSpan === b.rowSpan &&
     a.widthCm === b.widthCm &&
@@ -38,37 +53,42 @@ export function isSameType(a: MockupSlot, b: MockupSlot): boolean {
 }
 
 type Props = {
-  /** תמונות ההשראה והחלונות שעליהן — תבנית גלובלית, זהה לכל עיר/מהדורה */
+  /** כל סצנות הקונספט, מכל החודשים — הסינון לחודש קורה כאן */
   board: BoardImage[];
   calendar: SiteContentData["calendar"];
   /** מהדורות פתוחות של העיר שנבחרה — מניעות את הדפדוף בין החודשים */
   editions: EditionAvailability[];
   viewedEditionId: string | null;
   onViewedEditionChange: (id: string) => void;
-  /** המשבצת שקבעה את "הסוג" הנרכש בהזמנה הזו — null לפני הבחירה הראשונה */
+  /** המקום שקבע את "הסוג" (גודל + דרגה) הנרכש — null לפני הבחירה הראשונה */
   anchorSlot: MockupSlot | null;
   /** כמה חודשים בסך הכול צריך לבחור (דרגת החבילה) — null עד שנבחרה */
   targetCount: number | null;
-  /** הבחירה בפועל לכל מהדורה: editionId -> המשבצת שנבחרה בה */
+  /** הבחירה בפועל לכל מהדורה: editionId -> המקום שנבחר בה */
   selections: Record<string, MockupSlot>;
   onSelect: (slot: MockupSlot) => void;
 };
 
 /* ---------------------------------------------------------------
-   שטח המכירה הוא תמונות השראה, לא רשת ריבועים.
+   שטח המכירה הוא סצנת הקונספט של החודש, לא רשת ריבועים.
 
-   כל תמונה נושאת "חלונות" (Hotspot) במיקומים מדויקים בתוכה,
-   והמיקום נשמר באחוזים — לכן החלון נשאר מוצמד לאותה נקודה בתמונה
-   בכל רוחב מסך, בלי חישובי פיקסלים.
+   לכל חודש סצנה משלו (אלול "שיפוץ הבית", תשרי "לימודים
+   והתפתחות"…). דפדוף בין החודשים מחליף את הסצנה כולה, ולכן התמונה
+   מוצגת אחת, גדולה ומרכזית — בקשה מפורשת ונחרצת של הלקוחה: לא
+   רשת צפופה של מודעות קטנות.
 
-   חלון פנוי אומר למי הוא שמור ("מקום זה שמור לחנות תינוקות") ומה
-   מחירו. חלון שנמכר ושולם מציג את שם העסק שקנה אותו — כך הלוח
-   "מתמלא" לעיני המפרסמים הבאים. בקשה מפורשת של הלקוחה.
+   על כל סצנה שני סוגי מקומות:
+    · עוגן   — האלמנט המרכזי בתמונה, שטח גדול, מחיר גבוה.
+    · משלים — מוצר בודד בתוך הסצנה, שטח קטן, מחיר נמוך.
+   שניהם חלונות ממוקמים ממש על התמונה (אחוזים, כדי להישאר מוצמדים
+   לנקודה בכל רוחב מסך), והמלאי שלהם נספר בנפרד לגמרי: אפשר שכל
+   העוגנים של החודש נתפסו בזמן שהמשלימים עדיין פנויים.
 
-   הזמינות נמדדת ברמת (מהדורה, משבצת): אותו חלון יכול להיות תפוס
-   בחודש אחד ופנוי בחודש אחר של אותה עיר, ולכן המצב תלוי בחודש
-   שמוצג כרגע (viewedEditionId) ואינו קבוע.
+   מקום פנוי אומר למי הוא שמור ומה מחירו. מקום שנמכר ושולם מציג את
+   שם העסק שקנה — כך הלוח "מתמלא" לעיני המפרסמים הבאים.
    --------------------------------------------------------------- */
+
+const TIER_ORDER: PresenceTier[] = ["ANCHOR", "COMPLEMENTARY"];
 
 export function CalendarMockup({
   board,
@@ -83,19 +103,35 @@ export function CalendarMockup({
 }: Props) {
   const [hovered, setHovered] = React.useState<string | null>(null);
 
-  const allHotspots = React.useMemo(
-    () => board.flatMap((image) => image.hotspots),
-    [board],
-  );
-
   const viewedIndex = editions.findIndex((e) => e.id === viewedEditionId);
   const viewedEdition = viewedIndex >= 0 ? editions[viewedIndex] : null;
+  const viewedMonth = viewedEdition?.gregorianMonth ?? null;
+
+  // סצנות החודש הנצפה בלבד — אותו כלל בדיוק שבו נספר המלאי בשרת
+  // (loadMonthTemplates ב-src/lib/availability.ts). לפני שנבחרה עיר
+  // עדיין אין מהדורה, ואז מוצגות הסצנות הכלליות כתצוגה מקדימה.
+  const monthBoard = React.useMemo(
+    () => boardForMonth(board, viewedMonth),
+    [board, viewedMonth],
+  );
+
+  const allHotspots = React.useMemo(
+    () => monthBoard.flatMap((image) => image.hotspots),
+    [monthBoard],
+  );
+
+  // מעבר חודש מחליף את הסצנה כולה — חלון שריחפו עליו בחודש הקודם
+  // כבר לא קיים, ואסור שהחלונית תמשיך להציג אותו.
+  React.useEffect(() => {
+    setHovered(null);
+  }, [viewedEditionId]);
+
   const occupiedSet = React.useMemo(
     () => new Set(viewedEdition?.occupiedSlotIds ?? []),
     [viewedEdition],
   );
   const soldBySlotId = viewedEdition?.soldBySlotId ?? {};
-  // המשבצת שכבר נבחרה עבור החודש שמוצג כרגע (אם בכלל)
+  // המקום שכבר נבחר עבור החודש שמוצג כרגע (אם בכלל)
   const pickedForViewedMonth = viewedEditionId
     ? selections[viewedEditionId]
     : undefined;
@@ -167,17 +203,27 @@ export function CalendarMockup({
             <ArrowRight className="size-4" />
           </button>
 
-          <div className="flex flex-col items-center gap-1">
-            <div className="flex items-center gap-2">
-              <span className="font-display text-[15px] font-bold text-ink">
-                {viewedEdition?.hebrewLabel ?? "—"}
-              </span>
-              {viewedEdition ? (
-                <Badge tone={viewedEdition.remaining <= 3 ? "warn" : "success"}>
-                  {viewedEdition.remaining} פנויות מתוך {viewedEdition.capacity}
-                </Badge>
-              ) : null}
-            </div>
+          <div className="flex min-w-0 flex-1 flex-col items-center gap-1.5">
+            <span className="font-display text-[15px] font-bold text-ink">
+              {viewedEdition?.hebrewLabel ?? "—"}
+            </span>
+
+            {/* ====== מלאי נפרד לכל דרגה ======
+                בכוונה שני מספרים ולא אחד מאוחד: "5 פנויות" היה מסתיר
+                שכל העוגנים כבר נמכרו. המפרסם צריך לדעת מה *הוא* יכול
+                לקנות, לא כמה מקומות נשארו בסך הכול. */}
+            {viewedEdition ? (
+              <div className="flex flex-wrap items-center justify-center gap-1.5">
+                {TIER_ORDER.map((tier) => (
+                  <TierStatusBadge
+                    key={tier}
+                    tier={tier}
+                    availability={viewedEdition.tiers?.[tier]}
+                  />
+                ))}
+              </div>
+            ) : null}
+
             {/* נקודות מיקום — "יש עוד עמודים, אפשר לדפדף" במבט אחד */}
             {editions.length > 1 ? (
               <div className="flex items-center gap-1.5">
@@ -229,14 +275,14 @@ export function CalendarMockup({
       ) : null}
 
       {/* עוטף ברוחב זהה בול לדף (mx-auto + max-w זהה) כדי שהחלונית
-          תתיישר איתו בלי להיות בתוך אזור הגלילה האופקית — בתוכו
-          כל מה שחורג מהדף נחתך (overflow-x-auto), וזה בדיוק מה
-          שקטע את הקו של החלונית כשהיא ישבה בפנים. */}
-      <div className="relative mx-auto w-full max-w-[620px]">
+          תתיישר איתו. הגיליון מתרחב רק מ-xl ומעלה: מתחת לזה אין
+          מספיק שוליים לחלונית הצפה (260px + מרווח) והיא הייתה
+          נדחפת מחוץ למסך. */}
+      <div className="relative mx-auto w-full max-w-[620px] xl:max-w-[720px]">
         {/* ============ חלון צף — הסכום והמעבר להזמנה ============
             top-0 מיישר אותו בול לגובה החלק העליון של הדף
             ("מקביל ללוח"), וה-end בערך calc דוחף אותו כולו החוצה,
-            צמוד לשוליים החיצוניים — לא מכסה אף משבצת. */}
+            צמוד לשוליים החיצוניים — לא מכסה אף מקום. */}
         <div
           aria-hidden={!focused}
           className={cn(
@@ -291,11 +337,10 @@ export function CalendarMockup({
 
         <div className="pb-2">
             {/* --- גיליון הלוח — נייר אמיתי, קבוע לבן ללא קשר לערכת הנושא ---
-                אין יותר יחס A4 קבוע: הגובה נקבע מתמונות ההשראה עצמן,
-                שיחס הגובה-רוחב שלהן משתנה. --- */}
+                אין יחס A4 קבוע: הגובה נקבע מסצנת החודש עצמה. --- */}
             <div
               className={cn(
-                "paper relative mx-auto flex w-full max-w-[620px] flex-col",
+                "paper relative mx-auto flex w-full max-w-[620px] flex-col xl:max-w-[720px]",
                 "rounded-lg border border-[--color-paper-line] p-3 shadow-e3 sm:p-4",
               )}
               onMouseLeave={() => setHovered(null)}
@@ -307,9 +352,9 @@ export function CalendarMockup({
                 key={viewedEditionId ?? "static"}
                 className="flex min-h-0 flex-1 flex-col animate-[fade-in_0.35s_ease-out_both]"
               >
-              {/* ====== אזור המפרסמים — תמונות ההשראה והחלונות ====== */}
-              <div className="flex flex-col gap-3">
-                {board.length === 0 ? (
+              {/* ====== אזור המפרסמים — סצנת הקונספט של החודש ====== */}
+              <div className="flex flex-col gap-4">
+                {monthBoard.length === 0 ? (
                   <div
                     className="rounded-[4px] border border-dashed p-8 text-center text-[12px]"
                     style={{
@@ -317,33 +362,46 @@ export function CalendarMockup({
                       color: "var(--color-paper-muted)",
                     }}
                   >
-                    עדיין לא הוגדרו תמונות השראה ללוח.
+                    עדיין לא הוגדרה סצנת קונספט לחודש הזה.
                   </div>
                 ) : null}
 
-                {board.map((image, imageIndex) => (
+                {monthBoard.map((image, imageIndex) => (
                   <figure key={image.id} className="m-0">
-                    <div className="mb-1.5 flex items-baseline justify-between">
-                      <figcaption
-                        className="text-[10px] uppercase tracking-[0.16em]"
-                        style={{ color: "var(--color-paper-muted)" }}
-                      >
-                        {image.label}
-                      </figcaption>
+                    {/* כותרת הסצנה — הקונספט של החודש הוא הגיבור של
+                        המסך, לא הערת שוליים בגודל 10px. */}
+                    <figcaption className="mb-2 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                      <span className="flex flex-wrap items-baseline gap-x-2">
+                        <span
+                          className="text-[9.5px] uppercase tracking-[0.18em]"
+                          style={{ color: "var(--color-paper-muted)" }}
+                        >
+                          הקונספט של החודש
+                        </span>
+                        <span
+                          className="font-display text-[17px] font-bold leading-tight sm:text-[19px]"
+                          style={{ color: "var(--color-paper-ink)" }}
+                        >
+                          {image.label}
+                        </span>
+                      </span>
                       <span
                         className="tnum text-[10px]"
                         style={{ color: "var(--color-paper-muted)" }}
                       >
-                        {image.hotspots.length} מקומות
+                        {countTier(image, "ANCHOR")} עוגן ·{" "}
+                        {countTier(image, "COMPLEMENTARY")} משלים
                       </span>
-                    </div>
+                    </figcaption>
 
                     {/* יחס הגובה-רוחב שמור מראש כדי שהחלונות לא יזוזו
-                        בזמן טעינת התמונה */}
+                        בזמן טעינת התמונה. min-h מבטיח שהסצנה נשארת
+                        נוכחות גדולה גם בתמונה רחבה במיוחד. */}
                     <div
                       className="relative w-full overflow-hidden rounded-[4px] border"
                       style={{
                         aspectRatio: `${image.aspectRatio}`,
+                        minHeight: "270px",
                         borderColor: "var(--color-paper-line-2)",
                         background: "var(--color-paper-2)",
                       }}
@@ -361,14 +419,15 @@ export function CalendarMockup({
                         const isPicked = pickedForViewedMonth?.id === slot.id;
                         const isOccupied = occupiedSet.has(slot.id) && !isPicked;
                         const soldTo = soldBySlotId[slot.id] ?? null;
-                        // "מתאים" = אותו גודל דפוס כמו העוגן, פנוי, ולא
-                        // כבר הבחירה של החודש הזה — ההדגשה לפי סוג
+                        // "מתאים" = אותו גודל *ואותה דרגה* כמו העוגן,
+                        // פנוי, ולא כבר הבחירה של החודש הזה
                         const isEligible =
                           !!anchorSlot &&
                           !!targetCount &&
                           !isOccupied &&
                           !isPicked &&
                           isSameType(anchorSlot, slot);
+                        const isAnchorTier = spot.tier === "ANCHOR";
 
                         return (
                           <button
@@ -384,10 +443,10 @@ export function CalendarMockup({
                             aria-disabled={isOccupied}
                             aria-label={
                               soldTo
-                                ? `${spot.category} — נמכר ל${soldTo}`
+                                ? `${TIER_LABELS[spot.tier]} — ${spot.category} — נמכר ל${soldTo}`
                                 : isOccupied
-                                  ? `${spot.category} — תפוס במהדורה זו`
-                                  : `מקום זה שמור ל${spot.category}, ${formatPrice(slot.priceAgorot)} — לחצו להזמנה`
+                                  ? `${TIER_LABELS[spot.tier]} — ${spot.category} — תפוס במהדורה זו`
+                                  : `${TIER_LABELS[spot.tier]} — מקום זה שמור ל${spot.category}, ${formatPrice(slot.priceAgorot)} — לחצו להזמנה`
                             }
                             style={{
                               position: "absolute",
@@ -402,25 +461,32 @@ export function CalendarMockup({
                                   ? "var(--color-paper-accent)"
                                   : isOccupied
                                     ? "var(--color-paper-line-2)"
-                                    : "var(--color-paper-ink-2)",
+                                    : isAnchorTier
+                                      ? "var(--color-paper-ink)"
+                                      : "var(--color-paper-ink-2)",
                               background: isPicked
                                 ? "var(--color-paper-accent-soft)"
                                 : isOccupied
                                   ? "color-mix(in srgb, var(--color-paper-3) 92%, transparent)"
-                                  : "color-mix(in srgb, var(--color-paper) 88%, transparent)",
+                                  : "color-mix(in srgb, var(--color-paper) 90%, transparent)",
                             }}
                             className={cn(
                               "group flex flex-col items-center justify-center gap-0.5",
-                              "rounded-[3px] border p-1 text-center leading-tight",
+                              "rounded-[3px] p-1 text-center leading-tight",
                               "transition-[transform,background-color,border-color] duration-200 ease-smooth",
                               "animate-[pop-in_0.4s_var(--ease-out-soft)_both]",
+                              // העוגן נושא מסגרת מלאה ועבה יותר גם
+                              // כשהוא פנוי — ההיררכיה בין הדרגות
+                              // נקראת עוד לפני שקוראים מילה.
                               isOccupied
-                                ? "cursor-not-allowed border-solid"
+                                ? "cursor-not-allowed border border-solid"
                                 : isPicked
                                   ? "cursor-pointer border-2"
                                   : isEligible
                                     ? "cursor-pointer border-2 [animation:card-pulse_1.8s_ease-in-out_infinite] hover:scale-[1.03]"
-                                    : "cursor-pointer border-dashed hover:scale-[1.03] hover:border-solid",
+                                    : isAnchorTier
+                                      ? "cursor-pointer border-2 border-solid hover:scale-[1.03]"
+                                      : "cursor-pointer border border-dashed hover:scale-[1.03] hover:border-solid",
                             )}
                           >
                             {isPicked ? (
@@ -437,17 +503,22 @@ export function CalendarMockup({
                               </>
                             ) : null}
 
+                            {/* תווית הדרגה — מילה מפורשת, לא רק רמז
+                                עיצובי. הקהל לא-טכני ולא אמור לפענח
+                                עובי מסגרת. */}
+                            <HotspotTierTag tier={spot.tier} muted={isOccupied} />
+
                             {soldTo ? (
                               /* נמכר ושולם — הלוח מתמלא לעיני הבאים */
                               <>
                                 <span
-                                  className="text-[8px] uppercase tracking-[0.12em]"
+                                  className="text-[8.5px] uppercase tracking-[0.12em]"
                                   style={{ color: "var(--color-paper-muted)" }}
                                 >
                                   כאן מפרסם
                                 </span>
                                 <span
-                                  className="line-clamp-2 text-[10.5px] font-bold"
+                                  className="line-clamp-2 text-[11.5px] font-bold"
                                   style={{ color: "var(--color-paper-ink)" }}
                                 >
                                   {soldTo}
@@ -455,7 +526,7 @@ export function CalendarMockup({
                               </>
                             ) : isOccupied ? (
                               <span
-                                className="text-[10px] font-semibold"
+                                className="text-[11px] font-semibold"
                                 style={{ color: "var(--color-paper-muted)" }}
                               >
                                 תפוס
@@ -463,19 +534,25 @@ export function CalendarMockup({
                             ) : (
                               <>
                                 <span
-                                  className="text-[8px]"
+                                  className="text-[8.5px]"
                                   style={{ color: "var(--color-paper-muted)" }}
                                 >
                                   מקום זה שמור ל
                                 </span>
                                 <span
-                                  className="line-clamp-2 text-[10px] font-semibold"
+                                  className={cn(
+                                    "line-clamp-2 font-semibold",
+                                    isAnchorTier ? "text-[12.5px]" : "text-[11px]",
+                                  )}
                                   style={{ color: "var(--color-paper-ink-2)" }}
                                 >
                                   {spot.category}
                                 </span>
                                 <span
-                                  className="tnum text-[10px] font-bold leading-none"
+                                  className={cn(
+                                    "tnum font-bold leading-none",
+                                    isAnchorTier ? "text-[12.5px]" : "text-[11px]",
+                                  )}
                                   style={{ color: "var(--color-paper-accent)" }}
                                 >
                                   {formatPrice(slot.priceAgorot)}
@@ -522,6 +599,72 @@ export function CalendarMockup({
 
 /* --------------------------------------------------------------- */
 
+function countTier(image: BoardImage, tier: PresenceTier): number {
+  return image.hotspots.filter((h) => h.tier === tier).length;
+}
+
+/**
+ * מצב המלאי של דרגה אחת, בניסוח מלא ולא במספר יבש — "עוגן · נתפס"
+ * מול "משלים · 3 מקומות פנויים". הקהל לא-טכני, והסטטוס חייב
+ * להיקרא בטקסט מפורש ולא רק בקוד צבע.
+ */
+function TierStatusBadge({
+  tier,
+  availability,
+}: {
+  tier: PresenceTier;
+  availability: TierAvailability | undefined;
+}) {
+  // דרגה שאין לה בכלל מקומות בסצנה של החודש לא מוזכרת — עדיף
+  // כלום מאשר "עוגן · נתפס" על משהו שמעולם לא הוצע.
+  if (!availability || availability.capacity === 0) return null;
+
+  const { remaining } = availability;
+  const tone = remaining === 0 ? "neutral" : remaining <= 2 ? "warn" : "success";
+
+  return (
+    <Badge tone={tone}>
+      <span className="font-bold">{TIER_LABELS[tier]}</span>
+      <span>
+        {remaining === 0
+          ? "· נתפס"
+          : remaining === 1
+            ? "· מקום אחד פנוי"
+            : `· ${remaining} מקומות פנויים`}
+      </span>
+    </Badge>
+  );
+}
+
+/** תג הדרגה בתוך החלון עצמו, בצבעי הנייר */
+function HotspotTierTag({
+  tier,
+  muted,
+}: {
+  tier: PresenceTier;
+  muted?: boolean;
+}) {
+  const isAnchor = tier === "ANCHOR";
+
+  return (
+    <span
+      className="px-1 text-[8px] font-bold uppercase leading-[1.5] tracking-[0.1em]"
+      style={
+        muted
+          ? { color: "var(--color-paper-muted)" }
+          : isAnchor
+            ? {
+                background: "var(--color-paper-ink)",
+                color: "var(--color-paper)",
+              }
+            : { color: "var(--color-paper-muted)" }
+      }
+    >
+      {TIER_LABELS[tier]}
+    </span>
+  );
+}
+
 const CONFETTI_COLORS = [
   "var(--color-brand-orange)",
   "var(--color-brand-pink)",
@@ -530,12 +673,11 @@ const CONFETTI_COLORS = [
 ];
 
 /**
- * פיצוץ קונפטי זעיר סביב תג הבחירה כשמשבצת נבחרת — בקשת לקוחה
- * מפורשת: "לשבור את החזרתיות" של 14 ריבועים זהים ברגע הבחירה.
- * גרסה מוקטנת בהשראת אפקט כפתור מוכר (ספינר→וי→קונפטי) — כאן רק
- * חלק הקונפטי, בקנה מידה שמתאים לריבוע קטן, לא כפתור ענק.
- * ממופה פעם אחת ב-mount בלבד (לא נטען מחדש כל עוד המשבצת נשארת
- * נבחרת) כי isSelected הופך מ-false ל-true פעם אחת בלבד להזמנה.
+ * פיצוץ קונפטי זעיר סביב תג הבחירה כשמקום נבחר — בקשת לקוחה
+ * מפורשת: "לשבור את החזרתיות" ברגע הבחירה. גרסה מוקטנת בהשראת
+ * אפקט כפתור מוכר (ספינר→וי→קונפטי) — כאן רק חלק הקונפטי, בקנה
+ * מידה שמתאים לחלון קטן, לא כפתור ענק. ממופה פעם אחת ב-mount
+ * בלבד, כי isPicked הופך מ-false ל-true פעם אחת בלבד להזמנה.
  */
 function ConfettiBurst() {
   const particles = React.useMemo(
@@ -586,7 +728,7 @@ function FocusPanel({
 }: {
   slot: MockupSlot;
   category: string;
-  /** שם העסק שקנה ושילם על החלון הזה במהדורה הנצפית, אם יש */
+  /** שם העסק שקנה ושילם על המקום הזה במהדורה הנצפית, אם יש */
   soldTo: string | null;
   isPicked: boolean;
   isOccupied: boolean;
@@ -602,20 +744,30 @@ function FocusPanel({
 
   return (
     <div>
-      <span className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-muted">
-        {soldTo ? "המקום נמכר" : "מקום זה שמור ל"}
+      <span
+        className={cn(
+          "inline-block px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em]",
+          slot.tier === "ANCHOR"
+            ? "bg-ink text-canvas"
+            : "border border-line text-muted",
+        )}
+      >
+        {TIER_LABELS[slot.tier]}
       </span>
 
-      <h3 className="mt-2 font-display text-2xl leading-tight text-ink">
+      <p className="mt-2.5 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-muted">
+        {soldTo ? "המקום נמכר" : "מקום זה שמור ל"}
+      </p>
+
+      <h3 className="mt-1 font-display text-2xl leading-tight text-ink">
         {soldTo ?? category}
       </h3>
 
-      {soldTo ? (
-        <p className="mt-1.5 text-[12.5px] leading-relaxed text-muted">
-          המקום הזה כבר נתפס על ידי {category} במהדורה הזו. אפשר לדפדף
-          לחודש אחר, או לבחור מקום אחר בלוח.
-        </p>
-      ) : null}
+      <p className="mt-1.5 text-[12px] leading-relaxed text-muted">
+        {soldTo
+          ? `המקום הזה כבר נתפס על ידי ${category} במהדורה הזו. אפשר לדפדף לחודש אחר, או לבחור מקום אחר בסצנה.`
+          : TIER_DESCRIPTIONS[slot.tier]}
+      </p>
 
       <dl className="mt-4 space-y-2.5 border-y border-line py-4 text-[13px]">
         <div className="flex justify-between gap-2">
@@ -639,9 +791,11 @@ function FocusPanel({
 
       {midPackage ? null : (
         <div className="mt-2.5 flex items-center justify-between rounded-md bg-surface-2 px-3 py-2">
-          <span className="text-[11.5px] text-ink-2">ל-3 חודשים · 5% הנחה</span>
+          <span className="text-[11.5px] text-ink-2">ל-3 חודשים</span>
           <span className="tnum text-[13px] font-bold text-ink">
-            {formatPrice(packageTotalAgorotForEditions(slot.priceAgorot, 3))}
+            {formatPrice(
+              packageTotalAgorotForEditions(slot.priceAgorot, 3, slot.tier),
+            )}
           </span>
         </div>
       )}
@@ -669,7 +823,7 @@ function FocusPanel({
         {isOccupied ? (
           "תפוס במהדורה זו"
         ) : isWrongType ? (
-          "סוג אחר — לא מתאים לחבילה"
+          "דרגה או גודל אחר — לא מתאים לחבילה"
         ) : isPicked ? (
           <>
             <Check className="size-4" strokeWidth={3} />

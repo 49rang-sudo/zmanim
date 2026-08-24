@@ -81,119 +81,194 @@ const SQUARE_DEFAULTS = {
 };
 
 // ---------------------------------------------------------------
-//  תבנית החלונות — תמונות השראה והמקומות השמורים שעליהן.
+//  סצנות הקונספט — לכל חודש סצנה משלו, ועליה המקומות השמורים.
 //
-//  תבנית אחת גלובלית לכל הערים והמהדורות (אישור הלקוחה). המכירה
-//  עצמה היא לפי מהדורה, דרך AdSlot/SlotReservation כמו תמיד.
+//  לכל חודש קונספט אחר ("שיפוץ הבית", "לימודים והתפתחות"…), ואותו
+//  חודש חוזר באותה סצנה בכל הערים. המכירה עצמה נשארת לפי מהדורה,
+//  דרך AdSlot/SlotReservation כמו תמיד.
+//
+//  monthOffset = כמה חודשים קדימה מהיום שבו הזריעה רצה. ככה שלוש
+//  הסצנות נופלות בדיוק על שלוש המהדורות שהזריעה יוצרת, וסביבת
+//  הפיתוח מדגימה את המודל החדש (סצנה שונה בכל דפדוף חודש) בלי
+//  תלות בתאריך ההרצה. הסצנה עם monthOffset = null היא הסצנה
+//  *הכללית* — הגיבוי לכל חודש שאין לו אמנות ייעודית.
+//
+//  ⚠ שיוך הקונספטים לחודשים העבריים האמיתיים (אלול = שיפוץ,
+//  תשרי = לימודים…) מגיע מהלקוחה והמעצבת. כאן זו הדגמה בלבד.
 //
 //  x/y/width/height הם אחוזים מרוחב/גובה התמונה. widthCm/heightCm
-//  הם המידות בדפוס בפועל — הם שקובעים "אותו סוג" לצורך חבילות
-//  רב-חודשיות (ראו isSameType).
+//  הם המידות בדפוס בפועל — הם, יחד עם הדרגה, קובעים "אותו סוג"
+//  לצורך חבילות רב-חודשיות (ראו isSameType).
 // ---------------------------------------------------------------
-const INSPIRATION_IMAGES = [
+
+/** מידות הדפוס לכל דרגה — אחידות בכל הסצנות, וזו לא קוסמטיקה:
+ *  isSameType דורש התאמה מלאה, ולכן רק גדלים אחידים מאפשרים חבילה
+ *  שמדלגת בין סצנות של חודשים שונים. */
+const TIER_PRINT_SIZE = {
+  ANCHOR: { widthCm: 6.1, heightCm: 6.3 },
+  COMPLEMENTARY: { widthCm: 2.9, heightCm: 3 },
+} as const;
+
+/**
+ * גיאומטריה משותפת לכל הסצנות: שני עוגנים גדולים בחצי העליון,
+ * ארבעה משלימים ברצועה התחתונה. שני עוגנים ולא אחד בכוונה — כך
+ * "כל העוגנים נתפסו" הוא מצב שדורש שתי מכירות, וסביבת הפיתוח
+ * באמת מדגימה שהמלאי של שתי הדרגות נספר בנפרד.
+ */
+const SCENE_LAYOUT = [
+  { tier: "ANCHOR", x: 4, y: 8, width: 44, height: 52 },
+  { tier: "ANCHOR", x: 52, y: 8, width: 44, height: 52 },
+  { tier: "COMPLEMENTARY", x: 4, y: 66, width: 21, height: 24 },
+  { tier: "COMPLEMENTARY", x: 28, y: 66, width: 20, height: 24 },
+  { tier: "COMPLEMENTARY", x: 52, y: 66, width: 20, height: 24 },
+  { tier: "COMPLEMENTARY", x: 75, y: 66, width: 21, height: 24 },
+] as const;
+
+/** מחיר העוגן — 1600 ₪, המספר שהלקוחה מסרה */
+const ANCHOR_PRICE_AGOROT = 160_000;
+
+/**
+ * מחירי המשלימים — 1200–1350 ₪, פרוסים על פני ארבעת המקומות.
+ * מכוון: הלקוחה אמרה שהמחיר נקבע פר-מיקום ואינו קבוע אחד, ולכן
+ * הזריעה חייבת להדגים טווח ולא מספר יחיד — אחרת באג "כולם באותו
+ * מחיר" לא היה נראה בפיתוח.
+ */
+const COMPLEMENTARY_PRICES_AGOROT = [135_000, 130_000, 125_000, 120_000];
+
+type SceneSpec = {
+  label: string;
+  key: string;
+  /** null = הסצנה הכללית (גיבוי לכל חודש בלי אמנות ייעודית) */
+  monthOffset: number | null;
+  gradient: { top: [number, number, number]; bottom: [number, number, number] };
+  aspectRatio: number;
+  skuPrefix: string;
+  /** שתי הראשונות = העוגנים, אחריהן ארבע המשלימות — סדר SCENE_LAYOUT */
+  categories: [string, string, string, string, string, string];
+  /**
+   * מק״טים מפורשים, כשקיימים כבר במסד מזריעות קודמות. המק״ט הוא
+   * נקודת העגינה של הזריעה החוזרת (AdSlot.sku ייחודי), ולכן שינוי
+   * שמות היה יוצר סט משבצות שני במקום לעדכן את הקיים.
+   */
+  skus?: [string, string, string, string, string, string];
+};
+
+const SCENES: SceneSpec[] = [
   {
-    label: "קיר מטבח",
-    key: "kitchen-wall",
-    // גווני קרם/חול חמים — קיר מטבח
-    gradient: { top: [232, 222, 206], bottom: [206, 190, 170] },
+    label: "שיפוץ הבית",
+    key: "home-renovation",
+    monthOffset: 0,
+    // חול חם — עבודות גמר בבית
+    gradient: { top: [236, 226, 210], bottom: [206, 188, 164] },
     aspectRatio: 16 / 9,
-    hotspots: [
-      {
-        sku: "HS-KITCHEN-TILES",
-        category: "חנות חיפויים",
-        x: 8, y: 12, width: 26, height: 22,
-        widthCm: 6.1, heightCm: 3,
-        priceAgorot: 80_000,
-      },
-      {
-        sku: "HS-KITCHEN-CABINETS",
-        category: "נגריית מטבחים",
-        x: 40, y: 10, width: 26, height: 22,
-        widthCm: 6.1, heightCm: 3,
-        priceAgorot: 80_000,
-      },
-      {
-        sku: "HS-KITCHEN-APPLIANCES",
-        category: "חשמל ומוצרי חשמל",
-        x: 71, y: 14, width: 21, height: 18,
-        widthCm: 2.9, heightCm: 3,
-        priceAgorot: 45_000,
-      },
-      {
-        sku: "HS-KITCHEN-TEXTILE",
-        category: "טקסטיל לבית",
-        x: 12, y: 55, width: 21, height: 18,
-        widthCm: 2.9, heightCm: 3,
-        priceAgorot: 45_000,
-      },
-      {
-        sku: "HS-KITCHEN-CLEANING",
-        category: "חנות כלי בית",
-        x: 44, y: 58, width: 21, height: 18,
-        widthCm: 2.9, heightCm: 3,
-        priceAgorot: 45_000,
-      },
-      {
-        sku: "HS-KITCHEN-LIGHTING",
-        category: "חנות תאורה",
-        x: 71, y: 55, width: 21, height: 18,
-        widthCm: 2.9, heightCm: 3,
-        priceAgorot: 45_000,
-      },
+    skuPrefix: "HS-RENO",
+    categories: [
+      "נגריית מטבחים",
+      "עיצוב פנים",
+      "חנות תאורה",
+      "חנות חיפויים וריצוף",
+      "צבע וכלי עבודה",
+      "מיזוג ואינסטלציה",
+    ],
+  },
+  {
+    label: "לימודים והתפתחות",
+    key: "learning",
+    monthOffset: 1,
+    // תכלת קריר — כיתה/ספרייה
+    gradient: { top: [220, 230, 242], bottom: [190, 205, 224] },
+    aspectRatio: 16 / 9,
+    skuPrefix: "HS-LEARN",
+    categories: [
+      "מכללה וקורסים",
+      "ייעוץ והכוונה לימודית",
+      "חנות ספרים",
+      "ציוד משרדי וכתיבה",
+      "מחשבים וטכנולוגיה",
+      "חוגים לילדים",
     ],
   },
   {
     label: "פינת תינוק",
     key: "baby-corner",
+    monthOffset: 2,
     // תכלת/ורוד עדין — חדר תינוק
     gradient: { top: [222, 231, 240], bottom: [238, 222, 228] },
     aspectRatio: 16 / 9,
-    hotspots: [
-      {
-        sku: "HS-BABY-STROLLER",
-        category: "חנות תינוקות",
-        x: 9, y: 16, width: 28, height: 24,
-        widthCm: 6.1, heightCm: 3,
-        priceAgorot: 80_000,
-      },
-      {
-        sku: "HS-BABY-CLOTHES",
-        category: "חנות הלבשת ילדים",
-        x: 43, y: 14, width: 24, height: 20,
-        widthCm: 2.9, heightCm: 3,
-        priceAgorot: 45_000,
-      },
-      {
-        sku: "HS-BABY-TOYS",
-        category: "חנות צעצועים",
-        x: 72, y: 18, width: 20, height: 17,
-        widthCm: 2.9, heightCm: 3,
-        priceAgorot: 45_000,
-      },
-      {
-        sku: "HS-BABY-PHARMACY",
-        category: "בית מרקחת",
-        x: 14, y: 60, width: 20, height: 17,
-        widthCm: 2.9, heightCm: 3,
-        priceAgorot: 45_000,
-      },
-      {
-        sku: "HS-BABY-PHOTO",
-        category: "צלם/ת ניו-בורן",
-        x: 42, y: 57, width: 26, height: 22,
-        widthCm: 6.1, heightCm: 3,
-        priceAgorot: 80_000,
-      },
-      {
-        sku: "HS-BABY-FURNITURE",
-        category: "חנות רהיטים",
-        x: 73, y: 60, width: 20, height: 17,
-        widthCm: 2.9, heightCm: 3,
-        priceAgorot: 45_000,
-      },
+    skuPrefix: "HS-BABY",
+    categories: [
+      "חנות תינוקות",
+      "חנות רהיטים",
+      "חנות הלבשת ילדים",
+      "חנות צעצועים",
+      "בית מרקחת",
+      "צלם/ת ניו-בורן",
+    ],
+    skus: [
+      "HS-BABY-STROLLER",
+      "HS-BABY-FURNITURE",
+      "HS-BABY-CLOTHES",
+      "HS-BABY-TOYS",
+      "HS-BABY-PHARMACY",
+      "HS-BABY-PHOTO",
     ],
   },
-] as const;
+  {
+    // הסצנה הכללית: מה שיוצג בכל חודש שאין לו אמנות ייעודית.
+    // בלעדיה, מהדורה בחודש לא-מכוסה הייתה מציגה לוח ריק.
+    label: "קיר מטבח",
+    key: "kitchen-wall",
+    monthOffset: null,
+    gradient: { top: [232, 222, 206], bottom: [206, 190, 170] },
+    aspectRatio: 16 / 9,
+    skuPrefix: "HS-KITCHEN",
+    categories: [
+      "נגריית מטבחים",
+      "חנות חיפויים",
+      "חנות כלי בית",
+      "חשמל ומוצרי חשמל",
+      "טקסטיל לבית",
+      "חנות תאורה",
+    ],
+    skus: [
+      "HS-KITCHEN-CABINETS",
+      "HS-KITCHEN-TILES",
+      "HS-KITCHEN-CLEANING",
+      "HS-KITCHEN-APPLIANCES",
+      "HS-KITCHEN-TEXTILE",
+      "HS-KITCHEN-LIGHTING",
+    ],
+  },
+];
+
+/** פורש סצנה לרשימת חלונות מלאה — גיאומטריה + דרגה + מחיר + מק״ט */
+function sceneHotspots(scene: SceneSpec) {
+  let complementaryIndex = 0;
+
+  return SCENE_LAYOUT.map((spot, index) => {
+    const tier = spot.tier;
+    const priceAgorot =
+      tier === "ANCHOR"
+        ? ANCHOR_PRICE_AGOROT
+        : COMPLEMENTARY_PRICES_AGOROT[
+            complementaryIndex++ % COMPLEMENTARY_PRICES_AGOROT.length
+          ];
+
+    return {
+      sku:
+        scene.skus?.[index] ??
+        `${scene.skuPrefix}-${String(index + 1).padStart(2, "0")}`,
+      category: scene.categories[index],
+      tier,
+      x: spot.x,
+      y: spot.y,
+      width: spot.width,
+      height: spot.height,
+      ...TIER_PRINT_SIZE[tier],
+      priceAgorot,
+    };
+  });
+}
 
 const CITIES = [
   { name: "ירושלים", region: "ירושלים והסביבה", capacity: 14, distribution: 12_000 },
@@ -297,8 +372,9 @@ async function main() {
 
     let imageIndex = 0;
     let hotspotTotal = 0;
+    const now = new Date();
 
-    for (const image of INSPIRATION_IMAGES) {
+    for (const image of SCENES) {
       const key = `media/seed-${image.key}.png`;
       const png = gradientPng(
         1200,
@@ -310,6 +386,17 @@ async function main() {
 
       const imageUrl = `/api/media/${key.replace(/^media\//, "")}`;
 
+      // monthOffset נמדד מהיום שהזריעה רצה, כדי שהסצנות ייפלו בדיוק
+      // על המהדורות שנוצרות בהמשך. null נשאר null — הסצנה הכללית.
+      const gregorianMonth =
+        image.monthOffset === null
+          ? null
+          : new Date(
+              now.getFullYear(),
+              now.getMonth() + image.monthOffset,
+              1,
+            ).getMonth() + 1;
+
       // אין מפתח טבעי ייחודי — מזהים לפי התווית, שהיא ייחודית בתבנית
       const existing = await prisma.inspirationImage.findFirst({
         where: { label: image.label },
@@ -320,6 +407,7 @@ async function main() {
             where: { id: existing.id },
             data: {
               imageUrl,
+              gregorianMonth,
               aspectRatio: image.aspectRatio,
               sortOrder: imageIndex,
               active: true,
@@ -329,14 +417,18 @@ async function main() {
             data: {
               label: image.label,
               imageUrl,
+              gregorianMonth,
               aspectRatio: image.aspectRatio,
               sortOrder: imageIndex,
               active: true,
             },
           });
 
+      const spots = sceneHotspots(image);
+      const keptHotspotIds: string[] = [];
+
       let hotspotIndex = 0;
-      for (const spot of image.hotspots) {
+      for (const spot of spots) {
         // המשבצת (AdSlot) היא היחידה הנמכרת ו-sku שלה ייחודי, ולכן
         // היא נקודת העגינה של הזריעה החוזרת. החלון נתלה עליה.
         const slot = await prisma.adSlot.findUnique({
@@ -347,6 +439,7 @@ async function main() {
         const hotspotData = {
           inspirationImageId: row.id,
           category: spot.category,
+          tier: spot.tier,
           x: spot.x,
           y: spot.y,
           width: spot.width,
@@ -362,6 +455,8 @@ async function main() {
               data: hotspotData,
             })
           : await prisma.hotspot.create({ data: hotspotData });
+
+        keptHotspotIds.push(hotspot.id);
 
         // מחיר המשבצת נכתב מ-Hotspot.priceAgorot — מקור אמת אחד
         // לכסף, והוא זה שנגבה בקופה.
@@ -398,11 +493,30 @@ async function main() {
         hotspotTotal += 1;
       }
 
+      // חלון שנשאר על הסצנה מזריעה קודמת אך אינו בתבנית הנוכחית
+      // מנוטרל, לא נמחק: מחיקה הייתה מנתקת בשקט (SetNull) משבצת
+      // שהזמנות עבר מצביעות עליה. נטרול מוציא אותו מהמכירה ומהספירה
+      // בלי לגעת בהיסטוריה.
+      const stale = await prisma.hotspot.updateMany({
+        where: {
+          inspirationImageId: row.id,
+          id: { notIn: keptHotspotIds },
+          active: true,
+        },
+        data: { active: false },
+      });
+      if (stale.count > 0) {
+        console.log(
+          `  · ${stale.count} חלונות ישנים נוטרלו בסצנה "${image.label}"`,
+        );
+      }
+
       imageIndex += 1;
     }
 
     console.log(
-      `  ✓ ${INSPIRATION_IMAGES.length} תמונות השראה · ${hotspotTotal} חלונות`,
+      `  ✓ ${SCENES.length} סצנות קונספט · ${hotspotTotal} מקומות ` +
+        `(עוגן + משלימים, לפי חודש)`,
     );
   } catch (error) {
     console.warn(
@@ -448,13 +562,30 @@ async function main() {
   const now = new Date();
   let editionCount = 0;
 
-  // המלאי האמיתי הנמכר הוא מספר החלונות (Hotspot) הפעילים — תבנית
-  // גלובלית אחת המשותפת לכל הערים. City.capacity הוא שריד מהמודל
-  // הישן (רשת per-city) ויכול להיות גבוה יותר; הקיבולת המוצגת
-  // בפועל לעולם לא תעלה על מה שבאמת ניתן למכור.
-  const activeHotspotCount = await prisma.hotspot.count({
-    where: { active: true },
+  // המלאי האמיתי הנמכר בחודש נתון הוא מספר החלונות הפעילים בסצנה
+  // *של אותו חודש* — לא הסכום הגלובלי. City.capacity הוא שריד
+  // מהמודל הישן (רשת per-city) ויכול להיות גבוה יותר; הקיבולת
+  // הנשמרת לעולם לא תעלה על מה שבאמת ניתן למכור בחודש הזה.
+  //
+  // (src/lib/availability.ts אוכף את אותה תקרה שוב בזמן קריאה,
+  // כדי שגם מהדורות שנוצרו ידנית באדמין לא יבטיחו מלאי שלא קיים.)
+  const activeHotspots = await prisma.hotspot.findMany({
+    where: {
+      active: true,
+      slot: { is: { active: true } },
+      inspirationImage: { is: { active: true } },
+    },
+    select: { inspirationImage: { select: { gregorianMonth: true } } },
   });
+
+  const countByMonth = new Map<number, number>();
+  let genericCount = 0;
+  for (const hotspot of activeHotspots) {
+    const month = hotspot.inspirationImage.gregorianMonth;
+    if (month === null) genericCount += 1;
+    else countByMonth.set(month, (countByMonth.get(month) ?? 0) + 1);
+  }
+  const sellableIn = (month: number) => countByMonth.get(month) ?? genericCount;
 
   for (const city of cityRows) {
     for (let i = 0; i < 3; i += 1) {
@@ -464,6 +595,7 @@ async function main() {
       const closesAt = new Date(
         now.getTime() + (i + 1) * 20 * 24 * 60 * 60 * 1000,
       );
+      const sellable = sellableIn(gregorianMonth);
 
       await prisma.edition.upsert({
         where: {
@@ -473,15 +605,18 @@ async function main() {
             gregorianMonth,
           },
         },
-        update: {},
+        // הקיבולת כן מתעדכנת בזריעה חוזרת: אחרי שהתבנית משתנה
+        // (סצנה חדשה, חלון שנוטרל) מהדורה שנשארה עם המספר הישן
+        // הייתה מציגה מלאי שלא קיים.
+        update: {
+          capacity: sellable ? Math.min(city.capacity, sellable) : city.capacity,
+        },
         create: {
           cityId: city.id,
           hebrewLabel: HEBREW_MONTH_APPROX[gregorianMonth % 12],
           gregorianMonth,
           gregorianYear,
-          capacity: activeHotspotCount
-            ? Math.min(city.capacity, activeHotspotCount)
-            : city.capacity,
+          capacity: sellable ? Math.min(city.capacity, sellable) : city.capacity,
           closesAt,
           status: "OPEN",
         },

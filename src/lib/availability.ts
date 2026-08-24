@@ -1,8 +1,19 @@
 import { prisma } from "./prisma";
 import { env } from "./env";
+import type { PresenceTier } from "./packages";
 
 /** בחירה בודדת בתוך הזמנה: איזו משבצת נבחרה באיזו מהדורה */
 export type SlotSelection = { editionId: string; slotId: string };
+
+/** מלאי של דרגה אחת (עוגן/משלים) בתוך מהדורה אחת */
+export type TierAvailability = {
+  capacity: number;
+  taken: number;
+  remaining: number;
+  isFull: boolean;
+};
+
+export type TierAvailabilityMap = Record<PresenceTier, TierAvailability>;
 
 export type EditionAvailability = {
   id: string;
@@ -29,6 +40,12 @@ export type EditionAvailability = {
    *    שידלוף לעמוד ציבורי — מי שלא מילא שם עסק נשאר "תפוס".
    */
   soldBySlotId: Record<string, string>;
+  /**
+   * מלאי נפרד לכל דרגה במהדורה הזו. שני המספרים בלתי-תלויים: אפשר
+   * שכל העוגנים של החודש ייתפסו בזמן שהמשלימים עדיין פנויים,
+   * ולהפך. זה מה שהבורר מציג כ"עוגן: נתפס · משלים: 3 מקומות".
+   */
+  tiers: TierAvailabilityMap;
   /** טקסט שיווקי קצר: למה כדאי לפרסם דווקא במהדורה הזו */
   marketingNote: string | null;
 };
@@ -52,6 +69,149 @@ export type CityAvailability = {
   isFull: boolean;
   available: boolean;
 };
+
+/* ---------------------------------------------------------------
+   תבנית החלונות הנמכרים, מקובצת לפי החודש שהסצנה שייכת לו.
+
+   זה מה שהופך "מלאי" ממספר יחיד לשני מספרים בלתי-תלויים: לכל חודש
+   סצנה משלו, ובתוכה קבוצת עוגנים וקבוצת משלימים נפרדות. אפשר שכל
+   העוגנים של חודש ייתפסו בזמן שהמשלימים באותו חודש עדיין פנויים —
+   ולהפך — כי הם פשוט נספרים משתי קבוצות שונות.
+   --------------------------------------------------------------- */
+
+type MonthTemplate = {
+  /** מזהי המשבצות הנמכרות בחודש הזה, לפי דרגה */
+  slotIdsByTier: Record<PresenceTier, Set<string>>;
+  /** slotId → דרגה, לשיוך מהיר של תפיסה קיימת לדרגה */
+  tierBySlotId: Map<string, PresenceTier>;
+  /** סך המשבצות הניתנות למכירה בחודש הזה (שתי הדרגות יחד) */
+  total: number;
+};
+
+type MonthTemplates = {
+  byMonth: Map<number, MonthTemplate>;
+  /** הסצנות הכלליות (gregorianMonth = null) — גיבוי לחודש בלי אמנות */
+  fallback: MonthTemplate;
+};
+
+function emptyTemplate(): MonthTemplate {
+  return {
+    slotIdsByTier: { ANCHOR: new Set(), COMPLEMENTARY: new Set() },
+    tierBySlotId: new Map(),
+    total: 0,
+  };
+}
+
+/**
+ * טוען את תבנית החלונות הפעילים ומקבץ אותה לפי חודש.
+ *
+ * כלל הגיבוי כאן חייב להיות זהה לזה שהלקוח רואה בבורר
+ * (boardForMonth ב-src/lib/board.ts): קודם הסצנות של החודש, ורק אם
+ * אין כאלה — הכלליות. אם הספירה תשתמש בסצנה אחת והתצוגה באחרת,
+ * המספר "3 מקומות פנויים" יתאר משהו שלא מוצג על המסך.
+ */
+async function loadMonthTemplates(): Promise<MonthTemplates> {
+  const hotspots = await prisma.hotspot.findMany({
+    where: {
+      active: true,
+      slot: { is: { active: true } },
+      inspirationImage: { is: { active: true } },
+    },
+    select: {
+      tier: true,
+      inspirationImage: { select: { gregorianMonth: true } },
+      slot: { select: { id: true } },
+    },
+  });
+
+  const byMonth = new Map<number, MonthTemplate>();
+  const fallback = emptyTemplate();
+
+  for (const hotspot of hotspots) {
+    if (!hotspot.slot) continue;
+
+    const month = hotspot.inspirationImage.gregorianMonth;
+    let bucket: MonthTemplate;
+    if (month === null) {
+      bucket = fallback;
+    } else {
+      bucket = byMonth.get(month) ?? emptyTemplate();
+      byMonth.set(month, bucket);
+    }
+
+    const tier = hotspot.tier as PresenceTier;
+    bucket.slotIdsByTier[tier].add(hotspot.slot.id);
+    bucket.tierBySlotId.set(hotspot.slot.id, tier);
+    bucket.total += 1;
+  }
+
+  return { byMonth, fallback };
+}
+
+function templateForMonth(
+  templates: MonthTemplates,
+  gregorianMonth: number,
+): MonthTemplate {
+  const exact = templates.byMonth.get(gregorianMonth);
+  return exact && exact.total > 0 ? exact : templates.fallback;
+}
+
+/**
+ * הקיבולת שבאמת ניתנת למכירה במהדורה.
+ *
+ * Edition.capacity הוא התקרה שהמנהלת קבעה, אבל הוא לא יכול להצדיק
+ * מכירה של מה שלא קיים: אי אפשר למכור יותר חלונות מכמה שיש בסצנה
+ * של אותו חודש. זה המשך ישיר של b4b3b1a — רק שעכשיו הספירה היא
+ * לפי חודש ולא גלובלית, כי לכל חודש סצנה משלו.
+ *
+ * הכיוון חשוב: התצוגה תמיד ≤ מה שנעילת התפיסה ב-reserveSlot מרשה,
+ * אף פעם לא להפך. לכן "מלא" בתצוגה לעולם לא סותר תפיסה שמצליחה.
+ */
+function sellableCapacity(
+  editionCapacity: number,
+  template: MonthTemplate,
+): number {
+  return template.total > 0
+    ? Math.min(editionCapacity, template.total)
+    : editionCapacity;
+}
+
+/**
+ * שני מלאים בלתי-תלויים למהדורה אחת.
+ *
+ * מלאי הדרגה חסום בנוסף במה שנשאר במהדורה כולה, כדי שלא נבטיח
+ * 3 משלימים פנויים במהדורה שנשאר בה מקום אחד בסך הכול.
+ */
+function tierAvailability(
+  template: MonthTemplate,
+  occupiedSlotIds: string[],
+  editionRemaining: number,
+): TierAvailabilityMap {
+  const takenByTier: Record<PresenceTier, number> = {
+    ANCHOR: 0,
+    COMPLEMENTARY: 0,
+  };
+
+  for (const slotId of occupiedSlotIds) {
+    const tier = template.tierBySlotId.get(slotId);
+    // תפיסה על משבצת שאינה בסצנה של החודש (למשל אחרי החלפת אמנות)
+    // נספרת בסך הכולל של המהדורה, אבל אין לה דרגה כאן — ולכן היא
+    // לא מנפחת ולא מקטינה אף אחת משתי הדרגות.
+    if (tier) takenByTier[tier] += 1;
+  }
+
+  const build = (tier: PresenceTier): TierAvailability => {
+    const capacity = template.slotIdsByTier[tier].size;
+    const taken = takenByTier[tier];
+    const remaining = Math.min(
+      Math.max(0, capacity - taken),
+      Math.max(0, editionRemaining),
+    );
+    return { capacity, taken, remaining, isFull: remaining === 0 };
+  };
+
+  return { ANCHOR: build("ANCHOR"), COMPLEMENTARY: build("COMPLEMENTARY") };
+}
 
 /**
  * משחרר החזקות שפגו ומסמן את ההזמנות שלהן כפוגות.
@@ -98,17 +258,20 @@ export async function getCityAvailability(
 
   const now = new Date();
 
-  const cities = await prisma.city.findMany({
-    where: includeHidden ? {} : { visible: true },
-    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-    include: {
-      editions: {
-        where: { status: "OPEN", closesAt: { gt: now } },
-        orderBy: [{ gregorianYear: "asc" }, { gregorianMonth: "asc" }],
-        include: { _count: { select: { reservations: true } } },
+  const [cities, templates] = await Promise.all([
+    prisma.city.findMany({
+      where: includeHidden ? {} : { visible: true },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      include: {
+        editions: {
+          where: { status: "OPEN", closesAt: { gt: now } },
+          orderBy: [{ gregorianYear: "asc" }, { gregorianMonth: "asc" }],
+          include: { _count: { select: { reservations: true } } },
+        },
       },
-    },
-  });
+    }),
+    loadMonthTemplates(),
+  ]);
 
   const rows = cities.map((city) => {
     const openEditions = city.editions.map((edition) => ({
@@ -116,7 +279,12 @@ export async function getCityAvailability(
       hebrewLabel: edition.hebrewLabel,
       gregorianMonth: edition.gregorianMonth,
       gregorianYear: edition.gregorianYear,
-      capacity: edition.capacity,
+      // אותה תקרה שהבורר יראה — כרטיס העיר לא יכול להבטיח 14
+      // מקומות בזמן שהסצנה של החודש נושאת 6 חלונות בלבד.
+      capacity: sellableCapacity(
+        edition.capacity,
+        templateForMonth(templates, edition.gregorianMonth),
+      ),
       taken: edition._count.reservations,
     }));
 
@@ -168,18 +336,21 @@ export async function getOpenEditionsForCity(
 ): Promise<EditionAvailability[]> {
   const now = new Date();
 
-  const editions = await prisma.edition.findMany({
-    where: { cityId, status: "OPEN", closesAt: { gt: now } },
-    orderBy: [{ gregorianYear: "asc" }, { gregorianMonth: "asc" }],
-    include: {
-      reservations: {
-        select: {
-          slotId: true,
-          order: { select: { status: true, businessName: true } },
+  const [editions, templates] = await Promise.all([
+    prisma.edition.findMany({
+      where: { cityId, status: "OPEN", closesAt: { gt: now } },
+      orderBy: [{ gregorianYear: "asc" }, { gregorianMonth: "asc" }],
+      include: {
+        reservations: {
+          select: {
+            slotId: true,
+            order: { select: { status: true, businessName: true } },
+          },
         },
       },
-    },
-  });
+    }),
+    loadMonthTemplates(),
+  ]);
 
   return editions.map((edition) => {
     const occupiedSlotIds = edition.reservations.map((r) => r.slotId);
@@ -191,6 +362,10 @@ export async function getOpenEditionsForCity(
       if (business) soldBySlotId[reservation.slotId] = business;
     }
 
+    const template = templateForMonth(templates, edition.gregorianMonth);
+    const capacity = sellableCapacity(edition.capacity, template);
+    const remaining = Math.max(0, capacity - taken);
+
     return {
       id: edition.id,
       cityId: edition.cityId,
@@ -198,13 +373,14 @@ export async function getOpenEditionsForCity(
       gregorianMonth: edition.gregorianMonth,
       gregorianYear: edition.gregorianYear,
       closesAt: edition.closesAt.toISOString(),
-      capacity: edition.capacity,
+      capacity,
       taken,
-      remaining: Math.max(0, edition.capacity - taken),
-      isFull: taken >= edition.capacity,
+      remaining,
+      isFull: remaining === 0,
       status: edition.status,
       occupiedSlotIds,
       soldBySlotId,
+      tiers: tierAvailability(template, occupiedSlotIds, remaining),
       marketingNote: edition.marketingNote,
     };
   });

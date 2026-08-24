@@ -4,7 +4,11 @@ import { reserveSlot, SlotUnavailableError } from "@/lib/availability";
 import { generateAccessToken, generateReference } from "@/lib/ids";
 import { getSiteSettings } from "@/lib/site";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
-import { AD_PACKAGES, sumWithPackageDiscount } from "@/lib/packages";
+import {
+  AD_PACKAGES,
+  sumWithPackageDiscount,
+  type PresenceTier,
+} from "@/lib/packages";
 import { fail, handle, ok, parseBody } from "@/lib/api";
 
 export const runtime = "nodejs";
@@ -64,7 +68,12 @@ export async function POST(request: Request) {
 
     const slotIds = [...new Set(input.selections.map((s) => s.slotId))];
     const [slots, city, settings] = await Promise.all([
-      prisma.adSlot.findMany({ where: { id: { in: slotIds } } }),
+      // דרגת הנוכחות יושבת על החלון, והיא קלט הכרחי לתמחור —
+      // נשלפת כאן בשרת ולא מתקבלת מהלקוח.
+      prisma.adSlot.findMany({
+        where: { id: { in: slotIds } },
+        include: { hotspot: { select: { tier: true } } },
+      }),
       prisma.city.findUnique({ where: { id: input.cityId } }),
       getSiteSettings(),
     ]);
@@ -77,10 +86,17 @@ export async function POST(request: Request) {
       return fail(404, "CITY_NOT_FOUND", "העיר המבוקשת אינה זמינה");
     }
 
-    // המשבצת הראשונה קובעת את "הסוג" (גודל) של כל ההזמנה — כל
-    // הבחירות האחרות חייבות להתאים לה במידות, גם אם המיקום/המק"ט
-    // שונה בכל חודש. לא סומכים על הלקוח — נבדק גם כאן בשרת.
+    // משבצת ישנה מפריסת הרשת אינה קשורה לחלון ולכן אין לה דרגה.
+    // ברירת המחדל היא המשלים — הסולם הזול, זהה להתנהגות הקודמת
+    // (5% על שני חודשים). לעולם לא נתמחר משבצת חסרת-דרגה כעוגן.
+    const tierOf = (slot: (typeof slots)[number]): PresenceTier =>
+      (slot.hotspot?.tier as PresenceTier | undefined) ?? "COMPLEMENTARY";
+
+    // המשבצת הראשונה קובעת את "הסוג" (גודל + דרגה) של כל ההזמנה —
+    // כל הבחירות האחרות חייבות להתאים לה, גם אם המיקום/המק"ט שונה
+    // בכל חודש. לא סומכים על הלקוח — נבדק גם כאן בשרת.
     const anchorSlot = slotsById.get(input.selections[0].slotId)!;
+    const orderTier = tierOf(anchorSlot);
     const sameType = slots.every(
       (s) =>
         s.colSpan === anchorSlot.colSpan &&
@@ -96,6 +112,16 @@ export async function POST(request: Request) {
       );
     }
 
+    // בדיקה נפרדת ומפורשת: חבילה היא כולה עוגן או כולה משלים.
+    // ערבוב היה מתמחר את כל החודשים בסולם של החודש הראשון.
+    if (slots.some((s) => tierOf(s) !== orderTier)) {
+      return fail(
+        422,
+        "TIER_MISMATCH",
+        "כל המקומות בהזמנה חייבים להיות מאותה דרגה (עוגן או משלים)",
+      );
+    }
+
     const reference = generateReference();
     const accessToken = generateAccessToken();
     const editionsCount = input.selections.length;
@@ -104,8 +130,10 @@ export async function POST(request: Request) {
       AD_PACKAGES.find(
         (p) => p.editions === editionsCount && p.id !== "SINGLE",
       )?.id ?? null;
+    // סולם ההנחות שונה בין עוגן למשלים — ראו src/lib/packages.ts
     const totalPriceAgorot = sumWithPackageDiscount(
       input.selections.map((s) => slotsById.get(s.slotId)!.priceAgorot),
+      orderTier,
     );
 
     // ההזמנה נוצרת קודם, ורק אז נתפסות המשבצות — כך שאם התפיסה
