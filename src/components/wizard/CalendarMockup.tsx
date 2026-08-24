@@ -619,8 +619,16 @@ function TierStatusBadge({
   // כלום מאשר "עוגן · נתפס" על משהו שמעולם לא הוצע.
   if (!availability || availability.capacity === 0) return null;
 
-  const { remaining } = availability;
-  const tone = remaining === 0 ? "neutral" : remaining <= 2 ? "warn" : "success";
+  const { remaining, capacity } = availability;
+  // דחיפות רק כשבאמת נגסו במלאי. לעוגן יש שני מקומות בסך הכול,
+  // ולכן "2 פנויים" הוא מלאי *מלא* — צביעתו באזהרה הייתה דחיפות
+  // מזויפת על דרגה שאיש עוד לא נגע בה.
+  const tone =
+    remaining === 0
+      ? "neutral"
+      : remaining < capacity && remaining <= 2
+        ? "warn"
+        : "success";
 
   return (
     <Badge tone={tone}>

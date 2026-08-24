@@ -113,14 +113,20 @@ export function packageFactor(tier: PresenceTier, months: number): number {
   return previous;
 }
 
-/** המחיר לחודש (באגורות) בהתחייבות של n חודשים — לתצוגה */
+/**
+ * המחיר לחודש (באגורות) בהתחייבות של n חודשים — *לתצוגה בלבד*.
+ * מה שנגבה בפועל הוא תמיד הסכום הכולל, ולכן החלוקה כאן מעוגלת
+ * לשקל שלם: "1,213.33 ₪ לחודש" הוא רעש לקהל לא-טכני, והשארית
+ * ממילא לא מופיעה באף חיוב.
+ */
 export function perMonthAgorot(
   tier: PresenceTier,
   unitPriceAgorot: number,
   months: number,
 ): number {
   if (months <= 0) return 0;
-  return Math.round((unitPriceAgorot * packageFactor(tier, months)) / months);
+  const exact = (unitPriceAgorot * packageFactor(tier, months)) / months;
+  return Math.round(exact / 100) * 100;
 }
 
 /**
