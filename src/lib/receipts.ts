@@ -64,12 +64,17 @@ export function isReceiptMonthOpen(
   );
 }
 
-/** המועד האחרון להעלאת קבלה עבור חודש דפוס נתון */
-export function receiptClosesAt(edition: ReceiptMonth): Date {
+/**
+ * היום האחרון *כולל* שבו עדיין אפשר להעלות קבלה לחודש דפוס נתון.
+ * יום ולא רגע, כי זה מה שמוצג לקונה ("אפשר להעלות עד 10 בספטמבר")
+ * — וחייב להתאים בדיוק ל-eligibleReceiptMonths, שמפסיק לכלול את
+ * החודש הקודם ביום שאחרי RECEIPT_GRACE_DAYS.
+ */
+export function receiptLastDay(edition: ReceiptMonth): Date {
   return new Date(
     edition.gregorianYear,
     edition.gregorianMonth, // החודש הבא (getMonth מבוסס-0)
-    1 + RECEIPT_GRACE_DAYS,
+    RECEIPT_GRACE_DAYS,
   );
 }
 
@@ -94,8 +99,8 @@ export type ReceiptEdition = {
   hebrewLabel: string;
   gregorianMonth: number;
   gregorianYear: number;
-  /** עד מתי אפשר להעלות קבלות לחודש הזה */
-  receiptsCloseAt: string;
+  /** היום האחרון (כולל) שבו אפשר להעלות קבלות לחודש הזה */
+  receiptsLastDay: string;
   businesses: ReceiptBusiness[];
 };
 
@@ -156,7 +161,7 @@ export async function getReceiptEditionsForCity(
         hebrewLabel: edition.hebrewLabel,
         gregorianMonth: edition.gregorianMonth,
         gregorianYear: edition.gregorianYear,
-        receiptsCloseAt: receiptClosesAt(edition).toISOString(),
+        receiptsLastDay: receiptLastDay(edition).toISOString(),
         businesses: [...byOrderId.values()].sort((a, b) =>
           a.businessName.localeCompare(b.businessName, "he"),
         ),

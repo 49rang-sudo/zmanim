@@ -367,6 +367,15 @@ export function SiteFooter({ content }: { content: SiteContentData }) {
           <span dir="ltr" className="mono-label text-[14px] text-ink-2">
             {content.contact.phone}
           </span>
+
+          {/* קוני הלוח מגיעים לכאן מהלוח המודפס עצמו, אבל מי שנחת
+              קודם באתר צריך גם הוא דרך למצוא את הטופס */}
+          <a
+            href="/receipts"
+            className="mt-2 text-[14px] text-ink underline underline-offset-4 transition-colors hover:text-accent"
+          >
+            קניתם אצל עסק מהלוח? להעלאת קבלה להגרלה
+          </a>
         </div>
       </div>
 
