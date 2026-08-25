@@ -57,7 +57,7 @@ export function AdminShell({
       <header className="glass sticky top-0 z-30 border-b border-line">
         <div className="mx-auto flex max-w-[1200px] items-center gap-4 px-5 py-3.5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/zmanim-mark.png" alt="" className="size-9 object-contain" />
+          <img src="/brand/zmanim-logo.png" alt="" className="size-9 object-contain" />
 
           <div className="min-w-0">
             <p className="font-display text-lg font-semibold leading-tight text-ink">
