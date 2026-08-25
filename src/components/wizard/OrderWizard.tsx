@@ -33,8 +33,20 @@ import {
   TIER_LABELS,
 } from "@/lib/packages";
 import { markPopupShown, popupAlreadyShown } from "@/lib/popup-session";
+import {
+  clearOrderDraft,
+  DRAFT_VERSION,
+  readOrderDraft,
+  writeOrderDraft,
+} from "@/lib/order-draft";
+import {
+  ORDER_INTENT_EVENT,
+  setOrderInProgress,
+  type OrderIntentDetail,
+} from "@/lib/order-focus";
 import type { SiteContentData } from "@/lib/content";
 import type { CityAvailability, EditionAvailability } from "@/lib/availability";
+import type { PresenceTier } from "@/lib/packages";
 
 type OrderState = {
   id: string;
@@ -110,8 +122,17 @@ export function OrderWizard({
     notes: "",
   });
   const [errors, setErrors] = React.useState<Record<string, string>>({});
+  /**
+   * הדרגה שכפתור בעמוד הנחיתה הבטיח ("לבחירת חודש ונוכחות עוגן").
+   * משמשת רק כדי לומר בשלב 2 מה בדיוק חיפשנו — ומתאפסת ברגע
+   * שנבחר מקום בפועל, כי אז המסך כבר מספר את הסיפור לבדו.
+   */
+  const [intentTier, setIntentTier] = React.useState<PresenceTier | null>(null);
 
   const topRef = React.useRef<HTMLDivElement>(null);
+
+  /** החודש שהיה מוצג בטיוטה שהתאוששה — מוחזר אחרי טעינת המהדורות */
+  const restoredViewedEditionRef = React.useRef<string | null>(null);
 
   // בחירת עיר טוענת את המהדורות הפתוחות שלה — זה מה שמניע את
   // דפדוף החודשים ואת צביעת התפוסה בשלב הבא.
@@ -129,7 +150,17 @@ export function OrderWizard({
         if (cancelled) return;
         const list: EditionAvailability[] = data.editions ?? [];
         setEditions(list);
-        setViewedEditionId(list[0]?.id ?? null);
+
+        // אחרי שחזור טיוטה חוזרים לחודש שבו הלקוח באמת עמד, ולא
+        // לחודש הראשון — אלא אם החודש ההוא כבר לא פתוח.
+        const restored = restoredViewedEditionRef.current;
+        restoredViewedEditionRef.current = null;
+        const keep =
+          restored && list.some((edition) => edition.id === restored)
+            ? restored
+            : null;
+
+        setViewedEditionId(keep ?? list[0]?.id ?? null);
       })
       .catch(() => {
         if (!cancelled) toast.error("טעינת המהדורות נכשלה");
@@ -146,6 +177,90 @@ export function OrderWizard({
   React.useEffect(() => {
     stepRef.current = step;
   }, [step]);
+
+  /* ===============================================================
+     תיאום עם כפתורי עמוד הנחיתה — ראו src/lib/order-focus.ts
+     =============================================================== */
+
+  /** "יש הזמנה בתהליך" — מרגע שנבחרה עיר ועד שההזמנה נשלחה */
+  const inProgress = !!city || !!anchorSlot || !!order;
+
+  React.useEffect(() => {
+    setOrderInProgress(inProgress);
+    return () => setOrderInProgress(false);
+  }, [inProgress]);
+
+  // כפתור בעמוד שהבטיח דרגה מסוימת ("לבחירת חודש ונוכחות עוגן")
+  // מודיע עליה לכאן, כדי שמה שנוחת יהיה מה שהובטח.
+  React.useEffect(() => {
+    const onIntent = (event: Event) => {
+      const { tier } = (event as CustomEvent<OrderIntentDetail>).detail ?? {};
+      if (!tier) return;
+      // באמצע בחירה קיימת אין מה "להבטיח" — המסך כבר מציג חבילה
+      // בתהליך, והחלפת דרגה נעשית ב"בחירה מחדש" ולא בכפתור בעמוד.
+      if (anchorSlot) return;
+      setIntentTier(tier);
+    };
+
+    window.addEventListener(ORDER_INTENT_EVENT, onIntent);
+    return () => window.removeEventListener(ORDER_INTENT_EVENT, onIntent);
+  }, [anchorSlot]);
+
+  /* ===============================================================
+     טיוטה — ראו src/lib/order-draft.ts
+
+     בלי זה כל טעינה מחדש של הדף (F5, לחיצה על הלוגו בסרגל העליון,
+     "חזרה" בדפדפן) מחקה את העיר, את המשבצת ואת מה שהוקלד והחזירה
+     לשלב 1 — מה שנראה בדיוק כמו "נזרקתי לעמוד הבית".
+     =============================================================== */
+
+  /** נדלק אחרי ניסיון השחזור — לפניו אסור לכתוב ולדרוס טיוטה קיימת */
+  const draftReadyRef = React.useRef(false);
+
+  React.useEffect(() => {
+    const draft = readOrderDraft();
+    draftReadyRef.current = true;
+    if (!draft) return;
+
+    restoredViewedEditionRef.current = draft.viewedEditionId;
+    setCity(draft.city);
+    setAnchorSlot(draft.anchorSlot);
+    setTargetEditionsCount(draft.targetEditionsCount);
+    setSelections(draft.selections);
+    setForm(draft.form);
+    // בלי גלילה: המשתמש לא ביקש לקפוץ לכאן, הוא רק רענן דף
+    setStep(draft.step);
+  }, []);
+
+  React.useEffect(() => {
+    if (!draftReadyRef.current) return;
+
+    // משלב 4 ההזמנה כבר קיימת בשרת עם החזקה וטוקן — לא טיוטה
+    if (order || step > 3) {
+      clearOrderDraft();
+      return;
+    }
+
+    writeOrderDraft({
+      version: DRAFT_VERSION,
+      step,
+      city,
+      viewedEditionId,
+      anchorSlot,
+      targetEditionsCount,
+      selections,
+      form,
+    });
+  }, [
+    step,
+    city,
+    viewedEditionId,
+    anchorSlot,
+    targetEditionsCount,
+    selections,
+    form,
+    order,
+  ]);
 
   // מוקפצת רק בכוונת יציאה (Exit-Intent) — לא מיד עם הכניסה לאתר ולא
   // חוסמת את מסלול ההזמנה. בדסקטופ: הסמן יוצא דרך חלק העליון של
@@ -207,10 +322,23 @@ export function OrderWizard({
    * הבאות (אחרי שנבחרה דרגה) מסמנות/מבטלות את הבחירה לחודש הנצפה.
    */
   const handleGridSelect = (clicked: MockupSlot) => {
+    setIntentTier(null);
+
     if (!anchorSlot) {
       setAnchorSlot(clicked);
       setSelections({});
       setTargetEditionsCount(null);
+      return;
+    }
+
+    // עוד לא נבחרה חבילה — כלומר עוד לא הובטח דבר. לחיצה על מקום
+    // אחר היא פשוט "התחרטתי, זה מה שאני רוצה", והיא מחליפה את
+    // הבחירה. קודם היא הוציאה הודעת שגיאה שהפנתה לכפתור "בחירה
+    // מחדש" שכלל לא היה על המסך בשלב הזה — מבוי סתום, ובדיוק
+    // הרגע שבו הלקוחה יצאה לחפש כפתור אחר בעמוד.
+    if (!targetEditionsCount) {
+      setAnchorSlot(clicked);
+      setSelections({});
       return;
     }
 
@@ -244,6 +372,19 @@ export function OrderWizard({
 
   const handleTierSelect = (editionsCount: number) => {
     setTargetEditionsCount(editionsCount);
+
+    // ירידה לחבילה קטנה יותר מוותרת על חודשים שכבר נבחרו. זה מה
+    // שהתבקש, אבל בשקט זה נראה כמו תקלה — אז אומרים את זה. מחושב
+    // כאן ולא בתוך מעדכן ה-state, שנקרא יותר מפעם אחת ב-StrictMode.
+    const dropped = Math.max(0, Object.keys(selections).length - editionsCount);
+    if (dropped > 0) {
+      toast.info(
+        dropped === 1
+          ? "חודש אחד שנבחר הוסר מהחבילה — היא קטנה יותר עכשיו"
+          : `${dropped} חודשים שנבחרו הוסרו מהחבילה — היא קטנה יותר עכשיו`,
+      );
+    }
+
     setSelections((prev) => {
       const entries = Object.entries(prev).slice(0, editionsCount);
       if (entries.length === 0 && viewedEditionId && anchorSlot) {
@@ -257,6 +398,22 @@ export function OrderWizard({
     setAnchorSlot(null);
     setSelections({});
     setTargetEditionsCount(null);
+  };
+
+  /**
+   * החלפת עיר מאפסת את הבחירה — חובה, לא נימוס.
+   *
+   * המשבצות והמהדורות שייכות לעיר. עד עכשיו רק הכפתור "חזרה
+   * לבחירת עיר" איפס אותן, אבל קפיצה לשלב 1 דרך פס השלבים לא —
+   * וכך אפשר היה לבחור משבצת בבני ברק, לקפוץ אחורה, לעבור
+   * לירושלים ולהמשיך הלאה עם בחירה של עיר אחרת. הכפתור "המשך"
+   * נשאר פעיל, והתקלה התגלתה רק אחרי מילוי כל טופס הפרטים —
+   * ואז עם הודעה שקרית ("העיר הזו מלאה לאחת המהדורות שבחרתם"),
+   * כי reserveSlot מחפש את המהדורות תחת cityId החדש ולא מוצא.
+   */
+  const handleCitySelect = (next: CityAvailability) => {
+    if (city?.id !== next.id) handleResetSelection();
+    setCity(next);
   };
 
   /** נפתח רק אחרי שמכסת החודשים התמלאה — תנאי ההתקשרות מכסים את כל החבילה */
@@ -404,7 +561,7 @@ export function OrderWizard({
           />
           <CityPicker
             selectedCityId={city?.id ?? null}
-            onSelect={setCity}
+            onSelect={handleCitySelect}
             messages={content.wizard}
           />
 
@@ -438,6 +595,17 @@ export function OrderWizard({
             onSelect={handleGridSelect}
           />
 
+          {/* הכפתור בעמוד הבטיח דרגה — נאמר כאן במפורש מה חיפשנו,
+              כדי שהנחיתה תתאים למה שהיה כתוב על הכפתור. נעלם
+              ברגע שנבחר מקום, כי אז המסך מספר את הסיפור לבדו. */}
+          {!anchorSlot && intentTier ? (
+            <p className="mt-4 rounded-md border border-accent/30 bg-accent-soft px-4 py-3 text-[13px] leading-relaxed text-accent-strong">
+              אתם מחפשים <strong>{TIER_LABELS[intentTier]}</strong> — בחרו מקום
+              שמסומן <strong>{TIER_LABELS[intentTier]}</strong> על הסצנה של
+              החודש.
+            </p>
+          ) : null}
+
           {anchorSlot ? (
             <>
               <TierPicker
@@ -446,22 +614,26 @@ export function OrderWizard({
                 onSelect={handleTierSelect}
               />
 
-              {targetEditionsCount ? (
-                <div className="mt-4 flex items-center justify-between gap-3 rounded-md border border-line bg-surface-2 px-4 py-3">
-                  <p className="text-[13px] text-ink-2">
-                    {Object.keys(selections).length === targetEditionsCount
+              {/* מוצג מרגע שנבחר מקום, גם לפני בחירת חבילה: זה
+                  הכפתור היחיד שמאפשר להתחרט על הגודל/הדרגה, והוא
+                  זה שהודעות השגיאה מפנות אליו. כשהוא לא היה על
+                  המסך, ההודעה "לחצו בחירה מחדש" הפנתה לשום מקום. */}
+              <div className="mt-4 flex items-center justify-between gap-3 rounded-md border border-line bg-surface-2 px-4 py-3">
+                <p className="text-[13px] text-ink-2">
+                  {!targetEditionsCount
+                    ? `נבחר ${TIER_LABELS[anchorSlot.tier]}: ${anchorSlot.name} — בחרו כמה חודשים לפרסם`
+                    : Object.keys(selections).length === targetEditionsCount
                       ? `נבחרו ${targetEditionsCount} חודשים ✓ — דפדפו בין החודשים כדי לראות/לשנות`
                       : `נבחרו ${Object.keys(selections).length} מתוך ${targetEditionsCount} חודשים — דפדפו בין החודשים ולחצו על משבצת מודגשת`}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={handleResetSelection}
-                    className="shrink-0 text-[12.5px] font-semibold text-accent underline underline-offset-2 hover:text-accent-strong"
-                  >
-                    בחירה מחדש
-                  </button>
-                </div>
-              ) : null}
+                </p>
+                <button
+                  type="button"
+                  onClick={handleResetSelection}
+                  className="shrink-0 text-[12.5px] font-semibold text-accent underline underline-offset-2 hover:text-accent-strong"
+                >
+                  בחירה מחדש
+                </button>
+              </div>
             </>
           ) : null}
 
