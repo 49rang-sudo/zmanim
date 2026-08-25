@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { ArrowLeft, Search } from "lucide-react";
+import { OrderCta } from "./OrderCta";
 import { cn, formatPrice } from "@/lib/utils";
 import { TIER_LABELS, type PresenceTier } from "@/lib/packages";
 import { categoryMatches, type LandingMonth } from "@/lib/landing-shared";
@@ -388,7 +389,7 @@ function MonthCard({
             </p>
           ) : null}
 
-          <a
+          <OrderCta
             href="#order"
             className={cn(
               "mt-4 flex items-center justify-center px-5 py-3.5 text-[14.5px] font-bold",
@@ -398,7 +399,7 @@ function MonthCard({
             )}
           >
             {month.fromPriceAgorot === null ? status.taken : copy.cta}
-          </a>
+          </OrderCta>
         </div>
       </div>
     </article>

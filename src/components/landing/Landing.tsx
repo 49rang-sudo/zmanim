@@ -13,6 +13,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { CountUpStat } from "./CountUpStat";
+import { OrderCta } from "./OrderCta";
 import { formatPrice } from "@/lib/utils";
 import { TIER_LABELS } from "@/lib/packages";
 import type { SiteContentData } from "@/lib/content";
@@ -85,6 +86,12 @@ function SectionHead({
 
 /* ===============================================================
    1 · תפריט עליון
+
+   הערה על יעדי הכפתורים בכל הקובץ (ראו src/lib/order-focus.ts):
+   כפתור שהקופי שלו אומר *לבחור* מוביל לאשף ההזמנה (#order),
+   וכפתור שהקופי שלו אומר *לראות/לצפות/לבדוק* מוביל לתצוגה
+   המקדימה של החודשים (#months). קישורי התפריט הם ניווט מפורש
+   ונשארים קישורי עוגן רגילים.
    =============================================================== */
 
 export function SiteHeader({ content }: { content: SiteContentData }) {
@@ -114,12 +121,14 @@ export function SiteHeader({ content }: { content: SiteContentData }) {
           ))}
         </nav>
 
-        <a
-          href="#months"
+        {/* "בחירת חודש ומקום" — כפתור בחירה, ולכן לאשף. הוא דביק
+            וגלוי גם באמצע ההזמנה, ואז הוא הדרך *חזרה* אליה. */}
+        <OrderCta
+          href="#order"
           className="brand-cta shine-cta mr-auto inline-flex h-[38px] shrink-0 items-center px-5 text-[13.5px] font-bold lg:mr-0"
         >
           {nav.cta}
-        </a>
+        </OrderCta>
       </div>
     </header>
   );
@@ -132,12 +141,12 @@ export function SiteHeader({ content }: { content: SiteContentData }) {
 export function MobileCtaBar({ content }: { content: SiteContentData }) {
   return (
     <div className="fixed inset-x-0 bottom-0 z-40 border-t border-line-2 bg-canvas p-3 lg:hidden">
-      <a
-        href="#months"
+      <OrderCta
+        href="#order"
         className="brand-cta shine-cta flex h-12 items-center justify-center text-[15px] font-bold"
       >
         {content.landing.nav.mobileCta}
-      </a>
+      </OrderCta>
     </div>
   );
 }
@@ -191,19 +200,22 @@ export function Hero({ content }: { content: SiteContentData }) {
               className="mt-9 flex w-max max-w-full flex-wrap items-stretch border border-line-2 animate-[fade-up_0.5s_var(--ease-out-soft)_both]"
               style={{ animationDelay: "200ms" }}
             >
-              <a
+              {/* שני כפתורי המסך הראשון מבטיחים *לראות* ("לראות
+                  איפה העסק שלי משתלב" / "לצפייה בחודשים ובמקומות
+                  הפנויים") — ולכן לתצוגה המקדימה, לא לאשף. */}
+              <OrderCta
                 href="#months"
                 className="brand-cta shine-cta inline-flex items-center px-7 py-4 text-base font-bold"
               >
                 {hero.primaryCta}
-              </a>
+              </OrderCta>
 
-              <a
+              <OrderCta
                 href="#months"
                 className="inline-flex items-center border-s border-line-2 px-6 py-4 text-base font-medium text-ink transition-colors duration-200 ease-smooth hover:bg-surface-2"
               >
                 {hero.secondaryCta}
-              </a>
+              </OrderCta>
             </div>
 
             {hero.microcopy ? (
@@ -574,12 +586,17 @@ export function Pricing({
                   </p>
                 ) : null}
 
-                <a
-                  href="#months"
+                {/* "לבחירת חודש ונוכחות עוגן/משלימה" — כפתור
+                    בחירה, ולכן לאשף, ועם הדרגה שהוא הבטיח. זה
+                    בדיוק הכפתור שהלקוחה לחצה כשרצתה להגדיל
+                    חשיפה, וקודם הוא זרק אותה כלפי מעלה. */}
+                <OrderCta
+                  href="#order"
+                  tier={key}
                   className="brand-cta shine-cta mt-6 inline-flex items-center justify-center px-6 py-3.5 text-[15px] font-bold"
                 >
                   {copy.cta}
-                </a>
+                </OrderCta>
               </article>
             );
           })}
@@ -627,13 +644,15 @@ export function Pricing({
             ))}
           </div>
 
-          <a
+          {/* "לבדיקת חודשים נוספים" — כפתור בדיקה, ולכן לתצוגה
+              המקדימה שבה רואים את כל החודשים זה לצד זה. */}
+          <OrderCta
             href="#months"
             className="mt-7 inline-flex items-center gap-2 border border-line-2 px-6 py-3.5 text-[15px] font-bold text-ink transition-colors duration-200 ease-smooth hover:bg-surface-2"
           >
             {pricing.multi.cta}
             <ArrowLeft className="size-4" />
-          </a>
+          </OrderCta>
         </div>
 
         <p className="mt-6 max-w-4xl text-[13.5px] leading-relaxed text-ink-2">
@@ -705,12 +724,12 @@ export function HowToJoin({ content }: { content: SiteContentData }) {
         </ol>
 
         <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">
-          <a
-            href="#months"
+          <OrderCta
+            href="#order"
             className="brand-cta shine-cta inline-flex items-center px-7 py-4 text-base font-bold"
           >
             {howToJoin.cta}
-          </a>
+          </OrderCta>
           <p className="max-w-md text-[13.5px] leading-relaxed text-ink-2">
             {howToJoin.microcopy}
           </p>
@@ -765,12 +784,12 @@ export function EarlyBird({
             </p>
           </div>
 
-          <a
-            href="#months"
+          <OrderCta
+            href="#order"
             className="brand-cta shine-cta inline-flex items-center justify-center px-7 py-4 text-base font-bold"
           >
             {earlyBird.cta}
-          </a>
+          </OrderCta>
         </div>
       </div>
     </section>
@@ -873,12 +892,12 @@ export function FinalCta({ content }: { content: SiteContentData }) {
         />
 
         <div className="mt-9 flex w-max max-w-full flex-wrap items-stretch border border-line-2">
-          <a
-            href="#months"
+          <OrderCta
+            href="#order"
             className="brand-cta shine-cta inline-flex items-center px-7 py-4 text-base font-bold"
           >
             {finalCta.primaryCta}
-          </a>
+          </OrderCta>
           <a
             href="#contact"
             className="inline-flex items-center border-s border-line-2 px-6 py-4 text-base font-medium text-ink transition-colors duration-200 ease-smooth hover:bg-surface-2"
