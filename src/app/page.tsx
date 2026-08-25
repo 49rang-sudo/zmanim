@@ -4,7 +4,6 @@ import { getLandingData } from "@/lib/landing";
 import { resolveHebrewDeadline } from "@/lib/hebrew-date";
 import { env } from "@/lib/env";
 import { OrderWizard } from "@/components/wizard/OrderWizard";
-import { SnapScroll } from "@/components/SnapScroll";
 import {
   About,
   Benefit,
@@ -68,7 +67,6 @@ export default async function HomePage() {
 
   return (
     <>
-      <SnapScroll />
       <SiteHeader content={settings.content} />
 
       <main>
