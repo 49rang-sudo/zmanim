@@ -32,6 +32,7 @@ import {
   sumWithPackageDiscount,
   TIER_LABELS,
 } from "@/lib/packages";
+import { markPopupShown, popupAlreadyShown } from "@/lib/popup-session";
 import type { SiteContentData } from "@/lib/content";
 import type { CityAvailability, EditionAvailability } from "@/lib/availability";
 
@@ -152,8 +153,12 @@ export function OrderWizard({
   // "חזרה". מזוינת רק 4 שניות אחרי הטעינה כדי לא לתפוס גלישה חולפת.
   // מושתקת בשלב התשלום (5) — הרגע הכי קריטי בקנייה, לא המקום להפריע.
   // בקשת לקוחה מפורשת לאיסוף לידים ממי שעוזב בלי להזמין.
+  // ...ובלבד שלא קפצה כבר חלונית אחרת בביקור הזה. פופאפ "בדקו לי
+  // מקום" בעמוד הנחיתה מזוין באותה כוונת-יציאה, ושתי חלוניות ברצף
+  // הן סיבה לסגור לשונית ולא עוד ליד. ראו src/lib/popup-session.ts.
   React.useEffect(() => {
     if (mailingListStatus !== "pending") return;
+    if (popupAlreadyShown()) return;
 
     let armed = false;
     const armTimer = setTimeout(() => {
@@ -163,6 +168,7 @@ export function OrderWizard({
     const trigger = () => {
       if (!armed || mailingModalShown.current || stepRef.current === 5) return;
       mailingModalShown.current = true;
+      markPopupShown();
       setMailingModalOpen(true);
     };
 

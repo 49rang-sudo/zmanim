@@ -1,189 +1,426 @@
-import Image from "next/image";
-import { ArrowLeft, Calendar, ChevronDown, MapPin, MoveHorizontal, Sparkles, type LucideIcon } from "lucide-react";
-import { Eyebrow } from "@/components/ui/primitives";
+import {
+  ArrowLeft,
+  Calendar,
+  ChevronDown,
+  Clock,
+  Gift,
+  Home,
+  Mail,
+  MapPin,
+  Palette,
+  Sparkles,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
 import { CountUpStat } from "./CountUpStat";
+import { formatPrice } from "@/lib/utils";
+import { TIER_LABELS } from "@/lib/packages";
 import type { SiteContentData } from "@/lib/content";
+import type { LandingData } from "@/lib/landing-shared";
+import type { Deadline } from "@/lib/hebrew-date";
 
-const HIGHLIGHT_ICONS: Record<string, LucideIcon> = {
+/* ===============================================================
+   עמוד הנחיתה של "זמנים" — הקופי כולו מגיע מ-content.landing
+   (ראו src/lib/content.ts), והמספרים כולם מגיעים מ-getLandingData.
+   אין כאן מחרוזת שיווקית קשיחה ואין מספר קשיח: מה שכתוב בעמוד
+   הוא מה שיש במסד.
+   =============================================================== */
+
+const ICONS: Record<string, LucideIcon> = {
+  home: Home,
+  mail: Mail,
   calendar: Calendar,
+  users: Users,
+  clock: Clock,
+  palette: Palette,
   "map-pin": MapPin,
+  gift: Gift,
 };
 
-/** מפצל את כותרת ההירו למשפטים לפי נקודה, עם הנקודה חזרה בסוף כל אחד */
-function splitHeroTitle(title: string): string[] {
-  const parts = title
-    .split(". ")
-    .map((s) => s.trim())
-    .filter(Boolean);
-  return parts.map((s, i) => (i < parts.length - 1 ? `${s}.` : s));
+/** טקסט רב-שורתי מהתוכן — שורות הקופי נשמרות כפי שנכתבו */
+function Prose({
+  text,
+  className = "",
+}: {
+  text: string;
+  className?: string;
+}) {
+  return <p className={`whitespace-pre-line ${className}`}>{text}</p>;
 }
 
+/** כותרת אזור אחידה: תווית מונוספייס + פס גרדיאנט + כותרת */
+function SectionHead({
+  eyebrow,
+  title,
+  subtitle,
+  className = "",
+}: {
+  eyebrow?: string;
+  title: string;
+  subtitle?: string;
+  className?: string;
+}) {
+  return (
+    <div className={className}>
+      {eyebrow ? (
+        <div className="mb-5 flex items-center gap-3.5">
+          <span className="progress-rule w-14" />
+          <span className="mono-label text-[12.5px] text-ink-2">{eyebrow}</span>
+        </div>
+      ) : null}
+
+      <h2 className="max-w-4xl whitespace-pre-line font-display text-[2rem] font-black leading-[1.1] tracking-tight text-ink sm:text-[2.4rem]">
+        {title}
+      </h2>
+
+      {subtitle ? (
+        <Prose
+          text={subtitle}
+          className="mt-4 max-w-3xl text-lg leading-relaxed text-ink-2"
+        />
+      ) : null}
+    </div>
+  );
+}
+
+/* ===============================================================
+   1 · תפריט עליון
+   =============================================================== */
+
+export function SiteHeader({ content }: { content: SiteContentData }) {
+  const { nav } = content.landing;
+
+  return (
+    <header className="glass sticky top-0 z-30 border-b border-line-2">
+      <div className="mx-auto flex max-w-[1200px] items-center gap-5 px-5 py-2.5 lg:px-8">
+        <a href="/" className="flex shrink-0 items-center py-1">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={content.brand.logoUrl ?? "/brand/zmanim-logo.png"}
+            alt={content.brand.siteName}
+            className="h-10 w-auto max-w-44 object-contain sm:h-12"
+          />
+        </a>
+
+        <nav className="hidden flex-1 items-center justify-center gap-6 lg:flex">
+          {nav.links.map((link) => (
+            <a
+              key={link.href}
+              href={link.href}
+              className="text-[14px] font-medium text-ink-2 transition-colors duration-200 ease-smooth hover:text-accent"
+            >
+              {link.label}
+            </a>
+          ))}
+        </nav>
+
+        <a
+          href="#months"
+          className="brand-cta shine-cta mr-auto inline-flex h-[38px] shrink-0 items-center px-5 text-[13.5px] font-bold lg:mr-0"
+        >
+          {nav.cta}
+        </a>
+      </div>
+    </header>
+  );
+}
+
+/**
+ * כפתור קבוע בתחתית מסך המובייל — בקשה מפורשת בקופי (סעיף 1).
+ * מוסתר במסכים גדולים, שם הכפתור בסרגל העליון ממילא תמיד גלוי.
+ */
+export function MobileCtaBar({ content }: { content: SiteContentData }) {
+  return (
+    <div className="fixed inset-x-0 bottom-0 z-40 border-t border-line-2 bg-canvas p-3 lg:hidden">
+      <a
+        href="#months"
+        className="brand-cta shine-cta flex h-12 items-center justify-center text-[15px] font-bold"
+      >
+        {content.landing.nav.mobileCta}
+      </a>
+    </div>
+  );
+}
+
+/* ===============================================================
+   2 · מסך ראשון
+   =============================================================== */
+
 export function Hero({ content }: { content: SiteContentData }) {
-  const sentences = splitHeroTitle(content.hero.title);
-  // משפט ראשון דומם; משפטים אמצעיים מקבלים גרדיאנט המותג + פעימה
-  // ("רגע זהות" ספציפי, לפי חוק הגרדיאנט); המשפט האחרון תמיד עובר
-  // לשורה חדשה — בלי לצייר ידנית מקרים לפי מספר הנקודות בטקסט.
-  const stillPart = sentences[0] ?? "";
-  const accentPart =
-    sentences.length >= 2 ? sentences.slice(1, -1).join(" ") : "";
-  const lastLinePart = sentences.length >= 2 ? sentences[sentences.length - 1] : "";
+  const { hero } = content;
 
   return (
     <section className="snap-section dark-zone relative overflow-hidden border-b border-line-2">
       <div className="hero-glow" aria-hidden />
 
-      <div className="relative mx-auto grid max-w-[1200px] grid-cols-1 px-5 lg:grid-cols-[minmax(0,1fr)_320px] lg:px-8">
-        {/* --- טקסט --- */}
-        <div className="border-line-2 py-14 lg:border-e lg:py-20 lg:pe-12">
-          <div className="mb-7 flex items-center gap-3.5 animate-[fade-up_0.5s_var(--ease-out-soft)_both]">
-            <span className="progress-rule w-14" />
-            <span className="mono-label text-[12.5px] text-ink-2">
-              {content.hero.eyebrow}
-            </span>
-          </div>
-
-          <h1
-            className="display-hero text-ink animate-[fade-up_0.5s_var(--ease-out-soft)_60ms_both]"
-          >
-            {stillPart}
-            {accentPart ? (
-              <>
-                {" "}
-                <span
-                  className="gradient-num inline-block"
-                  style={{ animation: "hero-pulse 1.6s ease-in-out 0.6s infinite" }}
-                >
-                  {accentPart}
-                </span>
-              </>
-            ) : null}
-            {lastLinePart ? (
-              <span className="mt-1 block text-[0.5em] leading-tight">
-                {lastLinePart}
-              </span>
-            ) : null}
-          </h1>
-
-          <p
-            className="mt-7 max-w-xl text-lg leading-relaxed text-ink-2 animate-[fade-up_0.5s_var(--ease-out-soft)_both]"
-            style={{ animationDelay: "130ms" }}
-          >
-            {content.hero.subtitle}
-          </p>
-
-          <div
-            className="mt-10 flex w-max flex-wrap items-stretch border border-line-2 animate-[fade-up_0.5s_var(--ease-out-soft)_both]"
-            style={{ animationDelay: "200ms" }}
-          >
-            <a
-              href="#order"
-              className="brand-cta shine-cta inline-flex items-center px-8 py-4 text-base font-bold"
-            >
-              {content.hero.primaryCta}
-            </a>
-
-            <a
-              href="#how"
-              className="inline-flex items-center border-s border-line-2 px-6 py-4 text-base font-medium text-ink transition-colors duration-200 ease-smooth hover:bg-surface-2"
-            >
-              {content.hero.secondaryCta}
-            </a>
-          </div>
-
-          {content.hero.stats.length > 0 ? (
-            <dl
-              className="mt-12 flex flex-wrap gap-x-10 gap-y-6 border-t border-line pt-7 animate-[fade-up_0.5s_var(--ease-out-soft)_both]"
-              style={{ animationDelay: "260ms" }}
-            >
-              {content.hero.stats.map((stat) => (
-                <div key={stat.label}>
-                  <dt className="mono-label text-[11px] text-ink-2">
-                    {stat.label}
-                  </dt>
-                  <dd className="mt-1.5 text-2xl font-black leading-none text-ink">
-                    <CountUpStat value={stat.value} />
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          ) : null}
+      <div className="relative mx-auto max-w-[1200px] px-5 py-14 lg:px-8 lg:py-20">
+        <div className="mb-7 flex items-center gap-3.5 animate-[fade-up_0.5s_var(--ease-out-soft)_both]">
+          <span className="progress-rule w-14" />
+          <span className="mono-label text-[12.5px] text-ink-2">
+            {hero.eyebrow}
+          </span>
         </div>
 
-        {/* --- דוגמה חיה לגיליון מלא מודעות --- */}
-        <div className="flex items-center justify-center py-10 lg:py-20 lg:ps-12">
-          <div
-            className="animate-[fade-up_0.7s_var(--ease-out-soft)_both]"
-            style={{ animationDelay: "180ms" }}
-          >
-            <Image
+        <h1 className="display-hero max-w-[16ch] text-ink animate-[fade-up_0.5s_var(--ease-out-soft)_60ms_both]">
+          {hero.title}
+          {hero.titleSecondary ? (
+            <span
+              className="gradient-num mt-2 block text-[0.52em] leading-tight"
+              style={{ animation: "hero-pulse 1.6s ease-in-out 0.6s infinite" }}
+            >
+              {hero.titleSecondary}
+            </span>
+          ) : null}
+        </h1>
+
+        <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">
+          <div>
+            <Prose
+              text={hero.subtitle}
+              className="max-w-2xl text-lg leading-relaxed text-ink-2 animate-[fade-up_0.5s_var(--ease-out-soft)_130ms_both]"
+            />
+
+            {hero.body ? (
+              <Prose
+                text={hero.body}
+                className="mt-6 max-w-2xl border-e-2 border-accent pe-4 text-lg font-medium leading-relaxed text-ink animate-[fade-up_0.5s_var(--ease-out-soft)_170ms_both]"
+              />
+            ) : null}
+
+            <div
+              className="mt-9 flex w-max max-w-full flex-wrap items-stretch border border-line-2 animate-[fade-up_0.5s_var(--ease-out-soft)_both]"
+              style={{ animationDelay: "200ms" }}
+            >
+              <a
+                href="#months"
+                className="brand-cta shine-cta inline-flex items-center px-7 py-4 text-base font-bold"
+              >
+                {hero.primaryCta}
+              </a>
+
+              <a
+                href="#months"
+                className="inline-flex items-center border-s border-line-2 px-6 py-4 text-base font-medium text-ink transition-colors duration-200 ease-smooth hover:bg-surface-2"
+              >
+                {hero.secondaryCta}
+              </a>
+            </div>
+
+            {hero.microcopy ? (
+              <p className="mt-4 max-w-xl text-[13.5px] leading-relaxed text-ink-2 animate-[fade-up_0.5s_var(--ease-out-soft)_260ms_both]">
+                {hero.microcopy}
+              </p>
+            ) : null}
+          </div>
+
+          <div className="flex items-start justify-center lg:justify-end">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
               src="/brand/hero-preview.png"
-              alt="דוגמה לגיליון עם מודעות מפרסמים"
-              width={880}
-              height={1187}
-              priority
-              className="h-auto w-full max-w-[300px]"
+              alt="דוגמה לגיליון של הלוח"
+              className="h-auto w-full max-w-[280px] animate-[fade-up_0.7s_var(--ease-out-soft)_180ms_both]"
             />
           </div>
+        </div>
+      </div>
+
+      {/* --- פס הנתונים מתחת למסך הראשון --- */}
+      {hero.stats.length > 0 ? (
+        <dl className="relative mx-auto grid max-w-[1200px] grid-cols-2 border-t border-line px-5 lg:grid-cols-4 lg:px-8">
+          {hero.stats.map((stat, index) => {
+            const Icon = ICONS[stat.icon] ?? Sparkles;
+            return (
+              <div
+                key={index}
+                className="border-line py-6 [&:not(:nth-child(2n))]:border-e lg:[&:not(:last-child)]:border-e lg:[&:nth-child(2n)]:border-e"
+              >
+                <div className="px-4">
+                  <Icon
+                    className="mb-2.5 size-5 text-accent"
+                    strokeWidth={1.75}
+                  />
+                  <dd className="font-display text-[17px] font-black leading-tight text-ink">
+                    <CountUpStat value={stat.value} />
+                    {stat.unit ? ` ${stat.unit}` : ""}
+                  </dd>
+                  <dt className="mt-1 text-[13.5px] leading-snug text-ink-2">
+                    {stat.label}
+                  </dt>
+                </div>
+              </div>
+            );
+          })}
+        </dl>
+      ) : null}
+    </section>
+  );
+}
+
+/* ===============================================================
+   3 · אז מה בעצם שונה כאן?
+   =============================================================== */
+
+export function Difference({ content }: { content: SiteContentData }) {
+  const { difference } = content.landing;
+
+  return (
+    <section className="snap-section border-b border-line-2">
+      <div className="mx-auto max-w-[1200px] px-5 py-16 lg:px-8 lg:py-20">
+        <SectionHead
+          eyebrow={difference.eyebrow}
+          title={`${difference.title}\n${difference.subtitle}`}
+        />
+
+        <div className="mt-10 grid gap-px border border-line-2 bg-line-2 sm:grid-cols-3">
+          {difference.examples.map((example, index) => (
+            <div key={index} className="bg-canvas p-6">
+              <span className="mono-label text-[12px] text-accent">
+                {String(index + 1).padStart(2, "0")}
+              </span>
+              <p className="mt-3 text-[15.5px] leading-relaxed text-ink">
+                {example}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-10 grid max-w-4xl gap-5">
+          {difference.paragraphs.map((paragraph, index) => (
+            <Prose
+              key={index}
+              text={paragraph}
+              className={
+                index === 0
+                  ? "font-display text-xl font-extrabold tracking-tight text-ink"
+                  : "text-[16.5px] leading-relaxed text-ink-2"
+              }
+            />
+          ))}
         </div>
       </div>
     </section>
   );
 }
 
-export function Highlights({ content }: { content: SiteContentData }) {
-  if (content.highlights.length === 0) return null;
+/* ===============================================================
+   4 · המחשה ויזואלית — ההדמיות של החודשים
+
+   ההדמיות עצמן הן הסצנות האמיתיות מהמסד. הקופי מספק את הטקסט
+   לכל פריט, והשדות monthLabel/conceptTitle שנשארו ריקים נמלאים
+   מהחודש והסצנה האמיתיים שבאותו מיקום — כך ההדמיה בעמוד השיווקי
+   ובבורר לעולם לא מציגות שני קונספטים שונים לאותו חודש.
+   =============================================================== */
+
+export function Showcase({
+  content,
+  data,
+}: {
+  content: SiteContentData;
+  data: LandingData;
+}) {
+  const { showcase } = content.landing;
+  if (showcase.items.length === 0) return null;
 
   return (
-    <section id="work" className="snap-section border-b border-line-2 scroll-mt-20">
-      <div className="mx-auto max-w-[1200px] px-5 pt-16 lg:px-8">
-        <div className="grid gap-10 border-b border-line pb-10 lg:grid-cols-[320px_1fr]">
-          <h2 className="font-display text-[2.1rem] font-black leading-[1.08] tracking-tight text-ink">
-            למה לוח שנה מנצח
-            <br />
-            כל פרסום אחר?
-          </h2>
-          <p className="self-end text-lg leading-relaxed text-ink-2">
-            {content.brand.tagline}
-          </p>
-        </div>
-      </div>
+    <section className="snap-section dark-zone border-b border-line-2">
+      <div className="mx-auto max-w-[1200px] px-5 py-16 lg:px-8 lg:py-20">
+        <SectionHead title={`${showcase.title}\n${showcase.subtitle}`} />
 
-      <div className="mx-auto max-w-[1200px] px-5 py-16 lg:px-8">
-        <div className="grid gap-5 sm:grid-cols-3">
-          {content.highlights.map((item, index) => {
-            const Icon = HIGHLIGHT_ICONS[item.icon] ?? Sparkles;
+        <div className="mt-10 grid gap-6 lg:grid-cols-3">
+          {showcase.items.map((item, index) => {
+            const month = data.months[index];
+            const monthLabel = item.monthLabel || month?.hebrewLabel || "";
+            const conceptTitle = item.conceptTitle || month?.conceptTitle || "";
+
             return (
-              <article
+              <figure
                 key={index}
-                className={[
-                  "card-shape group relative overflow-hidden border border-line-2 bg-surface p-7",
-                  "transition-[transform,border-color] duration-300 ease-smooth",
-                  "hover:-translate-y-1.5 hover:scale-[1.02] hover:border-accent",
-                  "hover:[animation:card-pulse_1.8s_ease-in-out_infinite]",
-                ].join(" ")}
+                className="flex flex-col border border-line-2 bg-surface"
               >
-                <span
-                  aria-hidden
-                  className="gradient-num pointer-events-none absolute -left-2 -top-6 font-display text-8xl font-black opacity-[0.14]"
-                >
-                  {String(index + 1).padStart(2, "0")}
-                </span>
+                {month?.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={month.imageUrl}
+                    alt={`הדמיית הקונספט: ${conceptTitle}`}
+                    className="w-full border-b border-line-2 object-cover"
+                    style={{ aspectRatio: String(month.aspectRatio) }}
+                  />
+                ) : (
+                  <div
+                    className="w-full border-b border-line-2 bg-surface-2"
+                    style={{ aspectRatio: "1.5" }}
+                    aria-hidden
+                  />
+                )}
 
-                <div className="relative flex items-center justify-between">
-                  <span className="mono-label text-sm text-accent">
+                <figcaption className="flex flex-1 flex-col p-6">
+                  {monthLabel ? (
+                    <span className="mono-label text-[12px] text-accent">
+                      {monthLabel.startsWith("חודש")
+                        ? monthLabel
+                        : `חודש ${monthLabel}`}
+                    </span>
+                  ) : null}
+
+                  {conceptTitle ? (
+                    <h3 className="mt-2 font-display text-xl font-extrabold tracking-tight text-ink">
+                      {conceptTitle}
+                    </h3>
+                  ) : null}
+
+                  <p className="mt-2.5 text-[15px] leading-relaxed text-ink-2">
+                    {item.text}
+                  </p>
+                </figcaption>
+              </figure>
+            );
+          })}
+        </div>
+
+        <Prose
+          text={showcase.closing}
+          className="mt-10 max-w-3xl border-e-2 border-accent pe-5 font-display text-xl font-extrabold leading-snug tracking-tight text-ink"
+        />
+      </div>
+    </section>
+  );
+}
+
+/* ===============================================================
+   6 · למה זה לא עוד מקום פרסום
+   =============================================================== */
+
+export function WhyNotAnother({ content }: { content: SiteContentData }) {
+  if (content.highlights.length === 0) return null;
+  const { whyNotAnother } = content.landing;
+
+  return (
+    <section className="snap-section border-b border-line-2">
+      <div className="mx-auto max-w-[1200px] px-5 py-16 lg:px-8 lg:py-20">
+        <SectionHead eyebrow={whyNotAnother.eyebrow} title={whyNotAnother.title} />
+
+        <div className="mt-10 grid gap-px border border-line-2 bg-line-2 sm:grid-cols-2">
+          {content.highlights.map((item, index) => {
+            const Icon = ICONS[item.icon] ?? Sparkles;
+            return (
+              <article key={index} className="group bg-canvas p-7">
+                <div className="flex items-center justify-between">
+                  <span className="mono-label text-[12px] text-accent">
                     {String(index + 1).padStart(2, "0")}
                   </span>
                   <Icon
-                    className="size-5 text-muted transition-[color,transform] duration-300 ease-smooth group-hover:scale-110 group-hover:text-accent"
+                    className="size-5 text-muted transition-colors duration-300 ease-smooth group-hover:text-accent"
                     strokeWidth={1.75}
                   />
                 </div>
-                <h3 className="relative mt-6 font-display text-xl font-extrabold tracking-tight text-ink">
+
+                <h3 className="mt-5 font-display text-xl font-extrabold tracking-tight text-ink">
                   {item.title}
                 </h3>
-                <p className="relative mt-2.5 text-[15px] leading-relaxed text-ink-2">
-                  {item.text}
-                </p>
+                <Prose
+                  text={item.text}
+                  className="mt-2.5 text-[15px] leading-relaxed text-ink-2"
+                />
               </article>
             );
           })}
@@ -193,110 +430,460 @@ export function Highlights({ content }: { content: SiteContentData }) {
   );
 }
 
-export function HowItWorks({ content }: { content: SiteContentData }) {
-  if (content.howItWorks.length === 0) return null;
+/* ===============================================================
+   7 · מה מקבלים בפועל?
+   =============================================================== */
+
+export function WhatYouGet({ content }: { content: SiteContentData }) {
+  const { whatYouGet } = content.landing;
 
   return (
-    <section id="how" className="snap-section dark-zone scroll-mt-20">
+    <section
+      id="what-you-get"
+      className="snap-section dark-zone scroll-mt-20 border-b border-line-2"
+    >
       <div className="mx-auto max-w-[1200px] px-5 py-16 lg:px-8 lg:py-20">
-        <Eyebrow>התהליך</Eyebrow>
-        <h2 className="mt-3 font-display text-[2.1rem] font-black leading-tight tracking-tight text-ink">
-          4 צעדים — והמודעה שלכם על הקיר
-        </h2>
+        <SectionHead eyebrow={whatYouGet.eyebrow} title={whatYouGet.title} />
 
-        <p className="mt-3 flex items-center gap-1.5 text-[12px] text-ink-2">
-          <MoveHorizontal className="size-3.5 shrink-0" />
-          גררו לצדדים כדי לעבור בין השלבים
+        <div className="mt-10 grid gap-10 lg:grid-cols-[1fr_360px]">
+          <ul className="grid gap-px border border-line-2 bg-line-2">
+            {whatYouGet.items.map((item, index) => (
+              <li
+                key={index}
+                className="flex items-start gap-3.5 bg-canvas px-6 py-4"
+              >
+                <span className="mono-label mt-0.5 shrink-0 text-[12px] text-accent">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <span className="text-[15.5px] leading-relaxed text-ink">
+                  {item}
+                </span>
+              </li>
+            ))}
+          </ul>
+
+          <aside className="h-max border border-line-2 bg-surface p-7">
+            <h3 className="font-display text-xl font-extrabold tracking-tight text-ink">
+              {whatYouGet.bringTitle}
+            </h3>
+            <p className="mt-3 text-[15.5px] leading-relaxed text-ink-2">
+              {whatYouGet.bringText}
+            </p>
+            <p className="mt-4 border-t border-line pt-4 text-[15px] font-semibold leading-relaxed text-ink">
+              {whatYouGet.bringNote}
+            </p>
+          </aside>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ===============================================================
+   8 · מחיר ואפשרויות נוכחות
+
+   שני המחירים היחידים המלאים בעמוד. הם *לא* מגיעים מהקופי אלא
+   מ-AdSlot.priceAgorot במסד — אותו מספר בדיוק שייגבה בקופה.
+   =============================================================== */
+
+function tierPriceLabel(
+  range: { min: number; max: number } | null,
+): string | null {
+  if (!range) return null;
+  return range.min === range.max
+    ? formatPrice(range.min)
+    : `${formatPrice(range.min)}–${formatPrice(range.max)}`;
+}
+
+export function Pricing({
+  content,
+  data,
+}: {
+  content: SiteContentData;
+  data: LandingData;
+}) {
+  const { pricing } = content.landing;
+
+  const tiers = [
+    {
+      key: "ANCHOR" as const,
+      copy: pricing.anchor,
+      range: data.prices.ANCHOR,
+      rows: pricing.multi.anchorRows,
+      rowsTitle: pricing.multi.anchorTitle,
+    },
+    {
+      key: "COMPLEMENTARY" as const,
+      copy: pricing.complementary,
+      range: data.prices.COMPLEMENTARY,
+      rows: pricing.multi.complementaryRows,
+      rowsTitle: pricing.multi.complementaryTitle,
+    },
+  ];
+
+  return (
+    <section
+      id="pricing"
+      className="snap-section scroll-mt-20 border-b border-line-2"
+    >
+      <div className="mx-auto max-w-[1200px] px-5 py-16 lg:px-8 lg:py-20">
+        <SectionHead
+          eyebrow={pricing.eyebrow}
+          title={pricing.title}
+          subtitle={pricing.intro}
+        />
+
+        <div className="mt-10 grid gap-px border border-line-2 bg-line-2 lg:grid-cols-2">
+          {tiers.map(({ key, copy, range }) => {
+            const price = tierPriceLabel(range);
+            return (
+              <article key={key} className="flex flex-col bg-canvas p-7">
+                <div className="flex items-center gap-2.5">
+                  <span
+                    className={
+                      key === "ANCHOR"
+                        ? "mono-label bg-ink px-2 py-1 text-[11px] text-canvas"
+                        : "mono-label border border-line-2 px-2 py-1 text-[11px] text-ink"
+                    }
+                  >
+                    {TIER_LABELS[key]}
+                  </span>
+                  <h3 className="font-display text-xl font-extrabold tracking-tight text-ink">
+                    {copy.name}
+                  </h3>
+                </div>
+
+                <p className="mt-4 flex-1 text-[15.5px] leading-relaxed text-ink-2">
+                  {copy.text}
+                </p>
+
+                {price ? (
+                  <p className="mt-6 flex items-baseline gap-2.5 border-t border-line pt-5">
+                    <span className="mono-label text-[12px] text-ink-2">
+                      {pricing.priceLabel}
+                    </span>
+                    <span className="tnum font-display text-3xl font-black leading-none text-ink">
+                      {price}
+                    </span>
+                  </p>
+                ) : null}
+
+                {copy.includes ? (
+                  <p className="mt-3 text-[14px] leading-relaxed text-ink-2">
+                    {copy.includes}
+                  </p>
+                ) : null}
+
+                <a
+                  href="#months"
+                  className="brand-cta shine-cta mt-6 inline-flex items-center justify-center px-6 py-3.5 text-[15px] font-bold"
+                >
+                  {copy.cta}
+                </a>
+              </article>
+            );
+          })}
+        </div>
+
+        <Prose
+          text={pricing.bothNote}
+          className="mt-6 max-w-4xl border-e-2 border-accent pe-4 text-[15px] leading-relaxed text-ink"
+        />
+
+        {/* --- תמחור למספר חודשים --- */}
+        <div className="mt-12 border border-line-2 bg-surface p-7 lg:p-9">
+          <h3 className="font-display text-2xl font-extrabold tracking-tight text-ink">
+            {pricing.multi.title}
+          </h3>
+          <p className="mt-2.5 max-w-2xl text-[15.5px] leading-relaxed text-ink-2">
+            {pricing.multi.text}
+          </p>
+
+          <p className="mono-label mt-7 text-[12px] text-ink-2">
+            {pricing.multi.tableTitle}
+          </p>
+
+          <div className="mt-4 grid gap-px border border-line-2 bg-line-2 sm:grid-cols-2">
+            {tiers.map(({ key, rows, rowsTitle }) => (
+              <div key={key} className="bg-canvas p-6">
+                <h4 className="font-display text-lg font-extrabold tracking-tight text-ink">
+                  {rowsTitle}
+                </h4>
+                <ul className="mt-3 grid gap-2.5">
+                  {rows.map((row, index) => (
+                    <li
+                      key={index}
+                      className="flex items-start gap-2.5 text-[15px] leading-relaxed text-ink-2"
+                    >
+                      <span
+                        className="mt-2 size-1.5 shrink-0 bg-accent"
+                        aria-hidden
+                      />
+                      {row}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+
+          <a
+            href="#months"
+            className="mt-7 inline-flex items-center gap-2 border border-line-2 px-6 py-3.5 text-[15px] font-bold text-ink transition-colors duration-200 ease-smooth hover:bg-surface-2"
+          >
+            {pricing.multi.cta}
+            <ArrowLeft className="size-4" />
+          </a>
+        </div>
+
+        <p className="mt-6 max-w-4xl text-[13.5px] leading-relaxed text-ink-2">
+          {pricing.microcopy}
         </p>
+      </div>
+    </section>
+  );
+}
 
-        {/* קרוסלה אופקית עם snap — כל גלילה מביאה את הכרטיס הבא
-            במלואו, בלי לצופף כמה כרטיסים צרים זה לצד זה. */}
-        <ol
-          className="mt-8 flex snap-x snap-mandatory gap-5 overflow-x-auto pb-4 [&::-webkit-scrollbar]:hidden"
-          style={{ scrollbarWidth: "none" }}
-        >
+/* ===============================================================
+   9 · ההטבה שעובדת לשני הצדדים
+   =============================================================== */
+
+export function Benefit({ content }: { content: SiteContentData }) {
+  const { benefit } = content.landing;
+
+  return (
+    <section className="snap-section dark-zone border-b border-line-2">
+      <div className="mx-auto max-w-[1200px] px-5 py-16 lg:px-8 lg:py-20">
+        <div className="grid gap-10 lg:grid-cols-[1fr_1fr]">
+          <SectionHead eyebrow={benefit.eyebrow} title={benefit.title} />
+
+          <div className="grid content-start gap-5 self-end">
+            {benefit.body.map((paragraph, index) => (
+              <Prose
+                key={index}
+                text={paragraph}
+                className="text-[16.5px] leading-relaxed text-ink-2"
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ===============================================================
+   10 · איך מצטרפים?
+   =============================================================== */
+
+export function HowToJoin({ content }: { content: SiteContentData }) {
+  if (content.howItWorks.length === 0) return null;
+  const { howToJoin } = content.landing;
+
+  return (
+    <section id="how" className="snap-section scroll-mt-20 border-b border-line-2">
+      <div className="mx-auto max-w-[1200px] px-5 py-16 lg:px-8 lg:py-20">
+        <SectionHead eyebrow={howToJoin.eyebrow} title={howToJoin.title} />
+
+        <ol className="mt-10 grid gap-px border border-line-2 bg-line-2">
           {content.howItWorks.map((step, index) => (
             <li
               key={index}
-              className={[
-                "chevron-shape group relative w-[82%] shrink-0 snap-center overflow-hidden border border-line-2 bg-surface py-6 pl-8 pr-6",
-                "sm:w-[58%] lg:w-[calc(25%-1.125rem)]",
-                "transition-[transform,border-color] duration-300 ease-smooth",
-                "hover:-translate-y-1.5 hover:scale-[1.02] hover:border-accent",
-                "hover:[animation:card-pulse_1.8s_ease-in-out_infinite]",
-              ].join(" ")}
+              className="grid gap-2 bg-canvas p-6 sm:grid-cols-[80px_240px_1fr] sm:items-baseline sm:gap-6"
             >
-              <span
-                aria-hidden
-                className="gradient-num pointer-events-none absolute right-1 -top-7 font-display text-8xl font-black opacity-[0.16]"
-              >
+              <span className="gradient-num font-display text-4xl font-black leading-none">
                 {String(index + 1).padStart(2, "0")}
               </span>
-
-              <span
-                className="relative mono-label block text-[13px]"
-                style={{ color: "var(--color-brand-orange)" }}
-              >
-                {String(index + 1).padStart(2, "0")}
-              </span>
-              <h3 className="relative mt-3 font-display text-lg font-extrabold tracking-tight text-ink">
+              <h3 className="font-display text-lg font-extrabold tracking-tight text-ink">
                 {step.title}
               </h3>
-              <p className="relative mt-2 text-[15px] leading-relaxed text-ink-2">
+              <p className="text-[15px] leading-relaxed text-ink-2">
                 {step.text}
               </p>
             </li>
           ))}
         </ol>
+
+        <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">
+          <a
+            href="#months"
+            className="brand-cta shine-cta inline-flex items-center px-7 py-4 text-base font-bold"
+          >
+            {howToJoin.cta}
+          </a>
+          <p className="max-w-md text-[13.5px] leading-relaxed text-ink-2">
+            {howToJoin.microcopy}
+          </p>
+        </div>
       </div>
     </section>
   );
 }
 
+/* ===============================================================
+   11 · בונוס למצטרפים הראשונים
+
+   האזור נעלם מה-HTML עצמו ברגע שהמועד חלף — ההכרעה נעשית בשרת
+   מול לוח השנה העברי האמיתי (resolveHebrewDeadline), ולא בהסתרה
+   ויזואלית בדפדפן.
+   =============================================================== */
+
+export function EarlyBird({
+  content,
+  deadline,
+}: {
+  content: SiteContentData;
+  deadline: Deadline | null;
+}) {
+  const { earlyBird } = content.landing;
+  if (!deadline?.active) return null;
+
+  return (
+    <section className="snap-section border-b border-line-2 bg-surface-2">
+      <div className="mx-auto max-w-[1200px] px-5 py-14 lg:px-8">
+        <div className="grid gap-7 border border-line-2 bg-canvas p-7 lg:grid-cols-[1fr_auto] lg:items-center lg:p-9">
+          <div>
+            <div className="mb-4 flex items-center gap-3">
+              <Gift className="size-5 text-accent" strokeWidth={1.75} />
+              <span className="mono-label text-[12.5px] text-ink-2">
+                {earlyBird.eyebrow}
+              </span>
+            </div>
+
+            <h2 className="font-display text-[1.9rem] font-black leading-tight tracking-tight text-ink">
+              {earlyBird.title}
+            </h2>
+
+            <Prose
+              text={earlyBird.body}
+              className="mt-3.5 max-w-2xl text-[16.5px] leading-relaxed text-ink-2"
+            />
+
+            {/* התאריך הלועזי לצד העברי — הקהל מנהל יומן עסקי לועזי */}
+            <p className="mono-label mt-4 text-[12.5px] text-accent">
+              {earlyBird.deadlineLabel} · {deadline.gregorianLabel}
+            </p>
+          </div>
+
+          <a
+            href="#months"
+            className="brand-cta shine-cta inline-flex items-center justify-center px-7 py-4 text-base font-bold"
+          >
+            {earlyBird.cta}
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ===============================================================
+   12 · מי עומד מאחורי "זמנים"?
+   =============================================================== */
+
+export function About({ content }: { content: SiteContentData }) {
+  const { about } = content.landing;
+
+  return (
+    <section className="snap-section dark-zone border-b border-line-2">
+      <div className="mx-auto max-w-[1200px] px-5 py-16 lg:px-8 lg:py-20">
+        <div className="grid gap-10 lg:grid-cols-[380px_1fr]">
+          <SectionHead eyebrow={about.eyebrow} title={about.title} />
+
+          <div className="grid content-start gap-4">
+            {about.body.map((paragraph, index) => (
+              <Prose
+                key={index}
+                text={paragraph}
+                className="text-[16.5px] leading-relaxed text-ink-2"
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ===============================================================
+   13 · שאלות — אקורדיון, לא קיר טקסט
+   =============================================================== */
 
 export function FAQ({ content }: { content: SiteContentData }) {
   if (content.faq.items.length === 0) return null;
-
-  const whatsappDigits = content.contact.whatsapp?.replace(/\D/g, "");
-  const contactHref = whatsappDigits
-    ? `https://wa.me/${whatsappDigits}`
-    : `tel:${content.contact.phone}`;
-  const contactLabel = whatsappDigits ? "בוואטסאפ" : `בטלפון ${content.contact.phone}`;
+  const { faq } = content.landing;
 
   return (
-    <section id="faq" className="snap-section border-b border-line-2 scroll-mt-20">
+    <section id="faq" className="snap-section scroll-mt-20 border-b border-line-2">
       <div className="mx-auto max-w-[1200px] px-5 py-16 lg:px-8 lg:py-20">
-        <div className="border-b border-line pb-10">
-          <Eyebrow>שאלות נפוצות</Eyebrow>
-          <h2 className="mt-3 font-display text-[2.1rem] font-black leading-tight tracking-tight text-ink">
-            עוד לפני שסוגרים
-          </h2>
-        </div>
+        <SectionHead eyebrow={faq.eyebrow} title={faq.title} />
 
-        <div className="mt-8 grid gap-3">
+        <div className="mt-10 grid gap-px border border-line-2 bg-line-2">
           {content.faq.items.map((item, index) => (
-            <details
-              key={index}
-              className="group card-shape shine-cta border border-line-2 bg-surface px-6 py-4 open:border-accent"
-            >
+            <details key={index} className="group bg-canvas px-6 py-4">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-display text-[16.5px] font-bold text-ink marker:content-none">
                 {item.question}
                 <ChevronDown className="size-4 shrink-0 text-muted transition-transform duration-300 ease-smooth group-open:rotate-180 group-open:text-accent" />
               </summary>
-              <p className="mt-3 max-w-3xl text-[14.5px] leading-relaxed text-ink-2">
-                {item.answer}
-              </p>
+
+              <Prose
+                text={item.answer}
+                className="mt-3.5 max-w-3xl text-[15px] leading-relaxed text-ink-2"
+              />
+
+              {item.cta ? (
+                <a
+                  href="#contact"
+                  className="mt-4 inline-flex items-center gap-2 border border-line-2 px-5 py-2.5 text-[14px] font-bold text-ink transition-colors duration-200 ease-smooth hover:bg-surface-2"
+                >
+                  {item.cta}
+                  <ArrowLeft className="size-3.5" />
+                </a>
+              ) : null}
             </details>
           ))}
+        </div>
+      </div>
+    </section>
+  );
+}
 
-          {/* "עוד שאלה?" — סוגר את הרשימה באותה שורת אקורדיון בדיוק,
-              עם אותו אפקט ברק ב-hover כמו כפתור ה-CTA הראשי */}
+/* ===============================================================
+   14 · הנעה סופית
+   =============================================================== */
+
+export function FinalCta({ content }: { content: SiteContentData }) {
+  const { finalCta } = content.landing;
+
+  return (
+    <section className="snap-section dark-zone border-b border-line-2">
+      <div className="mx-auto max-w-[1200px] px-5 py-16 lg:px-8 lg:py-20">
+        <h2 className="max-w-4xl font-display text-[2.2rem] font-black leading-[1.1] tracking-tight text-ink sm:text-[2.8rem]">
+          {finalCta.title}
+          <span className="gradient-num mt-2 block">{finalCta.subtitle}</span>
+        </h2>
+
+        <p className="mt-6 max-w-3xl text-[16.5px] leading-relaxed text-ink-2">
+          {finalCta.body}
+        </p>
+
+        <Prose
+          text={finalCta.ask}
+          className="mt-5 max-w-3xl text-lg font-medium leading-relaxed text-ink"
+        />
+
+        <div className="mt-9 flex w-max max-w-full flex-wrap items-stretch border border-line-2">
           <a
-            href={contactHref}
-            className="group card-shape shine-cta flex items-center justify-between gap-4 border border-line-2 bg-surface px-6 py-4 font-display text-[16.5px] font-bold text-ink transition-colors duration-200 ease-smooth hover:border-accent"
+            href="#months"
+            className="brand-cta shine-cta inline-flex items-center px-7 py-4 text-base font-bold"
           >
-            יש לכם שאלה שלא מופיעה כאן? צרו איתנו קשר {contactLabel}
-            <ArrowLeft className="size-4 shrink-0 text-muted transition-[transform,color] duration-300 ease-smooth group-hover:-translate-x-1 group-hover:text-accent" />
+            {finalCta.primaryCta}
+          </a>
+          <a
+            href="#contact"
+            className="inline-flex items-center border-s border-line-2 px-6 py-4 text-base font-medium text-ink transition-colors duration-200 ease-smooth hover:bg-surface-2"
+          >
+            {finalCta.secondaryCta}
           </a>
         </div>
       </div>
@@ -304,40 +891,15 @@ export function FAQ({ content }: { content: SiteContentData }) {
   );
 }
 
-export function SiteHeader({ content }: { content: SiteContentData }) {
-  return (
-    <header className="glass sticky top-0 z-30 border-b border-line-2">
-      <div className="mx-auto grid max-w-[1200px] grid-cols-[1fr_auto_1fr] items-center gap-4 px-5 py-2.5 lg:px-8">
-        <span dir="ltr" className="mono-label hidden text-[13px] text-ink-2 sm:block">
-          {content.contact.phone}
-        </span>
-
-        {/* לוגו — נוכחות גדולה וממורכזת, כמו מסתהד עיתון */}
-        <a href="/" className="flex flex-col items-center justify-self-center py-1">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={content.brand.logoUrl ?? "/brand/zmanim-logo.png"}
-            alt={content.brand.siteName}
-            className="h-11 w-auto max-w-56 object-contain sm:h-14"
-          />
-        </a>
-
-        <div className="flex items-center justify-self-end gap-5">
-          <a
-            href="#order"
-            className="brand-cta shine-cta inline-flex h-[38px] items-center px-5 text-[14px] font-bold"
-          >
-            להזמנה
-          </a>
-        </div>
-      </div>
-    </header>
-  );
-}
+/* ===============================================================
+   18 · פוטר
+   =============================================================== */
 
 export function SiteFooter({ content }: { content: SiteContentData }) {
+  const { footer } = content.landing;
+
   return (
-    <footer className="dark-zone border-t border-line-2">
+    <footer className="dark-zone border-t border-line-2 pb-20 lg:pb-0">
       <div className="progress-fill h-[3px]" />
 
       <div className="mx-auto grid max-w-[1200px] gap-10 px-5 py-14 sm:grid-cols-[1.4fr_1fr] lg:px-8">
@@ -348,7 +910,10 @@ export function SiteFooter({ content }: { content: SiteContentData }) {
             alt={content.brand.siteName}
             className="h-16 w-auto object-contain object-right"
           />
-          <p className="mt-3 max-w-[30ch] text-[14.5px] leading-relaxed text-ink-2">
+          <p className="mt-3 font-display text-lg font-extrabold tracking-tight text-ink">
+            {footer.tagline}
+          </p>
+          <p className="mt-2.5 max-w-[38ch] text-[14.5px] leading-relaxed text-ink-2">
             {content.footer.note}
           </p>
         </div>
@@ -367,6 +932,36 @@ export function SiteFooter({ content }: { content: SiteContentData }) {
           <span dir="ltr" className="mono-label text-[14px] text-ink-2">
             {content.contact.phone}
           </span>
+
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-[14px]">
+            {footer.links.map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                className="text-ink underline underline-offset-4 transition-colors hover:text-accent"
+              >
+                {link.label}
+              </a>
+            ))}
+
+            {/* מדיניות פרטיות מוצגת רק כשיש לאן לקשר — קישור שבור
+                בפוטר גרוע מקישור חסר */}
+            {footer.privacyHref ? (
+              <a
+                href={footer.privacyHref}
+                className="text-ink underline underline-offset-4 transition-colors hover:text-accent"
+              >
+                {footer.privacyLabel}
+              </a>
+            ) : null}
+
+            <a
+              href="#order"
+              className="text-ink underline underline-offset-4 transition-colors hover:text-accent"
+            >
+              {footer.tosLabel}
+            </a>
+          </div>
 
           {/* קוני הלוח מגיעים לכאן מהלוח המודפס עצמו, אבל מי שנחת
               קודם באתר צריך גם הוא דרך למצוא את הטופס */}

@@ -155,6 +155,13 @@ const landingSchema = z.object({
     deadlineLabel: z.string(),
     deadlineHebrewDay: z.number().int().min(1).max(30),
     deadlineHebrewMonth: z.string(),
+    /**
+     * השנה העברית של המועד. מקובעת בכוונה ולא "השנה הנוכחית":
+     * הטבת השקה שנגמרה צריכה להיעלם לתמיד, לא לחזור מעצמה בכל
+     * אלול. 0 = השנה העברית הנוכחית (התנהגות מתגלגלת, למי שירצה
+     * הטבה שנתית חוזרת). ראו resolveHebrewDeadline.
+     */
+    deadlineHebrewYear: z.number().int().min(0).max(6000).default(5786),
   }),
 
   /** 12 · מי עומד מאחורי "זמנים"? */
@@ -424,6 +431,8 @@ export const defaultLanding: LandingContent = {
     deadlineLabel: "כ' באלול",
     deadlineHebrewDay: 20,
     deadlineHebrewMonth: "אלול",
+    // תשפ״ו — האלול שלפני מהדורת תשפ״ז, כלומר ההשקה הנוכחית
+    deadlineHebrewYear: 5786,
   },
 
   about: {
