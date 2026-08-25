@@ -54,6 +54,23 @@ const TONE_CLASS = {
   gone: "border-line text-muted line-through decoration-1",
 } as const;
 
+/* ---------------------------------------------------------------
+   ניסוח תוצאות החיפוש. הקהל כאן לא טכני, ו"נמצאו 1 חודשים" נקרא
+   כמו תקלה. עברית מבחינה בין יחיד, זוגי ורבים — אז גם אנחנו.
+   --------------------------------------------------------------- */
+
+function foundLine(count: number, query: string): string {
+  if (count === 1) return `נמצא חודש אחד שבו "${query}" יכול להשתלב.`;
+  if (count === 2) return `נמצאו שני חודשים שבהם "${query}" יכול להשתלב.`;
+  return `נמצאו ${count} חודשים שבהם "${query}" יכול להשתלב.`;
+}
+
+function showOthersLine(count: number): string {
+  if (count === 1) return "להציג גם את החודש הנוסף";
+  if (count === 2) return "להציג גם את שני החודשים האחרים";
+  return `להציג גם את ${count} החודשים האחרים`;
+}
+
 export function MonthPicker({
   content,
   months,
@@ -92,6 +109,9 @@ export function MonthPicker({
   const hiddenCount = searching ? months.length - matchedMonths.length : 0;
   const visible = searching && !showAll ? matchedMonths : months;
 
+  /** חיפשו משהו שאין לו אח ורע באף חודש פתוח */
+  const noMatch = searching && matchedMonths.length === 0 && months.length > 0;
+
   return (
     <section
       id="months"
@@ -111,9 +131,13 @@ export function MonthPicker({
         <p className="mt-4 max-w-3xl text-lg leading-relaxed text-ink-2">
           {copy.subtitle}
         </p>
-        <p className="mt-4 max-w-3xl whitespace-pre-line border-e-2 border-accent pe-4 text-[15px] leading-relaxed text-ink">
-          {copy.hint}
-        </p>
+        {/* מוסתר כשהחיפוש לא מצא כלום — אז אותו משפט עצמו מוצג בכרטיס
+            התוצאה למטה, במקום שבו הוא באמת נחוץ. ראו שם. */}
+        {noMatch ? null : (
+          <p className="mt-4 max-w-3xl whitespace-pre-line border-e-2 border-accent pe-4 text-[15px] leading-relaxed text-ink">
+            {copy.hint}
+          </p>
+        )}
 
         {/* --- שדה הסינון --- */}
         <div className="mt-9 max-w-xl">
@@ -143,7 +167,7 @@ export function MonthPicker({
             <p className="mt-2.5 text-[13.5px] text-ink-2">
               {matchedMonths.length === 0
                 ? `לא מצאנו את "${trimmed}" ברשימת התחומים של החודשים הפתוחים.`
-                : `נמצאו ${matchedMonths.length} חודשים שבהם "${trimmed}" יכול להשתלב.`}
+                : foundLine(matchedMonths.length, trimmed)}
               {hiddenCount > 0 ? (
                 <button
                   type="button"
@@ -152,7 +176,7 @@ export function MonthPicker({
                 >
                   {showAll
                     ? "להציג רק את החודשים המתאימים"
-                    : `להציג גם את ${hiddenCount} החודשים האחרים`}
+                    : showOthersLine(hiddenCount)}
                 </button>
               ) : null}
             </p>
@@ -187,13 +211,19 @@ export function MonthPicker({
           </div>
         )}
 
-        {searching && matchedMonths.length === 0 && months.length > 0 ? (
+        {/* לא נמצאה שום התאמה, בשום חודש. כאן *אסור* לכתוב "התחום הזה
+            כבר בפנים" (takenTitle/takenBody) — זה הניסוח למי שהתחום
+            שלו נתפס, ואילו מי שהגיע לכאן התחום שלו כלל לא ברשימה.
+            להכריז לו שהתחום נמכר זה פשוט שקר על המלאי.
+
+            מה שכן נכון כאן הוא בדיוק ההערה שהלקוחה כתבה למצב הזה
+            ("אם התחום שלכם לא מופיע ברשימה - אל תוותרו עליו"), ולכן
+            היא עוברת לכאן — ומוסתרת למעלה — כדי שאותו משפט לא יופיע
+            פעמיים על אותו מסך. */}
+        {noMatch ? (
           <div className="mt-8 border border-line-2 bg-surface p-7">
-            <p className="font-display text-xl font-extrabold tracking-tight text-ink">
-              {copy.takenTitle}
-            </p>
-            <p className="mt-2 text-[15.5px] leading-relaxed text-ink-2">
-              {copy.takenBody}
+            <p className="max-w-2xl whitespace-pre-line text-[16px] font-medium leading-relaxed text-ink">
+              {copy.hint}
             </p>
             <a
               href="#contact"
