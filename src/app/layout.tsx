@@ -1,12 +1,20 @@
 import type { Metadata, Viewport } from "next";
-import { Heebo, IBM_Plex_Mono } from "next/font/google";
+import { Heebo, Assistant, IBM_Plex_Mono } from "next/font/google";
 import { Toaster } from "sonner";
 import "./globals.css";
 
-const body = Heebo({
+const heebo = Heebo({
   subsets: ["hebrew", "latin"],
   weight: ["300", "400", "500", "600", "700", "800", "900"],
   variable: "--font-heebo",
+  display: "swap",
+});
+
+// גופן גוף חדש (זהות ה-reskin) — Heebo נשאר טעון כגיבוי/לרכיבים ישנים
+const assistant = Assistant({
+  subsets: ["hebrew", "latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-assistant",
   display: "swap",
 });
 
@@ -30,14 +38,18 @@ export const metadata: Metadata = {
 
 // כותרת/סרגל הדפדפן — קרם, כמו הקנבס הבהיר של רוב האתר
 export const viewport: Viewport = {
-  themeColor: "#F2EFE9",
+  themeColor: "#F3EEE7",
 };
 
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="he" dir="rtl" className={`${body.variable} ${mono.variable}`}>
+    <html
+      lang="he"
+      dir="rtl"
+      className={`${heebo.variable} ${assistant.variable} ${mono.variable}`}
+    >
       <body className="min-h-dvh antialiased">
         {children}
         <Toaster

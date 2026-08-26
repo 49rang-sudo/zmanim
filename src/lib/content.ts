@@ -858,8 +858,8 @@ export const defaultContent: SiteContentData = {
   },
 
   contact: {
-    phone: "03-0000000",
-    email: "info@luach.local",
+    phone: "052-717-3891",
+    email: "zmanim678@gmail.com",
     whatsapp: null,
   },
 
