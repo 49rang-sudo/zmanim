@@ -184,7 +184,7 @@ export function CalendarMockup({
       </p>
 
       {editions.length > 0 ? (
-        <div className="mb-3 flex items-center justify-between gap-2 rounded-lg border border-line bg-surface-2 px-3 py-2.5">
+        <div className="mb-3 flex items-center justify-between gap-2 rounded-2xl border border-line bg-surface-2 px-3 py-2.5 soft-shadow">
           <button
             type="button"
             disabled={viewedIndex <= 0}
@@ -293,7 +293,7 @@ export function CalendarMockup({
         >
           <div
             className={cn(
-              "border border-line-2 bg-surface p-5",
+              "rounded-2xl border border-line bg-surface p-5 soft-shadow",
               focused ? "pointer-events-auto" : "",
             )}
           >
