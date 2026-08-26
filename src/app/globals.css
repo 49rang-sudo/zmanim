@@ -73,6 +73,34 @@
   --font-body: var(--font-assistant), var(--font-heebo), "Heebo", "Segoe UI", system-ui, sans-serif;
   --font-mono: var(--font-plex-mono), "IBM Plex Mono", ui-monospace, monospace;
 
+  /* ---------------------------------------------------------------
+     טוקנים בשמות Base44 — פורטו מילה במילה מ-
+     zmanim2-base44/src/index.css (אותם ערכי HSL בדיוק), כדי
+     שהעמוד השיווקי אפשר יהיה לבנות בהעתקה ישירה של ה-JSX/classes
+     של המוקאפ, בלי "תרגום" ידני class-by-class. נשארים לצד
+     הטוקנים הקיימים (canvas/surface/ink…) שממשיכים לשרת את שאר
+     האתר (אדמין, אשף). ראו PR "reskin שלב 2" 2026-08-26.
+     --------------------------------------------------------------- */
+  --color-background: hsl(33 32% 93%);
+  --color-foreground: hsl(0 0% 12%);
+  --color-card: hsl(36 44% 98%);
+  --color-card-foreground: hsl(0 0% 12%);
+  --color-popover: hsl(36 44% 98%);
+  --color-popover-foreground: hsl(0 0% 12%);
+  --color-primary: hsl(31 79% 55%);
+  --color-primary-foreground: hsl(0 0% 12%);
+  --color-secondary: hsl(35 60% 90%);
+  --color-secondary-foreground: hsl(28 60% 25%);
+  --color-muted: hsl(35 28% 88%);
+  --color-muted-foreground: hsl(33 14% 42%);
+  --color-destructive: hsl(0 72% 51%);
+  --color-destructive-foreground: hsl(36 44% 98%);
+  --color-border: hsl(37 26% 84%);
+  --color-input: hsl(37 26% 84%);
+  --color-ring: hsl(31 79% 55%);
+
+  --font-heading: var(--font-heebo), "Heebo", ui-sans-serif, system-ui, sans-serif;
+
   --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-out-soft: cubic-bezier(0.16, 1, 0.3, 1);
 
@@ -361,6 +389,33 @@
     background-color: var(--color-paper);
     color: var(--color-paper-ink);
   }
+
+  /* --- Utilities בשמות/ערכים זהים ל-Base44 index.css, פורטו
+     מילה במילה כדי לא "לתרגם" אותם דרך הטוקנים הישנים שלנו --- */
+  .font-mono-nums {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+  .brand-gradient {
+    background-image: linear-gradient(135deg, #f17887 0%, #7a2a8e 100%);
+  }
+  .brand-gradient-soft {
+    background-image: linear-gradient(135deg, #f17887 0%, #b85aa8 50%, #7a2a8e 100%);
+  }
+  .brand-gradient-text {
+    background-image: linear-gradient(135deg, #f2a265 0%, #f17887 45%, #7a2a8e 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .brand-hands {
+    background-image: linear-gradient(135deg, #f2a265 0%, #f07c7f 100%);
+  }
+  .brand-glow {
+    box-shadow: 0 0 0 1px rgba(241, 120, 135, 0.35), 0 0 30px -6px rgba(122, 42, 142, 0.45);
+  }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 }
 
 /* כיבוד העדפת תנועה מופחתת — לא דקורטיבי, דרישת נגישות */
