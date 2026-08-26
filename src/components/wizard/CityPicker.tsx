@@ -3,7 +3,7 @@
 import * as React from "react";
 import { AlertCircle, Check, MapPin, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Badge, EmptyState } from "@/components/ui/primitives";
+import { WBadge } from "./ui";
 import type { CityAvailability } from "@/lib/availability";
 import type { SiteContentData } from "@/lib/content";
 
@@ -40,11 +40,15 @@ export function CityPicker({ selectedCityId, onSelect, messages }: Props) {
 
   if (error) {
     return (
-      <EmptyState
-        icon={<AlertCircle className="size-6" />}
-        title="לא הצלחנו לטעון את רשימת הערים"
-        body={error}
-      />
+      <div className="flex flex-col items-center justify-center rounded-2xl border border-border bg-card px-6 py-14 text-center soft-shadow">
+        <div className="mb-4 grid size-14 place-items-center rounded-full bg-secondary text-muted-foreground">
+          <AlertCircle className="size-6" />
+        </div>
+        <h3 className="font-heading text-lg font-semibold text-foreground">
+          לא הצלחנו לטעון את רשימת הערים
+        </h3>
+        <p className="mt-1.5 max-w-sm text-sm text-muted-foreground">{error}</p>
+      </div>
     );
   }
 
@@ -52,7 +56,7 @@ export function CityPicker({ selectedCityId, onSelect, messages }: Props) {
     return (
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {Array.from({ length: 6 }).map((_, index) => (
-          <div key={index} className="skeleton h-[104px]" />
+          <div key={index} className="skeleton h-[104px] rounded-2xl" />
         ))}
       </div>
     );
@@ -60,11 +64,17 @@ export function CityPicker({ selectedCityId, onSelect, messages }: Props) {
 
   if (cities.length === 0) {
     return (
-      <EmptyState
-        icon={<MapPin className="size-6" />}
-        title="אין ערים פתוחות כרגע"
-        body="כל המהדורות נסגרו להזמנות. השאירו פרטים ונעדכן כשנפתחת מהדורה חדשה."
-      />
+      <div className="flex flex-col items-center justify-center rounded-2xl border border-border bg-card px-6 py-14 text-center soft-shadow">
+        <div className="mb-4 grid size-14 place-items-center rounded-full bg-secondary text-muted-foreground">
+          <MapPin className="size-6" />
+        </div>
+        <h3 className="font-heading text-lg font-semibold text-foreground">
+          אין ערים פתוחות כרגע
+        </h3>
+        <p className="mt-1.5 max-w-sm text-sm text-muted-foreground">
+          כל המהדורות נסגרו להזמנות. השאירו פרטים ונעדכן כשנפתחת מהדורה חדשה.
+        </p>
+      </div>
     );
   }
 
@@ -83,18 +93,18 @@ export function CityPicker({ selectedCityId, onSelect, messages }: Props) {
             onClick={() => onSelect(city)}
             style={{ animationDelay: `${index * 35}ms` }}
             className={cn(
-              "relative flex flex-col items-start gap-2 rounded-lg border p-4 text-right",
+              "relative flex flex-col items-start gap-2 rounded-2xl border p-4 text-right",
               "transition-[transform,box-shadow,border-color,background-color] duration-200 ease-smooth",
               "animate-[fade-up_0.45s_var(--ease-out-soft)_both]",
               blocked
-                ? "cursor-not-allowed border-line bg-surface-3 opacity-70"
+                ? "cursor-not-allowed border-border bg-muted/40 opacity-70"
                 : selected
-                  ? "cursor-pointer border-accent bg-accent-soft shadow-e2"
-                  : "cursor-pointer border-line bg-surface shadow-e1 hover:-translate-y-1 hover:border-accent hover:shadow-e3",
+                  ? "cursor-pointer border-primary bg-secondary/60 soft-shadow"
+                  : "cursor-pointer border-border bg-card soft-shadow hover:-translate-y-1 hover:border-primary/60",
             )}
           >
             {selected ? (
-              <span className="absolute left-3 top-3 grid size-6 place-items-center rounded-full bg-accent text-accent-ink">
+              <span className="absolute left-3 top-3 grid size-6 place-items-center rounded-full bg-primary text-primary-foreground">
                 <Check className="size-3.5" strokeWidth={3} />
               </span>
             ) : null}
@@ -103,31 +113,31 @@ export function CityPicker({ selectedCityId, onSelect, messages }: Props) {
               <MapPin
                 className={cn(
                   "size-4",
-                  blocked ? "text-muted" : "text-accent",
+                  blocked ? "text-muted-foreground" : "text-primary",
                 )}
               />
-              <span className="font-display text-lg font-semibold text-ink">
+              <span className="font-heading text-lg font-semibold text-foreground">
                 {city.name}
               </span>
             </div>
 
             {city.region ? (
-              <span className="text-[12px] text-muted">{city.region}</span>
+              <span className="text-[12px] text-muted-foreground">{city.region}</span>
             ) : null}
 
             <div className="mt-auto flex w-full flex-wrap items-center gap-2 pt-1">
               {blocked ? (
-                <Badge tone="neutral">מלאה</Badge>
+                <WBadge tone="neutral">מלאה</WBadge>
               ) : (
-                <Badge tone={city.remaining <= 3 ? "warn" : "success"}>
+                <WBadge tone={city.remaining <= 3 ? "warn" : "success"}>
                   {city.remaining <= 3
                     ? `נותרו ${city.remaining} משבצות`
                     : `${city.remaining} משבצות פנויות`}
-                </Badge>
+                </WBadge>
               )}
 
               {city.distribution ? (
-                <span className="tnum inline-flex items-center gap-1 text-[11.5px] text-muted">
+                <span className="tnum inline-flex items-center gap-1 text-[11.5px] text-muted-foreground">
                   <Users className="size-3" />
                   {city.distribution.toLocaleString("he-IL")} לוחות
                 </span>

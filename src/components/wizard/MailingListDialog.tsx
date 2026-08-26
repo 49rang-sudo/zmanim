@@ -12,7 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Field, Input } from "@/components/ui/primitives";
+import { WField as Field, WInput as Input } from "./ui";
 
 type Props = {
   open: boolean;
@@ -64,13 +64,13 @@ export function MailingListDialog({ open, onOpenChange, onDecide }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[min(94vw,460px)]">
-        <DialogHeader>
-          <div className="mb-3 grid size-11 place-items-center rounded-full bg-accent-soft text-accent">
+      <DialogContent className="w-[min(94vw,460px)] rounded-3xl border-border bg-card">
+        <DialogHeader className="border-border">
+          <div className="mb-3 grid size-11 place-items-center rounded-full bg-secondary text-primary">
             <Mail className="size-5" />
           </div>
-          <DialogTitle>עוד לא מוכנים להזמין?</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-foreground">עוד לא מוכנים להזמין?</DialogTitle>
+          <DialogDescription className="text-muted-foreground">
             הירשמו לעדכונים לקראת המהדורה הבאה וקבלו תזכורת לפני שכל המשבצות נתפסות.
           </DialogDescription>
         </DialogHeader>
@@ -108,15 +108,15 @@ export function MailingListDialog({ open, onOpenChange, onDecide }: Props) {
               />
             </Field>
 
-            {error ? <p className="text-[13px] text-danger sm:col-span-2">{error}</p> : null}
+            {error ? <p className="text-[13px] text-destructive sm:col-span-2">{error}</p> : null}
           </form>
         </DialogBody>
 
-        <DialogFooter>
-          <Button variant="quiet" onClick={() => onDecide(false)} disabled={busy}>
+        <DialogFooter className="rounded-b-3xl border-border bg-secondary/40">
+          <Button variant="pill-quiet" onClick={() => onDecide(false)} disabled={busy}>
             לא תודה
           </Button>
-          <Button type="submit" form="mailing-list-form" loading={busy} className="shine-cta">
+          <Button variant="pill" type="submit" form="mailing-list-form" loading={busy} className="shine-cta">
             <Mail className="size-4" />
             עדכנו אותי
           </Button>

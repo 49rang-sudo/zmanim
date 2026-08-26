@@ -29,20 +29,20 @@ type Props = {
 export function TierPicker({ slot, selectedEditionsCount, onSelect }: Props) {
   return (
     <div className="mt-6">
-      <p className="mb-1 flex flex-wrap items-center gap-2 text-[13.5px] font-semibold text-ink">
+      <p className="mb-1 flex flex-wrap items-center gap-2 text-[13.5px] font-semibold text-foreground">
         <span
           className={cn(
-            "px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em]",
+            "rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em]",
             slot.tier === "ANCHOR"
-              ? "bg-ink text-canvas"
-              : "border border-line text-muted",
+              ? "bg-foreground text-background"
+              : "border border-border text-muted-foreground",
           )}
         >
           {TIER_LABELS[slot.tier]}
         </span>
         פרסום חד־פעמי או חבילה מרובת חודשים?
       </p>
-      <p className="mb-3 text-[12px] text-muted">
+      <p className="mb-3 text-[12px] text-muted-foreground">
         המחירים כוללים מע״מ. ככל שההתחייבות ארוכה יותר, המחיר לחודש יורד.
       </p>
       <div className="grid gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
@@ -64,29 +64,29 @@ export function TierPicker({ slot, selectedEditionsCount, onSelect }: Props) {
               type="button"
               onClick={() => onSelect(pkg.editions)}
               className={cn(
-                "relative rounded-md border p-3.5 text-right",
+                "relative rounded-2xl border p-3.5 text-right",
                 "transition-colors duration-200 ease-smooth",
                 selected
-                  ? "border-accent bg-accent-soft"
-                  : "border-line hover:border-line-2",
+                  ? "border-primary bg-secondary/60"
+                  : "border-border hover:border-primary/60",
               )}
             >
               {selected ? (
-                <span className="absolute left-2 top-2 grid size-5 place-items-center rounded-full bg-accent text-accent-ink">
+                <span className="absolute left-2 top-2 grid size-5 place-items-center rounded-full bg-primary text-primary-foreground">
                   <Check className="size-3" strokeWidth={3} />
                 </span>
               ) : null}
-              <p className="text-[13px] font-semibold text-ink">{pkg.label}</p>
-              <p className="mt-0.5 text-[12px] text-ink-2">
+              <p className="text-[13px] font-semibold text-foreground">{pkg.label}</p>
+              <p className="mt-0.5 text-[12px] text-muted-foreground">
                 {pkg.editions === 1 ? "חודש אחד" : `${pkg.editions} חודשים`}
               </p>
-              <p className="tnum mt-1.5 font-display text-base font-bold text-accent">
+              <p className="tnum mt-1.5 font-heading text-base font-bold text-primary">
                 {formatPrice(total)}
               </p>
               {/* המחיר לחודש הוא מה שמשווים בפועל בין המדרגות —
                   הסכום הכולל לבדו מסתיר את הירידה. */}
               {pkg.editions > 1 ? (
-                <p className="tnum mt-0.5 text-[11.5px] text-muted">
+                <p className="tnum mt-0.5 text-[11.5px] text-muted-foreground">
                   {formatPrice(monthly)} לחודש
                 </p>
               ) : null}

@@ -24,6 +24,13 @@ const buttonVariants = cva(
         quiet:
           "bg-transparent text-ink-2 hover:bg-surface-3 hover:text-ink",
         danger: "bg-danger text-white hover:brightness-110",
+        /** כדור מלא בגוון primary — שפת העיצוב של Base44 (ReservationModal),
+         * לשימוש באשף ההזמנה בלבד. אינו ברירת מחדל, ולכן לא נוגע בלוח
+         * הניהול שממשיך להשתמש ב-primary/ghost/subtle/quiet כרגיל. */
+        pill: "rounded-full bg-primary text-primary-foreground hover:brightness-105",
+        /** כדור שקוף — לכפתורי "חזרה"/ביטול בתוך אותה שפת עיצוב */
+        "pill-quiet":
+          "rounded-full bg-transparent text-muted-foreground hover:bg-secondary hover:text-foreground",
       },
       size: {
         sm: "text-[13px] px-3.5 py-2",

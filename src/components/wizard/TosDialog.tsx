@@ -12,8 +12,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/primitives";
-import { formatCm, formatPrice } from "@/lib/utils";
+import { WBadge as Badge } from "./ui";
+import { cn, formatCm, formatPrice } from "@/lib/utils";
 import type { SiteContentData } from "@/lib/content";
 import type { MockupSlot } from "./CalendarMockup";
 
@@ -54,10 +54,10 @@ export function TosDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[min(94vw,680px)]">
-        <DialogHeader>
+      <DialogContent className="w-[min(94vw,680px)] rounded-3xl border-border bg-card">
+        <DialogHeader className="border-border">
           <div className="mb-3 flex flex-wrap items-center gap-2">
-            <Badge tone="accent">
+            <Badge tone="primary">
               <ScrollText className="size-3" />
               {slot.name}
             </Badge>
@@ -67,13 +67,13 @@ export function TosDialog({
             ) : (
               <Badge tone="neutral">{slot.sku}</Badge>
             )}
-            <span className="tnum mr-auto font-display text-lg font-bold text-accent">
+            <span className="tnum mr-auto font-heading text-lg font-bold text-primary">
               {formatPrice(totalPriceAgorot ?? slot.priceAgorot)}
             </span>
           </div>
 
-          <DialogTitle>{tos.title}</DialogTitle>
-          <DialogDescription>{tos.intro}</DialogDescription>
+          <DialogTitle className="text-foreground">{tos.title}</DialogTitle>
+          <DialogDescription className="text-muted-foreground">{tos.intro}</DialogDescription>
         </DialogHeader>
 
         <DialogBody className="p-0">
@@ -84,14 +84,14 @@ export function TosDialog({
             <ol className="space-y-4">
               {tos.sections.map((section, index) => (
                 <li key={index} className="flex gap-3">
-                  <span className="tnum mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-surface-3 text-[11px] font-bold text-ink-2">
+                  <span className="tnum mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-muted text-[11px] font-bold text-foreground/70">
                     {index + 1}
                   </span>
                   <div>
-                    <h4 className="text-[15px] font-semibold text-ink">
+                    <h4 className="text-[15px] font-semibold text-foreground">
                       {section.heading}
                     </h4>
-                    <p className="mt-1 text-[13.5px] leading-relaxed text-ink-2">
+                    <p className="mt-1 text-[13.5px] leading-relaxed text-foreground/70">
                       {section.body}
                     </p>
                   </div>
@@ -101,32 +101,33 @@ export function TosDialog({
           </div>
 
           <label
-            className={[
-              "mx-6 my-4 flex cursor-pointer items-start gap-3 rounded-md border p-3.5",
+            className={cn(
+              "mx-6 my-4 flex cursor-pointer items-start gap-3 rounded-2xl border p-3.5",
               "transition-colors duration-200 ease-smooth",
               accepted
-                ? "border-accent bg-accent-soft"
-                : "border-line bg-surface-2 hover:border-line-2",
-            ].join(" ")}
+                ? "border-primary bg-secondary/60"
+                : "border-border bg-background hover:border-primary/40",
+            )}
           >
             <input
               type="checkbox"
               checked={accepted}
               onChange={(event) => setAccepted(event.target.checked)}
-              className="mt-0.5 size-4 shrink-0 accent-[var(--color-accent)]"
+              className="mt-0.5 size-4 shrink-0 accent-[var(--color-primary)]"
             />
-            <span className="text-[13.5px] font-medium leading-snug text-ink">
+            <span className="text-[13.5px] font-medium leading-snug text-foreground">
               {tos.acceptLabel}
             </span>
           </label>
         </DialogBody>
 
-        <DialogFooter>
-          <Button variant="quiet" onClick={() => onOpenChange(false)}>
+        <DialogFooter className="rounded-b-3xl border-border bg-secondary/40">
+          <Button variant="pill-quiet" onClick={() => onOpenChange(false)}>
             ביטול
           </Button>
 
           <Button
+            variant="pill"
             className="shine-cta"
             disabled={!accepted}
             onClick={() => {

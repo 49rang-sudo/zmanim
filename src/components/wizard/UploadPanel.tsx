@@ -80,22 +80,22 @@ export function UploadPanel({
 
   if (uploaded && !uploading) {
     return (
-      <div className="rounded-lg border border-accent bg-accent-soft p-5">
+      <div className="rounded-2xl border border-primary bg-secondary/50 p-5 soft-shadow">
         <div className="flex items-start gap-3">
-          <CheckCircle2 className="mt-0.5 size-6 shrink-0 text-accent" />
+          <CheckCircle2 className="mt-0.5 size-6 shrink-0 text-primary" />
 
           <div className="min-w-0 flex-1">
-            <p className="font-semibold text-ink">הקובץ נקלט</p>
-            <p className="mt-0.5 truncate text-sm text-ink-2" title={uploaded.name}>
+            <p className="font-semibold text-foreground">הקובץ נקלט</p>
+            <p className="mt-0.5 truncate text-sm text-foreground/70" title={uploaded.name}>
               {uploaded.name}
             </p>
-            <p className="tnum mt-0.5 text-xs text-muted">
+            <p className="tnum mt-0.5 text-xs text-muted-foreground">
               {formatFileSize(uploaded.size)}
             </p>
           </div>
 
           <Button
-            variant="quiet"
+            variant="pill-quiet"
             size="sm"
             onClick={() => inputRef.current?.click()}
           >
@@ -143,41 +143,41 @@ export function UploadPanel({
           }
         }}
         className={cn(
-          "relative flex flex-col items-center justify-center gap-3 overflow-hidden rounded-lg border-2 border-dashed p-10 text-center",
+          "relative flex flex-col items-center justify-center gap-3 overflow-hidden rounded-2xl border-2 border-dashed p-10 text-center",
           "transition-[border-color,background-color,transform] duration-200 ease-smooth",
           uploading
-            ? "cursor-wait border-accent"
+            ? "cursor-wait border-primary"
             : dragging
-              ? "-translate-y-1 cursor-copy border-accent bg-accent-soft"
-              : "cursor-pointer border-line-2 bg-surface-2 hover:border-accent hover:bg-accent-soft",
+              ? "-translate-y-1 cursor-copy border-primary bg-secondary/50"
+              : "cursor-pointer border-border bg-background hover:border-primary/60 hover:bg-secondary/30",
         )}
       >
         {uploading ? (
           <div className="curtain-bg pointer-events-none absolute inset-0 opacity-70" aria-hidden />
         ) : null}
 
-        <div className="relative grid size-12 place-items-center rounded-full bg-surface text-accent shadow-e1">
+        <div className="relative grid size-12 place-items-center rounded-full bg-secondary text-primary soft-shadow">
           <FileUp className="size-5" />
         </div>
 
         {uploading ? (
           <>
-            <p className="relative font-semibold text-ink">מעלה את הקובץ…</p>
-            <div className="relative h-2 w-full max-w-xs overflow-hidden rounded-full bg-surface-3">
+            <p className="relative font-semibold text-foreground">מעלה את הקובץ…</p>
+            <div className="relative h-2 w-full max-w-xs overflow-hidden rounded-full bg-muted">
               {/* גרדיאנט הלוגו = התקדמות בזמן */}
               <div
                 className="progress-fill h-full rounded-full transition-[width] duration-200 ease-smooth"
                 style={{ width: `${progress}%` }}
               />
             </div>
-            <p className="tnum relative text-sm text-muted">{progress}%</p>
+            <p className="tnum relative text-sm text-muted-foreground">{progress}%</p>
           </>
         ) : (
           <>
-            <p className="font-semibold text-ink">
+            <p className="font-semibold text-foreground">
               גררו לכאן את הקובץ, או לחצו לבחירה
             </p>
-            <p className="max-w-sm text-[12.5px] leading-relaxed text-muted">
+            <p className="max-w-sm text-[12.5px] leading-relaxed text-muted-foreground">
               {ALLOWED_EXTENSIONS.join(" · ")}
               <br />
               עד {maxUploadMb} מ״ב
@@ -187,9 +187,9 @@ export function UploadPanel({
       </div>
 
       {error ? (
-        <div className="mt-3 flex items-start gap-2 rounded-md border border-danger/40 bg-[color-mix(in_srgb,var(--color-danger)_8%,transparent)] p-3">
-          <X className="mt-0.5 size-4 shrink-0 text-danger" />
-          <p className="text-[13px] leading-snug text-danger">{error}</p>
+        <div className="mt-3 flex items-start gap-2 rounded-xl border border-destructive/40 bg-[color-mix(in_srgb,var(--color-destructive)_8%,transparent)] p-3">
+          <X className="mt-0.5 size-4 shrink-0 text-destructive" />
+          <p className="text-[13px] leading-snug text-destructive">{error}</p>
         </div>
       ) : null}
 

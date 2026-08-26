@@ -3,7 +3,7 @@
 import * as React from "react";
 import Script from "next/script";
 import { CreditCard } from "lucide-react";
-import { Field, Input } from "@/components/ui/primitives";
+import { WField as Field, WInput as Input } from "./ui";
 import { Button } from "@/components/ui/button";
 
 declare global {
@@ -161,6 +161,7 @@ export function SumitCardForm({
 
         <Button
           type="submit"
+          variant="pill"
           size="lg"
           className="shine-cta mt-2 w-full sm:col-span-2"
           loading={busy}
