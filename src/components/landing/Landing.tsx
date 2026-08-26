@@ -899,24 +899,13 @@ export function SiteFooter({ content }: { content: SiteContentData }) {
         <div className="grid items-start gap-10 md:grid-cols-2">
           <div>
             <div className="mb-4 flex items-center gap-2.5">
-              <svg viewBox="0 0 40 40" className="h-9 w-9" aria-hidden="true">
-                <defs>
-                  <linearGradient id="zf-ring" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stopColor="#f17887" />
-                    <stop offset="100%" stopColor="#7a2a8e" />
-                  </linearGradient>
-                  <linearGradient id="zf-hands" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stopColor="#f2a265" />
-                    <stop offset="100%" stopColor="#f07c7f" />
-                  </linearGradient>
-                </defs>
-                <circle cx="20" cy="20" r="16" fill="none" stroke="url(#zf-ring)" strokeWidth="3.2" />
-                <line x1="20" y1="20" x2="20" y2="9" stroke="url(#zf-hands)" strokeWidth="3" strokeLinecap="round" />
-                <line x1="20" y1="20" x2="29" y2="20" stroke="url(#zf-hands)" strokeWidth="3" strokeLinecap="round" />
-                <circle cx="20" cy="20" r="2.6" fill="#7a2a8e" />
-              </svg>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/brand/zmanim-logo-2.png"
+                alt={content.brand.siteName}
+                className="h-9 w-auto max-w-40 object-contain"
+              />
               <div className="leading-none">
-                <div className="font-heading text-2xl font-extrabold">{content.brand.siteName}</div>
                 <div className="mt-1 text-xs text-background/60">{footer.tagline}</div>
               </div>
             </div>
