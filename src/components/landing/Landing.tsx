@@ -233,8 +233,8 @@ export function Hero({ content }: { content: SiteContentData }) {
             <div className="w-full max-w-[420px] animate-[fade-up_0.7s_var(--ease-out-soft)_180ms_both] overflow-hidden rounded-3xl soft-shadow">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/brand/hero-preview.png"
-                alt="דוגמה לגיליון של הלוח"
+                src="/brand/hero-kitchen.png"
+                alt="לוח זמנים תלוי במטבח"
                 className="aspect-[4/3] h-auto w-full object-cover"
               />
             </div>
