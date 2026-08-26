@@ -201,7 +201,7 @@ export function Hero({ content }: { content: SiteContentData }) {
             ) : null}
 
             <div
-              className="mt-9 flex w-max max-w-full flex-wrap items-stretch gap-3 animate-[fade-up_0.5s_var(--ease-out-soft)_both]"
+              className="mt-9 flex w-full flex-wrap items-stretch gap-3 animate-[fade-up_0.5s_var(--ease-out-soft)_both]"
               style={{ animationDelay: "200ms" }}
             >
               {/* שני כפתורי המסך הראשון מבטיחים *לראות* ("לראות
@@ -912,7 +912,7 @@ export function FinalCta({ content }: { content: SiteContentData }) {
           className="mt-5 max-w-3xl text-lg font-medium leading-relaxed text-ink"
         />
 
-        <div className="mt-9 flex w-max max-w-full flex-wrap items-stretch gap-3">
+        <div className="mt-9 flex w-full flex-wrap items-stretch gap-3">
           <OrderCta
             href="#order"
             className="brand-cta shine-cta inline-flex items-center px-7 py-4 text-base font-bold"
