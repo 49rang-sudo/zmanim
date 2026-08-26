@@ -13,6 +13,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { CountUpStat } from "./CountUpStat";
+import { ClockMark } from "./ClockMark";
 import { OrderCta } from "./OrderCta";
 import { formatPrice } from "@/lib/utils";
 import { TIER_LABELS } from "@/lib/packages";
@@ -65,12 +66,14 @@ function SectionHead({
     <div className={className}>
       {eyebrow ? (
         <div className="mb-5 flex items-center gap-3.5">
-          <span className="progress-rule w-14" />
-          <span className="mono-label text-[12.5px] text-ink-2">{eyebrow}</span>
+          <span className="progress-rule w-8 rounded-full" />
+          <span className="text-[12.5px] font-semibold tracking-wide text-accent">
+            {eyebrow}
+          </span>
         </div>
       ) : null}
 
-      <h2 className="max-w-4xl whitespace-pre-line font-display text-[2rem] font-black leading-[1.1] tracking-tight text-ink sm:text-[2.4rem]">
+      <h2 className="max-w-4xl whitespace-pre-line font-display text-[2rem] font-extrabold leading-[1.1] tracking-tight text-ink sm:text-[2.4rem]">
         {title}
       </h2>
 
@@ -98,7 +101,7 @@ export function SiteHeader({ content }: { content: SiteContentData }) {
   const { nav } = content.landing;
 
   return (
-    <header className="glass sticky top-0 z-30 border-b border-line-2">
+    <header className="glass sticky top-0 z-30 border-b border-line">
       <div className="mx-auto flex max-w-[1200px] items-center gap-5 px-5 py-2.5 lg:px-8">
         <a href="/" className="flex shrink-0 items-center py-1">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -140,7 +143,7 @@ export function SiteHeader({ content }: { content: SiteContentData }) {
  */
 export function MobileCtaBar({ content }: { content: SiteContentData }) {
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 border-t border-line-2 bg-canvas p-3 lg:hidden">
+    <div className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-canvas p-3 lg:hidden">
       <OrderCta
         href="#order"
         className="brand-cta shine-cta flex h-12 items-center justify-center text-[15px] font-bold"
@@ -159,34 +162,35 @@ export function Hero({ content }: { content: SiteContentData }) {
   const { hero } = content;
 
   return (
-    <section className="snap-section dark-zone relative overflow-hidden border-b border-line-2">
-      <div className="hero-glow" aria-hidden />
-
+    <section className="relative overflow-hidden border-b border-line">
       <div className="relative mx-auto max-w-[1200px] px-5 py-14 lg:px-8 lg:py-20">
-        <div className="mb-7 flex items-center gap-3.5 animate-[fade-up_0.5s_var(--ease-out-soft)_both]">
-          <span className="progress-rule w-14" />
-          <span className="mono-label text-[12.5px] text-ink-2">
-            {hero.eyebrow}
-          </span>
-        </div>
-
-        <h1 className="display-hero max-w-[16ch] text-ink animate-[fade-up_0.5s_var(--ease-out-soft)_60ms_both]">
-          {hero.title}
-          {hero.titleSecondary ? (
-            <span
-              className="gradient-num mt-2 block text-[0.52em] leading-tight"
-              style={{ animation: "hero-pulse 1.6s ease-in-out 0.6s infinite" }}
-            >
-              {hero.titleSecondary}
-            </span>
-          ) : null}
-        </h1>
-
-        <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_420px]">
           <div>
+            <div className="mb-7 flex items-center gap-4 animate-[fade-up_0.5s_var(--ease-out-soft)_both]">
+              <ClockMark className="size-14 shrink-0" />
+              <div className="flex items-center gap-3.5">
+                <span className="progress-rule w-8 rounded-full" />
+                <span className="text-[12.5px] font-semibold tracking-wide text-accent">
+                  {hero.eyebrow}
+                </span>
+              </div>
+            </div>
+
+            <h1 className="display-hero max-w-[16ch] text-ink animate-[fade-up_0.5s_var(--ease-out-soft)_60ms_both]">
+              {hero.title}
+              {hero.titleSecondary ? (
+                <span
+                  className="gradient-num mt-2 block text-[0.52em] leading-tight"
+                  style={{ animation: "hero-pulse 1.6s ease-in-out 0.6s infinite" }}
+                >
+                  {hero.titleSecondary}
+                </span>
+              ) : null}
+            </h1>
+
             <Prose
               text={hero.subtitle}
-              className="max-w-2xl text-lg leading-relaxed text-ink-2 animate-[fade-up_0.5s_var(--ease-out-soft)_130ms_both]"
+              className="mt-6 max-w-2xl text-lg leading-relaxed text-ink-2 animate-[fade-up_0.5s_var(--ease-out-soft)_130ms_both]"
             />
 
             {hero.body ? (
@@ -197,7 +201,7 @@ export function Hero({ content }: { content: SiteContentData }) {
             ) : null}
 
             <div
-              className="mt-9 flex w-max max-w-full flex-wrap items-stretch border border-line-2 animate-[fade-up_0.5s_var(--ease-out-soft)_both]"
+              className="mt-9 flex w-max max-w-full flex-wrap items-stretch gap-3 animate-[fade-up_0.5s_var(--ease-out-soft)_both]"
               style={{ animationDelay: "200ms" }}
             >
               {/* שני כפתורי המסך הראשון מבטיחים *לראות* ("לראות
@@ -212,7 +216,7 @@ export function Hero({ content }: { content: SiteContentData }) {
 
               <OrderCta
                 href="#months"
-                className="inline-flex items-center border-s border-line-2 px-6 py-4 text-base font-medium text-ink transition-colors duration-200 ease-smooth hover:bg-surface-2"
+                className="inline-flex items-center rounded-full border border-line bg-surface px-6 py-4 text-base font-medium text-ink transition-colors duration-200 ease-smooth hover:bg-surface-2"
               >
                 {hero.secondaryCta}
               </OrderCta>
@@ -226,32 +230,28 @@ export function Hero({ content }: { content: SiteContentData }) {
           </div>
 
           <div className="flex items-start justify-center lg:justify-end">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/brand/hero-preview.png"
-              alt="דוגמה לגיליון של הלוח"
-              className="h-auto w-full max-w-[280px] animate-[fade-up_0.7s_var(--ease-out-soft)_180ms_both]"
-            />
+            <div className="w-full max-w-[420px] animate-[fade-up_0.7s_var(--ease-out-soft)_180ms_both] overflow-hidden rounded-3xl soft-shadow">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/brand/hero-preview.png"
+                alt="דוגמה לגיליון של הלוח"
+                className="aspect-[4/3] h-auto w-full object-cover"
+              />
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* --- פס הנתונים מתחת למסך הראשון --- */}
-      {hero.stats.length > 0 ? (
-        <dl className="relative mx-auto grid max-w-[1200px] grid-cols-2 border-t border-line px-5 lg:grid-cols-4 lg:px-8">
-          {hero.stats.map((stat, index) => {
-            const Icon = ICONS[stat.icon] ?? Sparkles;
-            return (
-              <div
-                key={index}
-                className="border-line py-6 [&:not(:nth-child(2n))]:border-e lg:[&:not(:last-child)]:border-e lg:[&:nth-child(2n)]:border-e"
-              >
-                <div className="px-4">
-                  <Icon
-                    className="mb-2.5 size-5 text-accent"
-                    strokeWidth={1.75}
-                  />
-                  <dd className="font-display text-[17px] font-black leading-tight text-ink">
+        {/* --- פס הנתונים מתחת למסך הראשון --- */}
+        {hero.stats.length > 0 ? (
+          <dl className="relative mt-12 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-line bg-line soft-shadow lg:grid-cols-4">
+            {hero.stats.map((stat, index) => {
+              const Icon = ICONS[stat.icon] ?? Sparkles;
+              return (
+                <div key={index} className="bg-canvas px-4 py-6">
+                  <span className="mb-2.5 grid size-11 place-items-center rounded-full bg-surface-2">
+                    <Icon className="size-5 text-accent" strokeWidth={1.75} />
+                  </span>
+                  <dd className="font-display text-[17px] font-extrabold leading-tight text-ink">
                     <CountUpStat value={stat.value} />
                     {stat.unit ? ` ${stat.unit}` : ""}
                   </dd>
@@ -259,11 +259,11 @@ export function Hero({ content }: { content: SiteContentData }) {
                     {stat.label}
                   </dt>
                 </div>
-              </div>
-            );
-          })}
-        </dl>
-      ) : null}
+              );
+            })}
+          </dl>
+        ) : null}
+      </div>
     </section>
   );
 }
@@ -769,7 +769,7 @@ export function EarlyBird({
               </span>
             </div>
 
-            <h2 className="font-display text-[1.9rem] font-black leading-tight tracking-tight text-ink">
+            <h2 className="font-display text-[1.9rem] font-extrabold leading-tight tracking-tight text-ink">
               {earlyBird.title}
             </h2>
 
@@ -877,7 +877,7 @@ export function FinalCta({ content }: { content: SiteContentData }) {
   return (
     <section className="snap-section dark-zone border-b border-line-2">
       <div className="mx-auto max-w-[1200px] px-5 py-16 lg:px-8 lg:py-20">
-        <h2 className="max-w-4xl font-display text-[2.2rem] font-black leading-[1.1] tracking-tight text-ink sm:text-[2.8rem]">
+        <h2 className="max-w-4xl font-display text-[2.2rem] font-extrabold leading-[1.1] tracking-tight text-ink sm:text-[2.8rem]">
           {finalCta.title}
           <span className="gradient-num mt-2 block">{finalCta.subtitle}</span>
         </h2>
