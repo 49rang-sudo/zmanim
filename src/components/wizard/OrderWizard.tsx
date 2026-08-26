@@ -25,7 +25,14 @@ import { MailingListDialog } from "./MailingListDialog";
 import { UploadPanel } from "./UploadPanel";
 import { SumitCardForm } from "./SumitCardForm";
 import { Button } from "@/components/ui/button";
-import { Badge, Eyebrow, Field, Input, Textarea } from "@/components/ui/primitives";
+import {
+  StepDot,
+  WBadge as Badge,
+  WCard,
+  WField as Field,
+  WInput as Input,
+  WTextarea as Textarea,
+} from "./ui";
 import { cn, formatCm, formatPrice } from "@/lib/utils";
 import {
   AD_PACKAGES,
@@ -567,7 +574,7 @@ export function OrderWizard({
 
           <NavRow
             next={
-              <Button disabled={!city} onClick={() => goTo(2)} className="shine-cta">
+              <Button variant="pill" disabled={!city} onClick={() => goTo(2)} className="shine-cta">
                 המשך לבחירת משבצת
                 <ArrowLeft className="size-4" />
               </Button>
@@ -599,7 +606,7 @@ export function OrderWizard({
               כדי שהנחיתה תתאים למה שהיה כתוב על הכפתור. נעלם
               ברגע שנבחר מקום, כי אז המסך מספר את הסיפור לבדו. */}
           {!anchorSlot && intentTier ? (
-            <p className="mt-4 rounded-md border border-accent/30 bg-accent-soft px-4 py-3 text-[13px] leading-relaxed text-accent-strong">
+            <p className="mt-4 rounded-2xl border border-primary/30 bg-secondary/60 px-4 py-3 text-[13px] leading-relaxed text-primary">
               אתם מחפשים <strong>{TIER_LABELS[intentTier]}</strong> — בחרו מקום
               שמסומן <strong>{TIER_LABELS[intentTier]}</strong> על הסצנה של
               החודש.
@@ -618,8 +625,8 @@ export function OrderWizard({
                   הכפתור היחיד שמאפשר להתחרט על הגודל/הדרגה, והוא
                   זה שהודעות השגיאה מפנות אליו. כשהוא לא היה על
                   המסך, ההודעה "לחצו בחירה מחדש" הפנתה לשום מקום. */}
-              <div className="mt-4 flex items-center justify-between gap-3 rounded-md border border-line bg-surface-2 px-4 py-3">
-                <p className="text-[13px] text-ink-2">
+              <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-border bg-secondary/40 px-4 py-3">
+                <p className="text-[13px] text-foreground/80">
                   {!targetEditionsCount
                     ? `נבחר ${TIER_LABELS[anchorSlot.tier]}: ${anchorSlot.name} — בחרו כמה חודשים לפרסם`
                     : Object.keys(selections).length === targetEditionsCount
@@ -629,7 +636,7 @@ export function OrderWizard({
                 <button
                   type="button"
                   onClick={handleResetSelection}
-                  className="shrink-0 text-[12.5px] font-semibold text-accent underline underline-offset-2 hover:text-accent-strong"
+                  className="shrink-0 text-[12.5px] font-semibold text-primary underline underline-offset-2 hover:brightness-90"
                 >
                   בחירה מחדש
                 </button>
@@ -646,6 +653,7 @@ export function OrderWizard({
             backLabel="חזרה לבחירת עיר"
             next={
               <Button
+                variant="pill"
                 disabled={
                   !anchorSlot ||
                   !targetEditionsCount ||
@@ -671,7 +679,7 @@ export function OrderWizard({
           />
 
           <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-            <div className="rounded-lg border border-line bg-surface p-5 shadow-e1">
+            <WCard>
               <div className="grid gap-x-4 sm:grid-cols-2">
                 <Field label="שם מלא *" htmlFor="contactName" error={errors.contactName}>
                   <Input
@@ -753,25 +761,25 @@ export function OrderWizard({
                 <div className="mt-1 flex items-center gap-2 text-[13px]">
                   {mailingListStatus === "joined" ? (
                     <>
-                      <CheckCircle2 className="size-4 shrink-0 text-accent" />
-                      <span className="text-ink-2">נרשמת לרשימת התפוצה</span>
+                      <CheckCircle2 className="size-4 shrink-0 text-primary" />
+                      <span className="text-foreground/80">נרשמת לרשימת התפוצה</span>
                     </>
                   ) : (
                     <>
-                      <Mail className="size-4 shrink-0 text-muted" />
-                      <span className="text-ink-2">לא הצטרפת לרשימת התפוצה</span>
+                      <Mail className="size-4 shrink-0 text-muted-foreground" />
+                      <span className="text-foreground/80">לא הצטרפת לרשימת התפוצה</span>
                     </>
                   )}
                   <button
                     type="button"
                     onClick={() => setMailingModalOpen(true)}
-                    className="text-accent underline underline-offset-2 hover:text-accent-strong"
+                    className="text-primary underline underline-offset-2 hover:brightness-90"
                   >
                     שינוי
                   </button>
                 </div>
               ) : null}
-            </div>
+            </WCard>
 
             <OrderSummary
               slot={anchorSlot}
@@ -794,7 +802,7 @@ export function OrderWizard({
             onBack={() => goTo(2)}
             backLabel="חזרה למשבצת"
             next={
-              <Button loading={busy} onClick={createOrder} className="shine-cta">
+              <Button variant="pill" loading={busy} onClick={createOrder} className="shine-cta">
                 אישור והמשך להעלאה
                 <ArrowLeft className="size-4" />
               </Button>
@@ -836,7 +844,7 @@ export function OrderWizard({
 
           <NavRow
             next={
-              <Button disabled={!uploaded} onClick={() => goTo(5)}>
+              <Button variant="pill" disabled={!uploaded} onClick={() => goTo(5)}>
                 המשך לתשלום
                 <ArrowLeft className="size-4" />
               </Button>
@@ -856,7 +864,7 @@ export function OrderWizard({
           <HoldTimer expiresAt={order.holdExpiresAt} />
 
           <div className="mt-4 grid gap-6 lg:grid-cols-[1fr_320px]">
-            <div className="relative overflow-hidden rounded-lg border border-line bg-surface p-6 shadow-e1">
+            <WCard className="relative overflow-hidden">
               {busy ? (
                 <div
                   className="curtain-bg pointer-events-none absolute inset-0 z-10 opacity-80"
@@ -864,16 +872,16 @@ export function OrderWizard({
                 />
               ) : null}
               {busy ? (
-                <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-canvas/55 text-center backdrop-blur-[1px]">
-                  <div className="size-8 animate-spin rounded-full border-2 border-ink/25 border-t-ink" />
-                  <p className="font-semibold text-ink">מעבד את התשלום…</p>
-                  <p className="max-w-[220px] text-[12.5px] text-ink-2">
+                <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-card/70 text-center backdrop-blur-[1px]">
+                  <div className="size-8 animate-spin rounded-full border-2 border-foreground/25 border-t-foreground" />
+                  <p className="font-semibold text-foreground">מעבד את התשלום…</p>
+                  <p className="max-w-[220px] text-[12.5px] text-foreground/70">
                     רגע אחד, לא לרענן את הדף ולא ללחוץ שוב.
                   </p>
                 </div>
               ) : null}
 
-              <dl className="divide-y divide-line">
+              <dl className="divide-y divide-border">
                 <SummaryRow label="מספר הזמנה" value={order.reference} mono />
                 <SummaryRow
                   label="דרגת נוכחות"
@@ -894,18 +902,18 @@ export function OrderWizard({
                   />
                 ) : null}
                 <div className="flex items-center justify-between py-4">
-                  <dt className="font-display text-lg font-semibold text-ink">
+                  <dt className="font-heading text-lg font-semibold text-foreground">
                     לתשלום
                   </dt>
-                  <dd className="tnum font-display text-2xl font-bold text-accent">
+                  <dd className="tnum font-heading text-2xl font-bold text-primary">
                     {formatPrice(order.priceAgorot)}
                   </dd>
                 </div>
               </dl>
 
-              <div className="mt-5 flex items-start gap-2.5 rounded-md bg-surface-2 p-3.5">
-                <ShieldCheck className="mt-0.5 size-4 shrink-0 text-accent" />
-                <p className="text-[12.5px] leading-relaxed text-ink-2">
+              <div className="mt-5 flex items-start gap-2.5 rounded-2xl bg-secondary/50 p-3.5">
+                <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" />
+                <p className="text-[12.5px] leading-relaxed text-foreground/70">
                   פרטי האשראי מוצפנים ונשלחים ישירות ל-sumit דרך טופס
                   מאובטח. הם אינם עוברים דרך השרת שלנו ואינם נשמרים אצלנו.
                 </p>
@@ -921,13 +929,13 @@ export function OrderWizard({
                     onError={(message) => toast.error(message)}
                   />
                 ) : (
-                  <p className="rounded-md border border-warn/40 bg-[color-mix(in_srgb,var(--color-warn)_10%,transparent)] p-3.5 text-[13px] leading-relaxed text-warn">
+                  <p className="rounded-2xl border border-warn/40 bg-[color-mix(in_srgb,var(--color-warn)_10%,transparent)] p-3.5 text-[13px] leading-relaxed text-warn">
                     תשלום מקוון אינו זמין כרגע. נא לפנות אלינו כדי להשלים את
                     ההזמנה — מספר ההזמנה שלכם הוא {order.reference}.
                   </p>
                 )}
               </div>
-            </div>
+            </WCard>
 
             <OrderSummary
               slot={anchorSlot}
@@ -980,7 +988,7 @@ function Stepper({
     <>
       {/* פס ההתקדמות של האשף — הביטוי המרכזי של קווי המהירות בלוגו */}
       <div
-        className="mb-4 h-[3px] overflow-hidden rounded-full bg-surface-3"
+        className="mb-4 h-[3px] overflow-hidden rounded-full bg-muted"
         role="progressbar"
         aria-valuenow={current}
         aria-valuemin={1}
@@ -993,7 +1001,9 @@ function Stepper({
         />
       </div>
 
-      <ol className="mb-8 flex flex-wrap gap-2">
+      {/* מסלול השלבים — דפוס ה-StepDot/תווית של Base44
+          (ReservationModal.jsx), עם אפשרות קפיצה חזרה לשלב שכבר בוצע */}
+      <ol className="mb-8 flex flex-wrap items-center gap-2 text-xs font-semibold text-muted-foreground">
       {STEPS.map((label, index) => {
         const number = index + 1;
         const state =
@@ -1006,42 +1016,36 @@ function Stepper({
 
         const content = (
           <>
+            <StepDot state={state} n={number} />
             <span
-              className={cn(
-                "tnum grid size-6 shrink-0 place-items-center rounded-full text-[11px] font-bold",
-                "transition-[background-color,transform] duration-200 ease-smooth",
-                state === "active" && "bg-accent text-accent-ink",
-                state === "done" && "bg-success text-white",
-                state === "todo" && "bg-line-2 text-surface",
-                clickable && "group-hover:scale-110",
-              )}
+              className={cn("truncate", state === "active" && "text-foreground")}
             >
-              {number}
+              {label}
             </span>
-            <span className="truncate">{label}</span>
           </>
         );
 
-        const itemClassName = cn(
-          "group flex flex-1 items-center gap-2 rounded-md border px-3 py-2.5 text-[13px]",
-          "transition-colors duration-200 ease-smooth",
-          state === "active" &&
-            "border-accent bg-accent-soft font-semibold text-accent-strong",
-          state === "done" && "border-line bg-surface text-ink-2",
-          state === "todo" && "border-line bg-surface text-muted",
-          clickable && "cursor-pointer hover:border-accent hover:bg-accent-soft",
-        );
-
-        return clickable ? (
-          <li key={label} className="flex-1">
-            <button type="button" onClick={() => onJump(number)} className={cn(itemClassName, "w-full")}>
-              {content}
-            </button>
-          </li>
-        ) : (
-          <li key={label} className={itemClassName}>
-            {content}
-          </li>
+        return (
+          <React.Fragment key={label}>
+            <li>
+              {clickable ? (
+                <button
+                  type="button"
+                  onClick={() => onJump(number)}
+                  className="flex items-center gap-2 rounded-full px-1 py-1 transition-colors hover:text-foreground"
+                >
+                  {content}
+                </button>
+              ) : (
+                <span className="flex items-center gap-2 px-1 py-1">
+                  {content}
+                </span>
+              )}
+            </li>
+            {index < STEPS.length - 1 ? (
+              <span className="h-px w-4 shrink-0 bg-border" aria-hidden />
+            ) : null}
+          </React.Fragment>
         );
       })}
       </ol>
@@ -1058,10 +1062,10 @@ function StepHeading({
 }) {
   return (
     <header className="mb-6">
-      <h2 className="font-display text-2xl font-semibold text-ink sm:text-3xl">
+      <h2 className="font-heading text-2xl font-extrabold text-foreground sm:text-3xl">
         {title}
       </h2>
-      <p className="mt-1.5 max-w-2xl text-[15px] leading-relaxed text-ink-2">
+      <p className="mt-1.5 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
         {subtitle}
       </p>
     </header>
@@ -1078,9 +1082,9 @@ function NavRow({
   next?: React.ReactNode;
 }) {
   return (
-    <div className="mt-7 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-5">
+    <div className="mt-7 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-5">
       {onBack ? (
-        <Button variant="quiet" onClick={onBack}>
+        <Button variant="pill-quiet" onClick={onBack}>
           <ArrowRight className="size-4" />
           {backLabel ?? "חזרה"}
         </Button>
@@ -1100,7 +1104,7 @@ function ScarcityNote({ city }: { city: CityAvailability }) {
   if (city.remaining > 5) return null;
 
   return (
-    <p className="mt-3 flex items-start gap-2 rounded-md border border-warn/40 bg-[color-mix(in_srgb,var(--color-warn)_10%,transparent)] p-3 text-[12.5px] leading-snug text-warn">
+    <p className="mt-3 flex items-start gap-2 rounded-2xl border border-warn/40 bg-[color-mix(in_srgb,var(--color-warn)_10%,transparent)] p-3 text-[12.5px] leading-snug text-warn">
       <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
       <span>
         נותרו רק{" "}
@@ -1126,35 +1130,37 @@ function OrderSummary({
   packageLabel?: string;
 }) {
   return (
-    <aside className="h-fit rounded-lg border border-line bg-surface-2 p-5 shadow-e1 lg:sticky lg:top-24">
-      <Eyebrow>ההזמנה שלכם</Eyebrow>
+    <aside className="h-fit rounded-2xl border border-border bg-secondary/40 p-5 soft-shadow lg:sticky lg:top-24">
+      <p className="text-[11.5px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+        ההזמנה שלכם
+      </p>
 
-      <p className="mt-2 font-display text-xl font-semibold text-ink">
+      <p className="mt-2 font-heading text-xl font-semibold text-foreground">
         {slot.name}
       </p>
 
       <div className="mt-3 flex flex-wrap gap-1.5">
         {/* הדרגה קודמת למידות: היא מה שקובע גם את הנוכחות בלוח וגם
             את המחירון, ולכן היא הדבר הראשון שצריך להיות מאושר. */}
-        <Badge tone={slot.tier === "ANCHOR" ? "accent" : "neutral"}>
+        <Badge tone={slot.tier === "ANCHOR" ? "primary" : "neutral"}>
           {TIER_LABELS[slot.tier]}
         </Badge>
         <Badge tone="neutral">{formatCm(slot.widthCm, slot.heightCm)}</Badge>
         <Badge tone="neutral">{slot.sku}</Badge>
-        <Badge tone="accent">{city.name}</Badge>
-        {packageLabel ? <Badge tone="accent">חבילת {packageLabel}</Badge> : null}
+        <Badge tone="primary">{city.name}</Badge>
+        {packageLabel ? <Badge tone="primary">חבילת {packageLabel}</Badge> : null}
       </div>
 
       {reference ? (
-        <p className="tnum mt-3 text-[12px] text-muted">
+        <p className="tnum mt-3 text-[12px] text-muted-foreground">
           מספר הזמנה: <span className="font-semibold">{reference}</span>
         </p>
       ) : null}
 
-      <div className="mt-4 border-t border-line pt-4">
+      <div className="mt-4 border-t border-border pt-4">
         <div className="flex items-baseline justify-between">
-          <span className="text-sm text-ink-2">סה״כ</span>
-          <span className="tnum font-display text-2xl font-bold text-accent">
+          <span className="text-sm text-foreground/70">סה״כ</span>
+          <span className="tnum font-heading text-2xl font-bold text-primary">
             {formatPrice(priceAgorot ?? slot.priceAgorot)}
           </span>
         </div>
@@ -1176,10 +1182,10 @@ function SummaryRow({
 }) {
   return (
     <div className="flex items-center justify-between gap-4 py-3">
-      <dt className="text-sm text-muted">{label}</dt>
+      <dt className="text-sm text-muted-foreground">{label}</dt>
       <dd
         className={cn(
-          "truncate text-sm font-medium text-ink",
+          "truncate text-sm font-medium text-foreground",
           mono && "tnum",
         )}
         title={value}
@@ -1214,16 +1220,16 @@ function HoldTimer({ expiresAt }: { expiresAt: string }) {
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-md border",
+        "overflow-hidden rounded-2xl border",
         urgent
           ? "border-warn/40 bg-[color-mix(in_srgb,var(--color-warn)_10%,transparent)]"
-          : "border-line bg-surface-2",
+          : "border-border bg-secondary/40",
       )}
     >
       <div
         className={cn(
           "flex items-center gap-2 px-3.5 py-2.5 text-[13px]",
-          urgent ? "text-warn" : "text-ink-2",
+          urgent ? "text-warn" : "text-foreground/80",
         )}
       >
         <Clock className="size-4 shrink-0" />
@@ -1243,7 +1249,7 @@ function HoldTimer({ expiresAt }: { expiresAt: string }) {
 
       {/* הזמן שנותר, כסימון התקדמות — לא טקסט, ולכן מותר לו
           לשאת את הגרדיאנט המלא של הלוגו */}
-      <div className="h-[3px] bg-surface-3">
+      <div className="h-[3px] bg-muted">
         <div
           className={cn(
             "h-full transition-[width] duration-1000 ease-linear",
