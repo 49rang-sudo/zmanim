@@ -822,7 +822,7 @@ export function About({ content }: { content: SiteContentData }) {
   const { about } = content.landing;
 
   return (
-    <section className="snap-section dark-zone border-b border-line-2">
+    <section className="border-y border-line bg-surface/60">
       <div className="mx-auto max-w-[1200px] px-5 py-16 lg:px-8 lg:py-20">
         <div className="grid gap-10 lg:grid-cols-[380px_1fr]">
           <SectionHead eyebrow={about.eyebrow} title={about.title} />
@@ -851,13 +851,16 @@ export function FAQ({ content }: { content: SiteContentData }) {
   const { faq } = content.landing;
 
   return (
-    <section id="faq" className="snap-section scroll-mt-20 border-b border-line-2">
+    <section id="faq" className="scroll-mt-20 border-b border-line">
       <div className="mx-auto max-w-[1200px] px-5 py-16 lg:px-8 lg:py-20">
         <SectionHead eyebrow={faq.eyebrow} title={faq.title} />
 
-        <div className="mt-10 grid gap-px border border-line-2 bg-line-2">
+        <div className="mt-10 grid gap-4">
           {content.faq.items.map((item, index) => (
-            <details key={index} className="group bg-canvas px-6 py-4">
+            <details
+              key={index}
+              className="group rounded-2xl border border-line bg-canvas px-6 py-4 soft-shadow open:border-accent/40"
+            >
               <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-display text-[16.5px] font-bold text-ink marker:content-none">
                 {item.question}
                 <ChevronDown className="size-4 shrink-0 text-muted transition-transform duration-300 ease-smooth group-open:rotate-180 group-open:text-accent" />
@@ -871,7 +874,7 @@ export function FAQ({ content }: { content: SiteContentData }) {
               {item.cta ? (
                 <a
                   href="#contact"
-                  className="mt-4 inline-flex items-center gap-2 border border-line-2 px-5 py-2.5 text-[14px] font-bold text-ink transition-colors duration-200 ease-smooth hover:bg-surface-2"
+                  className="mt-4 inline-flex items-center gap-2 rounded-full border border-line px-5 py-2.5 text-[14px] font-bold text-ink transition-colors duration-200 ease-smooth hover:bg-surface-2"
                 >
                   {item.cta}
                   <ArrowLeft className="size-3.5" />
@@ -893,7 +896,7 @@ export function FinalCta({ content }: { content: SiteContentData }) {
   const { finalCta } = content.landing;
 
   return (
-    <section className="snap-section dark-zone border-b border-line-2">
+    <section className="border-y border-line bg-surface/60">
       <div className="mx-auto max-w-[1200px] px-5 py-16 lg:px-8 lg:py-20">
         <h2 className="max-w-4xl font-display text-[2.2rem] font-extrabold leading-[1.1] tracking-tight text-ink sm:text-[2.8rem]">
           {finalCta.title}
@@ -909,7 +912,7 @@ export function FinalCta({ content }: { content: SiteContentData }) {
           className="mt-5 max-w-3xl text-lg font-medium leading-relaxed text-ink"
         />
 
-        <div className="mt-9 flex w-max max-w-full flex-wrap items-stretch border border-line-2">
+        <div className="mt-9 flex w-max max-w-full flex-wrap items-stretch gap-3">
           <OrderCta
             href="#order"
             className="brand-cta shine-cta inline-flex items-center px-7 py-4 text-base font-bold"
@@ -918,7 +921,7 @@ export function FinalCta({ content }: { content: SiteContentData }) {
           </OrderCta>
           <a
             href="#contact"
-            className="inline-flex items-center border-s border-line-2 px-6 py-4 text-base font-medium text-ink transition-colors duration-200 ease-smooth hover:bg-surface-2"
+            className="inline-flex items-center rounded-full border border-line bg-surface px-6 py-4 text-base font-medium text-ink transition-colors duration-200 ease-smooth hover:bg-surface-2"
           >
             {finalCta.secondaryCta}
           </a>
@@ -936,7 +939,7 @@ export function SiteFooter({ content }: { content: SiteContentData }) {
   const { footer } = content.landing;
 
   return (
-    <footer className="dark-zone border-t border-line-2 pb-20 lg:pb-0">
+    <footer className="bg-ink text-canvas pb-20 lg:pb-0">
       <div className="progress-fill h-[3px]" />
 
       <div className="mx-auto grid max-w-[1200px] gap-10 px-5 py-14 sm:grid-cols-[1.4fr_1fr] lg:px-8">
@@ -947,26 +950,26 @@ export function SiteFooter({ content }: { content: SiteContentData }) {
             alt={content.brand.siteName}
             className="h-16 w-auto object-contain object-right"
           />
-          <p className="mt-3 font-display text-lg font-extrabold tracking-tight text-ink">
+          <p className="mt-3 font-display text-lg font-extrabold tracking-tight text-canvas">
             {footer.tagline}
           </p>
-          <p className="mt-2.5 max-w-[38ch] text-[14.5px] leading-relaxed text-ink-2">
+          <p className="mt-2.5 max-w-[38ch] text-[14.5px] leading-relaxed text-canvas/70">
             {content.footer.note}
           </p>
         </div>
 
         <div className="grid content-start gap-2 sm:justify-items-end">
-          <span className="mono-label text-[11.5px] text-ink-2 opacity-70">
+          <span className="text-[11.5px] font-semibold text-canvas/60">
             יצירת קשר
           </span>
           <a
             dir="ltr"
             href={`mailto:${content.contact.email}`}
-            className="text-[15px] text-ink transition-colors hover:text-accent"
+            className="text-[15px] text-canvas transition-colors hover:text-accent"
           >
             {content.contact.email}
           </a>
-          <span dir="ltr" className="mono-label text-[14px] text-ink-2">
+          <span dir="ltr" className="text-[14px] text-canvas/70">
             {content.contact.phone}
           </span>
 
@@ -975,7 +978,7 @@ export function SiteFooter({ content }: { content: SiteContentData }) {
               <a
                 key={link.href}
                 href={link.href}
-                className="text-ink underline underline-offset-4 transition-colors hover:text-accent"
+                className="text-canvas underline underline-offset-4 transition-colors hover:text-accent"
               >
                 {link.label}
               </a>
@@ -986,7 +989,7 @@ export function SiteFooter({ content }: { content: SiteContentData }) {
             {footer.privacyHref ? (
               <a
                 href={footer.privacyHref}
-                className="text-ink underline underline-offset-4 transition-colors hover:text-accent"
+                className="text-canvas underline underline-offset-4 transition-colors hover:text-accent"
               >
                 {footer.privacyLabel}
               </a>
@@ -994,7 +997,7 @@ export function SiteFooter({ content }: { content: SiteContentData }) {
 
             <a
               href="#order"
-              className="text-ink underline underline-offset-4 transition-colors hover:text-accent"
+              className="text-canvas underline underline-offset-4 transition-colors hover:text-accent"
             >
               {footer.tosLabel}
             </a>
@@ -1004,15 +1007,15 @@ export function SiteFooter({ content }: { content: SiteContentData }) {
               קודם באתר צריך גם הוא דרך למצוא את הטופס */}
           <a
             href="/receipts"
-            className="mt-2 text-[14px] text-ink underline underline-offset-4 transition-colors hover:text-accent"
+            className="mt-2 text-[14px] text-canvas underline underline-offset-4 transition-colors hover:text-accent"
           >
             קניתם אצל עסק מהלוח? להעלאת קבלה להגרלה
           </a>
         </div>
       </div>
 
-      <div className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-3 border-t border-line px-5 py-5 lg:px-8">
-        <span className="mono-label text-[11.5px] text-ink-2 opacity-70">
+      <div className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-3 border-t border-canvas/15 px-5 py-5 lg:px-8">
+        <span className="text-[11.5px] font-semibold text-canvas/50">
           © 2026 {content.brand.siteName}
         </span>
       </div>
