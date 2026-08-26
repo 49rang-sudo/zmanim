@@ -66,7 +66,7 @@ function Prose({
 
 /** קו-עין דק + תווית — הדפוס החוזר של כותרות המשנה במוקאפ (לא
     הפס-גרדיאנט העגול שהיה קודם; קו ישר דק בצבע primary בלבד) */
-function SectionEyebrow({
+export function SectionEyebrow({
   text,
   className = "mb-5",
   center = false,

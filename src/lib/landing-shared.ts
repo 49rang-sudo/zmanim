@@ -1,4 +1,7 @@
 import type { PresenceTier } from "./packages";
+// ייבוא-טיפוס בלבד: נמחק בזמן קומפילציה, לא גורר את prisma
+// שמיובא בפועל בתוך availability.ts לחבילת הלקוח.
+import type { EditionAvailability } from "./availability";
 
 /* ===============================================================
    הטיפוסים והפונקציות הטהורות של עמוד הנחיתה — בלי prisma.
@@ -55,7 +58,15 @@ export type TierPriceRange = {
 
 export type LandingData = {
   cityName: string | null;
+  cityId: string | null;
   months: LandingMonth[];
+  /**
+   * אותן מהדורות בדיוק שמאחורי months, במלוא הצורה (כולל
+   * occupiedSlotIds/soldBySlotId/tiers) — זה מה שמניע את דפדוף
+   * הלוח הגדול בעמוד הנחיתה (CalendarBrowser), באותה נקודת אמת
+   * שממנה נגזר months. אותו editionId מזהה את שניהם.
+   */
+  editions: EditionAvailability[];
   /** טווח המחירים בפועל לכל דרגה — מזין את אזור המחירים (סעיף 8) */
   prices: Record<PresenceTier, TierPriceRange | null>;
   /** כל התחומים הקיימים בכל הסצנות */

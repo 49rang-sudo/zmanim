@@ -91,7 +91,7 @@ export async function getLandingData(
   ).sort((a, b) => a.localeCompare(b, "he"));
 
   if (!city) {
-    return { cityName: null, months: [], prices, allCategories };
+    return { cityName: null, cityId: null, months: [], editions: [], prices, allCategories };
   }
 
   const editions = await getOpenEditionsForCity(city.id);
@@ -135,5 +135,5 @@ export async function getLandingData(
     };
   });
 
-  return { cityName: city.name, months, prices, allCategories };
+  return { cityName: city.name, cityId: city.id, months, editions, prices, allCategories };
 }

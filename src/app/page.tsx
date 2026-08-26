@@ -21,7 +21,7 @@ import {
   WhatYouGet,
   WhyNotAnother,
 } from "@/components/landing/Landing";
-import { MonthPicker } from "@/components/landing/MonthPicker";
+import { CalendarBrowser } from "@/components/landing/CalendarBrowser";
 import { InquiryForm } from "@/components/landing/InquiryForm";
 import { InquiryPopup } from "@/components/landing/InquiryPopup";
 import { Eyebrow } from "@/components/ui/primitives";
@@ -75,7 +75,12 @@ export default async function HomePage() {
             <Hero content={settings.content} />
             <Difference content={settings.content} />
             <Showcase content={settings.content} data={landing} />
-            <MonthPicker content={settings.content} months={landing.months} />
+            <CalendarBrowser
+              content={settings.content}
+              board={board}
+              months={landing.months}
+              editions={landing.editions}
+            />
           </>
         ) : null}
 

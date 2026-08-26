@@ -278,7 +278,7 @@ export function CalendarMockup({
           תתיישר איתו. הגיליון מתרחב רק מ-xl ומעלה: מתחת לזה אין
           מספיק שוליים לחלונית הצפה (260px + מרווח) והיא הייתה
           נדחפת מחוץ למסך. */}
-      <div className="relative mx-auto w-full max-w-[620px] xl:max-w-[720px]">
+      <div className="relative mx-auto w-full max-w-[680px] xl:max-w-[820px]">
         {/* ============ חלון צף — הסכום והמעבר להזמנה ============
             top-0 מיישר אותו בול לגובה החלק העליון של הדף
             ("מקביל ללוח"), וה-end בערך calc דוחף אותו כולו החוצה,
@@ -336,12 +336,18 @@ export function CalendarMockup({
         ) : null}
 
         <div className="pb-2">
+            {/* --- סרט הדבקה — מדמה דף לוח תלוי, כמו על קיר אמיתי --- */}
+            <div
+              aria-hidden
+              className="absolute -top-3 left-1/2 z-10 h-6 w-24 -translate-x-1/2 rounded-sm bg-[color-mix(in_srgb,var(--color-paper-line-2)_70%,transparent)] shadow-e1"
+            />
+
             {/* --- גיליון הלוח — נייר אמיתי, קבוע לבן ללא קשר לערכת הנושא ---
                 אין יחס A4 קבוע: הגובה נקבע מסצנת החודש עצמה. --- */}
             <div
               className={cn(
-                "paper relative mx-auto flex w-full max-w-[620px] flex-col xl:max-w-[720px]",
-                "rounded-lg border border-[--color-paper-line] p-3 shadow-e3 sm:p-4",
+                "paper relative mx-auto flex w-full max-w-[680px] flex-col xl:max-w-[820px]",
+                "rounded-lg p-3 shadow-e3 ring-1 ring-[--color-paper-line-2]/60 sm:p-4",
               )}
               onMouseLeave={() => setHovered(null)}
             >
