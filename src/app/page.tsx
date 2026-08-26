@@ -15,6 +15,7 @@ import {
   HowToJoin,
   MobileCtaBar,
   Pricing,
+  SectionEyebrow,
   Showcase,
   SiteFooter,
   SiteHeader,
@@ -24,7 +25,6 @@ import {
 import { CalendarBrowser } from "@/components/landing/CalendarBrowser";
 import { InquiryForm } from "@/components/landing/InquiryForm";
 import { InquiryPopup } from "@/components/landing/InquiryPopup";
-import { Eyebrow } from "@/components/ui/primitives";
 
 // זמינות משתנה כל הזמן — אסור להגיש את העמוד מהמטמון
 export const dynamic = "force-dynamic";
@@ -88,13 +88,13 @@ export default async function HomePage() {
             מובילים לכאן, ואין העתק שני שלו בשום מקום. */}
         <section
           id="order"
-          className="scroll-mt-16 border-b border-line bg-canvas"
+          className="scroll-mt-16 border-b border-border bg-background"
         >
-          <div className="mx-auto max-w-[1200px] px-5 py-14 lg:px-8 sm:py-20">
+          <div className="mx-auto max-w-[120rem] px-5 py-14 lg:px-8 sm:py-20">
             {showLanding ? (
               <div className="mb-10">
-                <Eyebrow>{settings.content.landing.months.eyebrow}</Eyebrow>
-                <h2 className="mt-2 font-display text-3xl font-black tracking-tight text-ink sm:text-4xl">
+                <SectionEyebrow text={settings.content.landing.months.eyebrow} />
+                <h2 className="mt-2 font-heading text-3xl font-black tracking-tight text-foreground sm:text-4xl">
                   {settings.content.wizard.chooseTitle}
                 </h2>
               </div>
