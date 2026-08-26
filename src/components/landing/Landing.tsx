@@ -1,14 +1,19 @@
 import {
   ArrowLeft,
   Calendar,
+  Check,
   ChevronDown,
   Clock,
   Gift,
+  Handshake,
+  HelpCircle,
   Home,
   Mail,
   MapPin,
   Palette,
   Sparkles,
+  Star,
+  Upload,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -21,11 +26,20 @@ import type { SiteContentData } from "@/lib/content";
 import type { LandingData } from "@/lib/landing-shared";
 import type { Deadline } from "@/lib/hebrew-date";
 
+export { SiteHeader, MobileCtaBar } from "./SiteHeader";
+
 /* ===============================================================
-   עמוד הנחיתה של "זמנים" — הקופי כולו מגיע מ-content.landing
-   (ראו src/lib/content.ts), והמספרים כולם מגיעים מ-getLandingData.
-   אין כאן מחרוזת שיווקית קשיחה ואין מספר קשיח: מה שכתוב בעמוד
-   הוא מה שיש במסד.
+   עמוד הנחיתה של "זמנים" — פורט מבני וויזואלי מילולי מ-
+   zmanim2-base44/src/components/zmanim/*.jsx (המוקאפ שהמעצבת
+   בנתה ב-Base44): אותו JSX tree, אותם classes (בשמות הטוקנים של
+   Base44 — bg-card/text-primary/border-border וכו', ראו
+   globals.css), אותם מרווחים וטיפוגרפיה.
+
+   הקופי עצמו כבר תואם את המוקאפ מילה במילה (הושווה מול ה-JSX של
+   Base44 בזמן הפורט הזה) — הוא ממשיך להגיע מ-content.landing
+   (src/lib/content.ts), לא קשיח כאן, כי זה מה שהופך אותו לניתן
+   לעריכה מלוח הניהול. מספרים אמיתיים (מחירים, מלאי) ממשיכים
+   להגיע מ-getLandingData/AdSlot, לא מהמוקאפ.
    =============================================================== */
 
 const ICONS: Record<string, LucideIcon> = {
@@ -50,218 +64,131 @@ function Prose({
   return <p className={`whitespace-pre-line ${className}`}>{text}</p>;
 }
 
-/** כותרת אזור אחידה: תווית מונוספייס + פס גרדיאנט + כותרת */
-function SectionHead({
-  eyebrow,
-  title,
-  subtitle,
-  className = "",
+/** קו-עין דק + תווית — הדפוס החוזר של כותרות המשנה במוקאפ (לא
+    הפס-גרדיאנט העגול שהיה קודם; קו ישר דק בצבע primary בלבד) */
+function SectionEyebrow({
+  text,
+  className = "mb-5",
+  center = false,
 }: {
-  eyebrow?: string;
-  title: string;
-  subtitle?: string;
+  text: string;
   className?: string;
+  center?: boolean;
 }) {
   return (
-    <div className={className}>
-      {eyebrow ? (
-        <div className="mb-5 flex items-center gap-3.5">
-          <span className="progress-rule w-8 rounded-full" />
-          <span className="text-[12.5px] font-semibold tracking-wide text-accent">
-            {eyebrow}
-          </span>
-        </div>
-      ) : null}
-
-      <h2 className="max-w-4xl whitespace-pre-line font-display text-[2rem] font-extrabold leading-[1.1] tracking-tight text-ink sm:text-[2.4rem]">
-        {title}
-      </h2>
-
-      {subtitle ? (
-        <Prose
-          text={subtitle}
-          className="mt-4 max-w-3xl text-lg leading-relaxed text-ink-2"
-        />
-      ) : null}
+    <div className={`flex items-center gap-3 ${center ? "justify-center" : ""} ${className}`}>
+      <span className="h-px w-8 bg-primary" />
+      <span className="text-xs font-semibold tracking-wide text-primary">{text}</span>
+      {center ? <span className="h-px w-8 bg-primary" /> : null}
     </div>
   );
 }
 
 /* ===============================================================
-   1 · תפריט עליון
-
-   הערה על יעדי הכפתורים בכל הקובץ (ראו src/lib/order-focus.ts):
-   כפתור שהקופי שלו אומר *לבחור* מוביל לאשף ההזמנה (#order),
-   וכפתור שהקופי שלו אומר *לראות/לצפות/לבדוק* מוביל לתצוגה
-   המקדימה של החודשים (#months). קישורי התפריט הם ניווט מפורש
-   ונשארים קישורי עוגן רגילים.
-   =============================================================== */
-
-export function SiteHeader({ content }: { content: SiteContentData }) {
-  const { nav } = content.landing;
-
-  return (
-    <header className="glass sticky top-0 z-30 border-b border-line">
-      <div className="mx-auto flex max-w-[1200px] items-center gap-5 px-5 py-2.5 lg:px-8">
-        <a href="/" className="flex shrink-0 items-center py-1">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={content.brand.logoUrl ?? "/brand/zmanim-logo.png"}
-            alt={content.brand.siteName}
-            className="h-10 w-auto max-w-44 object-contain sm:h-12"
-          />
-        </a>
-
-        <nav className="hidden flex-1 items-center justify-center gap-6 lg:flex">
-          {nav.links.map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
-              className="text-[14px] font-medium text-ink-2 transition-colors duration-200 ease-smooth hover:text-accent"
-            >
-              {link.label}
-            </a>
-          ))}
-        </nav>
-
-        {/* "בחירת חודש ומקום" — כפתור בחירה, ולכן לאשף. הוא דביק
-            וגלוי גם באמצע ההזמנה, ואז הוא הדרך *חזרה* אליה. */}
-        <OrderCta
-          href="#order"
-          className="brand-cta shine-cta mr-auto inline-flex h-[38px] shrink-0 items-center px-5 text-[13.5px] font-bold lg:mr-0"
-        >
-          {nav.cta}
-        </OrderCta>
-      </div>
-    </header>
-  );
-}
-
-/**
- * כפתור קבוע בתחתית מסך המובייל — בקשה מפורשת בקופי (סעיף 1).
- * מוסתר במסכים גדולים, שם הכפתור בסרגל העליון ממילא תמיד גלוי.
- */
-export function MobileCtaBar({ content }: { content: SiteContentData }) {
-  return (
-    <div className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-canvas p-3 lg:hidden">
-      <OrderCta
-        href="#order"
-        className="brand-cta shine-cta flex h-12 items-center justify-center text-[15px] font-bold"
-      >
-        {content.landing.nav.mobileCta}
-      </OrderCta>
-    </div>
-  );
-}
-
-/* ===============================================================
-   2 · מסך ראשון
+   2 · מסך ראשון — פורט מ-Hero.jsx
    =============================================================== */
 
 export function Hero({ content }: { content: SiteContentData }) {
   const { hero } = content;
 
   return (
-    <section className="relative overflow-hidden border-b border-line">
-      <div className="relative mx-auto max-w-[1200px] px-5 py-14 lg:px-8 lg:py-20">
-        <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_420px]">
-          <div>
-            <div className="mb-7 flex items-center gap-4 animate-[fade-up_0.5s_var(--ease-out-soft)_both]">
-              <ClockMark className="size-14 shrink-0" />
-              <div className="flex items-center gap-3.5">
-                <span className="progress-rule w-8 rounded-full" />
-                <span className="text-[12.5px] font-semibold tracking-wide text-accent">
-                  {hero.eyebrow}
-                </span>
-              </div>
+    <section className="relative overflow-hidden pb-10 pt-10 lg:pt-14">
+      <div className="mx-auto max-w-[120rem] px-5 lg:px-8">
+        <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-14">
+          {/* טקסט */}
+          <div className="animate-[fade-up_0.6s_var(--ease-out-soft)_both]">
+            <div className="mb-6 flex items-center gap-4">
+              <span className="h-px w-8 bg-primary" />
+              <span className="text-xs font-semibold tracking-wide text-primary">
+                {hero.eyebrow}
+              </span>
+              <ClockMark className="h-14 w-14 shrink-0" />
             </div>
 
-            <h1 className="display-hero max-w-[16ch] text-ink animate-[fade-up_0.5s_var(--ease-out-soft)_60ms_both]">
+            <h1 className="text-balance font-heading text-[clamp(2.2rem,6vw,4.25rem)] font-extrabold leading-[1.05] tracking-tight text-foreground">
               {hero.title}
-              {hero.titleSecondary ? (
-                <span
-                  className="gradient-num mt-2 block text-[0.52em] leading-tight"
-                  style={{ animation: "hero-pulse 1.6s ease-in-out 0.6s infinite" }}
-                >
-                  {hero.titleSecondary}
-                </span>
-              ) : null}
             </h1>
+            {hero.titleSecondary ? (
+              <p className="mt-4 font-heading text-xl font-bold text-foreground">
+                {hero.titleSecondary}
+              </p>
+            ) : null}
 
             <Prose
               text={hero.subtitle}
-              className="mt-6 max-w-2xl text-lg leading-relaxed text-ink-2 animate-[fade-up_0.5s_var(--ease-out-soft)_130ms_both]"
+              className="mt-5 max-w-xl text-base leading-[1.7] text-muted-foreground"
             />
-
             {hero.body ? (
               <Prose
                 text={hero.body}
-                className="mt-6 max-w-2xl border-e-2 border-accent pe-4 text-lg font-medium leading-relaxed text-ink animate-[fade-up_0.5s_var(--ease-out-soft)_170ms_both]"
+                className="mt-4 max-w-xl text-base leading-[1.7] text-foreground/80"
               />
             ) : null}
 
-            <div
-              className="mt-9 flex w-full flex-wrap items-stretch gap-3 animate-[fade-up_0.5s_var(--ease-out-soft)_both]"
-              style={{ animationDelay: "200ms" }}
-            >
-              {/* שני כפתורי המסך הראשון מבטיחים *לראות* ("לראות
-                  איפה העסק שלי משתלב" / "לצפייה בחודשים ובמקומות
-                  הפנויים") — ולכן לתצוגה המקדימה, לא לאשף. */}
+            <div className="mt-8 flex flex-wrap gap-3">
               <OrderCta
                 href="#months"
-                className="brand-cta shine-cta inline-flex items-center px-7 py-4 text-base font-bold"
+                className="inline-flex h-12 items-center gap-2 rounded-full bg-primary px-6 font-bold text-primary-foreground shadow-sm transition hover:brightness-105"
               >
                 {hero.primaryCta}
+                <ArrowLeft className="h-4 w-4" />
               </OrderCta>
-
               <OrderCta
                 href="#months"
-                className="inline-flex items-center rounded-full border border-line bg-surface px-6 py-4 text-base font-medium text-ink transition-colors duration-200 ease-smooth hover:bg-surface-2"
+                className="inline-flex h-12 items-center rounded-full border border-border bg-card px-6 font-bold text-foreground transition hover:border-primary/60"
               >
                 {hero.secondaryCta}
               </OrderCta>
             </div>
 
             {hero.microcopy ? (
-              <p className="mt-4 max-w-xl text-[13.5px] leading-relaxed text-ink-2 animate-[fade-up_0.5s_var(--ease-out-soft)_260ms_both]">
-                {hero.microcopy}
-              </p>
+              <p className="mt-4 text-xs text-muted-foreground">{hero.microcopy}</p>
             ) : null}
           </div>
 
-          <div className="flex items-start justify-center lg:justify-end">
-            <div className="w-full max-w-[420px] animate-[fade-up_0.7s_var(--ease-out-soft)_180ms_both] overflow-hidden rounded-3xl soft-shadow">
+          {/* תמונה */}
+          <div className="relative animate-[fade-up_0.7s_var(--ease-out-soft)_120ms_both]">
+            <div className="relative aspect-[4/3] overflow-hidden rounded-3xl soft-shadow lg:aspect-[5/4]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/brand/hero-kitchen.png"
                 alt="לוח זמנים תלוי במטבח"
-                className="aspect-[4/3] h-auto w-full object-cover"
+                className="h-full w-full object-cover"
               />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/25 to-transparent" />
+            </div>
+            <div className="absolute -bottom-4 right-6 rounded-2xl border border-border bg-card px-5 py-3 soft-shadow lg:right-10">
+              <div className="text-xs text-muted-foreground">הפרסום הנכון</div>
+              <div className="font-heading text-lg font-extrabold brand-gradient-text">
+                בזמן הנכון
+              </div>
             </div>
           </div>
         </div>
 
-        {/* --- פס הנתונים מתחת למסך הראשון --- */}
+        {/* פס הנתונים */}
         {hero.stats.length > 0 ? (
-          <dl className="relative mt-12 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-line bg-line soft-shadow lg:grid-cols-4">
+          <div className="mt-14 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-border bg-border soft-shadow lg:grid-cols-4">
             {hero.stats.map((stat, index) => {
               const Icon = ICONS[stat.icon] ?? Sparkles;
               return (
-                <div key={index} className="bg-canvas px-4 py-6">
-                  <span className="mb-2.5 grid size-11 place-items-center rounded-full bg-surface-2">
-                    <Icon className="size-5 text-accent" strokeWidth={1.75} />
-                  </span>
-                  <dd className="font-display text-[17px] font-extrabold leading-tight text-ink">
-                    <CountUpStat value={stat.value} />
-                    {stat.unit ? ` ${stat.unit}` : ""}
-                  </dd>
-                  <dt className="mt-1 text-[13.5px] leading-snug text-ink-2">
-                    {stat.label}
-                  </dt>
+                <div key={index} className="flex items-center gap-4 bg-card p-5">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-secondary">
+                    <Icon className="h-5 w-5 text-primary" strokeWidth={1.75} />
+                  </div>
+                  <div>
+                    <div className="font-heading text-lg font-extrabold leading-tight">
+                      <CountUpStat value={stat.value} />
+                      {stat.unit ? ` ${stat.unit}` : ""}
+                    </div>
+                    <div className="mt-0.5 text-xs leading-tight text-muted-foreground">
+                      {stat.label}
+                    </div>
+                  </div>
                 </div>
               );
             })}
-          </dl>
+          </div>
         ) : null}
       </div>
     </section>
@@ -269,48 +196,51 @@ export function Hero({ content }: { content: SiteContentData }) {
 }
 
 /* ===============================================================
-   3 · אז מה בעצם שונה כאן?
+   3 · אז מה בעצם שונה כאן? — פורט מ-Difference.jsx
    =============================================================== */
 
 export function Difference({ content }: { content: SiteContentData }) {
   const { difference } = content.landing;
 
   return (
-    <section className="border-b border-line">
-      <div className="mx-auto max-w-[1200px] px-5 py-16 lg:px-8 lg:py-20">
-        <SectionHead
-          eyebrow={difference.eyebrow}
-          title={`${difference.title}\n${difference.subtitle}`}
-        />
-
-        <div className="mt-10 grid gap-5 sm:grid-cols-3">
-          {difference.examples.map((example, index) => (
-            <div
-              key={index}
-              className="rounded-2xl border border-line bg-surface p-6 soft-shadow"
-            >
-              <span className="text-[12px] font-semibold text-accent">
-                {String(index + 1).padStart(2, "0")}
-              </span>
-              <p className="mt-3 text-[15.5px] leading-relaxed text-ink">
-                {example}
-              </p>
-            </div>
-          ))}
+    <section id="how" className="py-20 lg:py-28">
+      <div className="mx-auto max-w-[120rem] px-5 lg:px-8">
+        <div className="max-w-3xl">
+          <SectionEyebrow text={difference.eyebrow} />
+          <h2 className="text-balance font-heading text-[clamp(1.9rem,4.5vw,3.25rem)] font-extrabold leading-[1.1] tracking-tight text-foreground">
+            {difference.title}
+            <br />
+            <span className="brand-gradient-text">{difference.subtitle}</span>
+          </h2>
         </div>
 
-        <div className="mt-10 grid max-w-4xl gap-5">
-          {difference.paragraphs.map((paragraph, index) => (
-            <Prose
-              key={index}
-              text={paragraph}
-              className={
-                index === 0
-                  ? "font-display text-xl font-extrabold tracking-tight text-ink"
-                  : "text-[16.5px] leading-relaxed text-ink-2"
-              }
-            />
-          ))}
+        <div className="mt-10 grid items-start gap-8 lg:grid-cols-2 lg:gap-12">
+          <div className="space-y-4 text-base leading-[1.8] text-foreground/85">
+            {difference.examples.map((example, index) => (
+              <p key={index}>{example}</p>
+            ))}
+            {difference.paragraphs[0] ? (
+              <p className="font-semibold text-foreground">{difference.paragraphs[0]}</p>
+            ) : null}
+          </div>
+
+          <div className="rounded-2xl border border-border bg-card p-7 soft-shadow">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary">
+                <Clock className="h-5 w-5 text-primary" />
+              </div>
+              <h3 className="font-heading text-lg font-bold">
+                במקום קוביות פרסום משעממות
+              </h3>
+            </div>
+            {difference.paragraphs.slice(1).map((paragraph, index) => (
+              <Prose
+                key={index}
+                text={paragraph}
+                className="mt-4 text-base leading-[1.8] text-foreground/80 first:mt-0"
+              />
+            ))}
+          </div>
         </div>
       </div>
     </section>
@@ -318,12 +248,11 @@ export function Difference({ content }: { content: SiteContentData }) {
 }
 
 /* ===============================================================
-   4 · המחשה ויזואלית — ההדמיות של החודשים
+   4 · המחשה ויזואלית — פורט מ-ConceptShowcase.jsx
 
    ההדמיות עצמן הן הסצנות האמיתיות מהמסד. הקופי מספק את הטקסט
    לכל פריט, והשדות monthLabel/conceptTitle שנשארו ריקים נמלאים
-   מהחודש והסצנה האמיתיים שבאותו מיקום — כך ההדמיה בעמוד השיווקי
-   ובבורר לעולם לא מציגות שני קונספטים שונים לאותו חודש.
+   מהחודש והסצנה האמיתיים שבאותו מיקום.
    =============================================================== */
 
 export function Showcase({
@@ -337,72 +266,80 @@ export function Showcase({
   if (showcase.items.length === 0) return null;
 
   return (
-    <section className="border-y border-line bg-surface/60">
-      <div className="mx-auto max-w-[1200px] px-5 py-16 lg:px-8 lg:py-20">
-        <SectionHead title={`${showcase.title}\n${showcase.subtitle}`} />
+    <section id="concepts" className="border-y border-border bg-card/60 py-20 lg:py-28">
+      <div className="mx-auto max-w-[120rem] px-5 lg:px-8">
+        <div className="mb-12 max-w-2xl">
+          <SectionEyebrow text="המחשה ויזואלית" />
+          <h2 className="text-balance font-heading text-[clamp(1.9rem,4.5vw,3.25rem)] font-extrabold leading-[1.1] tracking-tight text-foreground">
+            {showcase.title}
+            <br />
+            {showcase.subtitle}
+          </h2>
+        </div>
 
-        <div className="mt-10 grid gap-6 lg:grid-cols-3">
+        <div className="space-y-8">
           {showcase.items.map((item, index) => {
             const month = data.months[index];
             const monthLabel = item.monthLabel || month?.hebrewLabel || "";
             const conceptTitle = item.conceptTitle || month?.conceptTitle || "";
+            const tag = monthLabel
+              ? monthLabel.startsWith("חודש")
+                ? monthLabel
+                : `חודש ${monthLabel}`
+              : null;
 
             return (
-              <figure
+              <div
                 key={index}
-                className="flex flex-col overflow-hidden rounded-2xl border border-line bg-canvas soft-shadow"
+                className={`grid items-center gap-6 lg:grid-cols-2 lg:gap-10 ${
+                  index % 2 === 1 ? "lg:[&>*:first-child]:order-2" : ""
+                }`}
               >
-                {month?.imageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={month.imageUrl}
-                    alt={`הדמיית הקונספט: ${conceptTitle}`}
-                    className="w-full object-cover"
-                    style={{ aspectRatio: String(month.aspectRatio) }}
-                  />
-                ) : (
-                  <div
-                    className="w-full bg-surface-2"
-                    style={{ aspectRatio: "1.5" }}
-                    aria-hidden
-                  />
-                )}
-
-                <figcaption className="flex flex-1 flex-col p-6">
-                  {monthLabel ? (
-                    <span className="text-[12px] font-semibold text-accent">
-                      {monthLabel.startsWith("חודש")
-                        ? monthLabel
-                        : `חודש ${monthLabel}`}
-                    </span>
+                <div className="relative aspect-[16/10] overflow-hidden rounded-3xl soft-shadow">
+                  {month?.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={month.imageUrl}
+                      alt={`הדמיית הקונספט: ${conceptTitle}`}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="h-full w-full bg-secondary" aria-hidden />
+                  )}
+                  {tag ? (
+                    <div className="absolute right-4 top-4 rounded-full bg-background/85 px-4 py-1.5 text-xs font-semibold backdrop-blur-sm">
+                      {tag}
+                    </div>
                   ) : null}
-
+                </div>
+                <div>
                   {conceptTitle ? (
-                    <h3 className="mt-2 font-display text-xl font-extrabold tracking-tight text-ink">
+                    <h3 className="font-heading text-2xl font-extrabold tracking-tight lg:text-3xl">
                       {conceptTitle}
                     </h3>
                   ) : null}
-
-                  <p className="mt-2.5 text-[15px] leading-relaxed text-ink-2">
+                  <p className="mt-4 text-base leading-[1.8] text-foreground/80 lg:text-lg">
                     {item.text}
                   </p>
-                </figcaption>
-              </figure>
+                </div>
+              </div>
             );
           })}
         </div>
 
-        <Prose
-          text={showcase.closing}
-          className="mt-10 max-w-3xl border-e-2 border-accent pe-5 font-display text-xl font-extrabold leading-snug tracking-tight text-ink"
-        />
+        <div className="mt-12 max-w-3xl">
+          <Prose
+            text={showcase.closing}
+            className="text-balance font-heading text-lg font-bold leading-[1.6] lg:text-xl"
+          />
+        </div>
       </div>
     </section>
   );
 }
 
 /* ===============================================================
-   6 · למה זה לא עוד מקום פרסום
+   6 · למה זה לא עוד מקום פרסום — פורט מ-WhyNot.jsx
    =============================================================== */
 
 export function WhyNotAnother({ content }: { content: SiteContentData }) {
@@ -410,38 +347,29 @@ export function WhyNotAnother({ content }: { content: SiteContentData }) {
   const { whyNotAnother } = content.landing;
 
   return (
-    <section className="border-y border-line bg-surface/60">
-      <div className="mx-auto max-w-[1200px] px-5 py-16 lg:px-8 lg:py-20">
-        <SectionHead eyebrow={whyNotAnother.eyebrow} title={whyNotAnother.title} />
+    <section id="why" className="border-y border-border bg-card/60 py-20 lg:py-28">
+      <div className="mx-auto max-w-[120rem] px-5 lg:px-8">
+        <div className="mb-12 max-w-2xl">
+          <SectionEyebrow text={whyNotAnother.eyebrow} />
+          <h2 className="text-balance font-heading text-[clamp(1.8rem,4vw,3rem)] font-extrabold leading-[1.15] tracking-tight text-foreground">
+            {whyNotAnother.title}
+          </h2>
+        </div>
 
-        <div className="mt-10 grid gap-5 sm:grid-cols-2">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {content.highlights.map((item, index) => {
             const Icon = ICONS[item.icon] ?? Sparkles;
             return (
-              <article
-                key={index}
-                className="group rounded-2xl border border-line bg-canvas p-7 soft-shadow"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-[12px] font-semibold text-accent">
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
-                  <span className="grid size-11 place-items-center rounded-full bg-surface-2">
-                    <Icon
-                      className="size-5 text-muted transition-colors duration-300 ease-smooth group-hover:text-accent"
-                      strokeWidth={1.75}
-                    />
-                  </span>
+              <div key={index} className="rounded-2xl border border-border bg-background p-6">
+                <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-full bg-secondary">
+                  <Icon className="h-5 w-5 text-primary" strokeWidth={1.75} />
                 </div>
-
-                <h3 className="mt-5 font-display text-xl font-extrabold tracking-tight text-ink">
-                  {item.title}
-                </h3>
+                <h3 className="mb-3 font-heading text-lg font-bold">{item.title}</h3>
                 <Prose
                   text={item.text}
-                  className="mt-2.5 text-[15px] leading-relaxed text-ink-2"
+                  className="text-sm leading-[1.7] text-muted-foreground"
                 />
-              </article>
+              </div>
             );
           })}
         </div>
@@ -451,45 +379,49 @@ export function WhyNotAnother({ content }: { content: SiteContentData }) {
 }
 
 /* ===============================================================
-   7 · מה מקבלים בפועל?
+   7 · מה מקבלים בפועל? — פורט מ-WhatYouGet.jsx
    =============================================================== */
 
 export function WhatYouGet({ content }: { content: SiteContentData }) {
   const { whatYouGet } = content.landing;
 
   return (
-    <section id="what-you-get" className="scroll-mt-20 border-b border-line">
-      <div className="mx-auto max-w-[1200px] px-5 py-16 lg:px-8 lg:py-20">
-        <SectionHead eyebrow={whatYouGet.eyebrow} title={whatYouGet.title} />
+    <section id="what-you-get" className="scroll-mt-20 py-20 lg:py-28">
+      <div className="mx-auto max-w-[120rem] px-5 lg:px-8">
+        <div className="mb-12 max-w-2xl">
+          <SectionEyebrow text={whatYouGet.eyebrow} />
+          <h2 className="text-balance font-heading text-[clamp(1.9rem,4.5vw,3.25rem)] font-extrabold leading-[1.1] tracking-tight text-foreground">
+            {whatYouGet.title}
+          </h2>
+        </div>
 
-        <div className="mt-10 grid gap-10 lg:grid-cols-[1fr_360px]">
-          <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line soft-shadow">
-            {whatYouGet.items.map((item, index) => (
-              <li
-                key={index}
-                className="flex items-start gap-3.5 bg-canvas px-6 py-4"
-              >
-                <span className="mt-0.5 shrink-0 text-[12px] font-semibold text-accent">
-                  {String(index + 1).padStart(2, "0")}
-                </span>
-                <span className="text-[15.5px] leading-relaxed text-ink">
-                  {item}
-                </span>
-              </li>
-            ))}
-          </ul>
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div className="rounded-2xl border border-border bg-card p-7 soft-shadow">
+            <h3 className="mb-5 font-heading text-xl font-bold">מה שאתם מקבלים</h3>
+            <ul className="space-y-3">
+              {whatYouGet.items.map((item, index) => (
+                <li key={index} className="flex items-start gap-3 text-sm leading-relaxed">
+                  <Check className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
 
-          <aside className="h-max rounded-2xl border border-line bg-surface-2 p-7">
-            <h3 className="font-display text-xl font-extrabold tracking-tight text-ink">
-              {whatYouGet.bringTitle}
-            </h3>
-            <p className="mt-3 text-[15.5px] leading-relaxed text-ink-2">
+          <div className="rounded-2xl border border-border bg-secondary/60 p-7">
+            <div className="mb-5 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-background">
+                <Upload className="h-5 w-5 text-primary" />
+              </div>
+              <h3 className="font-heading text-xl font-bold">{whatYouGet.bringTitle}</h3>
+            </div>
+            <p className="mb-5 text-sm leading-[1.7] text-foreground/80">
               {whatYouGet.bringText}
             </p>
-            <p className="mt-4 border-t border-line pt-4 text-[15px] font-semibold leading-relaxed text-ink">
+            <p className="text-sm font-semibold leading-relaxed text-foreground">
               {whatYouGet.bringNote}
             </p>
-          </aside>
+          </div>
         </div>
       </div>
     </section>
@@ -497,15 +429,13 @@ export function WhatYouGet({ content }: { content: SiteContentData }) {
 }
 
 /* ===============================================================
-   8 · מחיר ואפשרויות נוכחות
+   8 · מחיר ואפשרויות נוכחות — פורט מ-Pricing.jsx
 
    שני המחירים היחידים המלאים בעמוד. הם *לא* מגיעים מהקופי אלא
    מ-AdSlot.priceAgorot במסד — אותו מספר בדיוק שייגבה בקופה.
    =============================================================== */
 
-function tierPriceLabel(
-  range: { min: number; max: number } | null,
-): string | null {
+function tierPriceLabel(range: { min: number; max: number } | null): string | null {
   if (!range) return null;
   return range.min === range.max
     ? formatPrice(range.min)
@@ -528,6 +458,7 @@ export function Pricing({
       range: data.prices.ANCHOR,
       rows: pricing.multi.anchorRows,
       rowsTitle: pricing.multi.anchorTitle,
+      badge: "במה רחבה",
     },
     {
       key: "COMPLEMENTARY" as const,
@@ -535,137 +466,121 @@ export function Pricing({
       range: data.prices.COMPLEMENTARY,
       rows: pricing.multi.complementaryRows,
       rowsTitle: pricing.multi.complementaryTitle,
+      badge: "במה ממוקדת",
     },
   ];
 
   return (
-    <section id="pricing" className="scroll-mt-20 border-y border-line bg-surface/60">
-      <div className="mx-auto max-w-[1200px] px-5 py-16 lg:px-8 lg:py-20">
-        <SectionHead
-          eyebrow={pricing.eyebrow}
-          title={pricing.title}
-          subtitle={pricing.intro}
-        />
+    <section id="pricing" className="scroll-mt-20 border-y border-border bg-card/60 py-20 lg:py-28">
+      <div className="mx-auto max-w-[120rem] px-5 lg:px-8">
+        <div className="mb-12 max-w-2xl">
+          <SectionEyebrow text={pricing.eyebrow} />
+          <h2 className="text-balance font-heading text-[clamp(1.9rem,4.5vw,3.25rem)] font-extrabold leading-[1.1] tracking-tight text-foreground">
+            {pricing.title}
+          </h2>
+          <p className="mt-4 text-base leading-[1.7] text-muted-foreground">{pricing.intro}</p>
+        </div>
 
-        <div className="mt-10 grid gap-6 lg:grid-cols-2">
-          {tiers.map(({ key, copy, range }) => {
+        <div className="mb-10 grid gap-6 lg:grid-cols-2">
+          {tiers.map(({ key, copy, range, badge }) => {
             const price = tierPriceLabel(range);
             const isAnchor = key === "ANCHOR";
             return (
-              <article
+              <div
                 key={key}
                 className={
                   isAnchor
-                    ? "flex flex-col rounded-2xl border-2 border-accent/40 bg-canvas p-7 soft-shadow"
-                    : "flex flex-col rounded-2xl border border-line bg-canvas p-7 soft-shadow"
+                    ? "relative rounded-2xl border-2 border-primary/40 bg-background p-7 soft-shadow"
+                    : "relative rounded-2xl border border-border bg-background p-7 soft-shadow"
                 }
               >
-                <div className="flex items-center gap-2.5">
-                  <span
-                    className={
-                      isAnchor
-                        ? "rounded-full bg-ink px-2.5 py-1 text-[11px] font-semibold text-canvas"
-                        : "rounded-full border border-line px-2.5 py-1 text-[11px] font-semibold text-ink"
-                    }
-                  >
-                    {TIER_LABELS[key]}
-                  </span>
-                  <h3 className="font-display text-xl font-extrabold tracking-tight text-ink">
-                    {copy.name}
-                  </h3>
-                </div>
+                <span
+                  className={
+                    isAnchor
+                      ? "absolute left-5 top-5 inline-flex items-center gap-1 rounded-full bg-secondary px-3 py-1 text-xs font-bold text-primary"
+                      : "absolute left-5 top-5 inline-flex items-center gap-1 rounded-full bg-muted px-3 py-1 text-xs font-bold text-foreground/70"
+                  }
+                >
+                  {isAnchor ? <Star className="h-3.5 w-3.5" /> : null}
+                  {badge}
+                </span>
 
-                <p className="mt-4 flex-1 text-[15.5px] leading-relaxed text-ink-2">
-                  {copy.text}
-                </p>
-
-                {price ? (
-                  <p className="mt-6 flex items-baseline gap-2.5 border-t border-line pt-5">
-                    <span className="text-[12px] font-semibold text-ink-2">
-                      {pricing.priceLabel}
-                    </span>
-                    <span className="tnum font-display text-3xl font-black leading-none text-ink">
-                      {price}
-                    </span>
-                  </p>
-                ) : null}
-
+                <h3 className="mb-2 font-heading text-2xl font-extrabold">{copy.name}</h3>
+                <p className="mb-5 text-sm leading-[1.7] text-muted-foreground">{copy.text}</p>
                 {copy.includes ? (
-                  <p className="mt-3 text-[14px] leading-relaxed text-ink-2">
+                  <p className="mb-5 text-sm leading-[1.7] text-muted-foreground">
                     {copy.includes}
                   </p>
                 ) : null}
 
-                {/* "לבחירת חודש ונוכחות עוגן/משלימה" — כפתור
-                    בחירה, ולכן לאשף, ועם הדרגה שהוא הבטיח. זה
-                    בדיוק הכפתור שהלקוחה לחצה כשרצתה להגדיל
-                    חשיפה, וקודם הוא זרק אותה כלפי מעלה. */}
+                {price ? (
+                  <div className="mb-5 flex items-baseline gap-2">
+                    <span className="font-mono-nums text-4xl font-extrabold tnum">{price}</span>
+                    <span className="text-sm text-muted-foreground">{pricing.priceLabel}</span>
+                  </div>
+                ) : null}
+
                 <OrderCta
                   href="#order"
                   tier={key}
-                  className="brand-cta shine-cta mt-6 inline-flex items-center justify-center px-6 py-3.5 text-[15px] font-bold"
+                  className={
+                    isAnchor
+                      ? "inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-primary font-bold text-primary-foreground shadow-sm transition hover:brightness-105"
+                      : "inline-flex h-12 w-full items-center justify-center gap-2 rounded-full border-2 border-primary font-bold text-primary transition hover:bg-primary hover:text-primary-foreground"
+                  }
                 >
                   {copy.cta}
+                  <ArrowLeft className="h-4 w-4" />
                 </OrderCta>
-              </article>
+              </div>
             );
           })}
         </div>
 
-        <Prose
-          text={pricing.bothNote}
-          className="mt-6 max-w-4xl border-e-2 border-accent pe-4 text-[15px] leading-relaxed text-ink"
-        />
+        <p className="mb-10 rounded-xl border border-border bg-background p-4 text-sm leading-relaxed text-muted-foreground">
+          {pricing.bothNote}
+        </p>
 
         {/* --- תמחור למספר חודשים --- */}
-        <div className="mt-12 rounded-2xl border border-line bg-surface p-7 soft-shadow lg:p-9">
-          <h3 className="font-display text-2xl font-extrabold tracking-tight text-ink">
-            {pricing.multi.title}
-          </h3>
-          <p className="mt-2.5 max-w-2xl text-[15.5px] leading-relaxed text-ink-2">
-            {pricing.multi.text}
-          </p>
+        <h3 className="font-heading text-2xl font-extrabold tracking-tight text-foreground">
+          {pricing.multi.title}
+        </h3>
+        <p className="mt-2.5 max-w-2xl text-base leading-[1.7] text-muted-foreground">
+          {pricing.multi.text}
+        </p>
 
-          <p className="mt-7 text-[12px] font-semibold text-ink-2">
-            {pricing.multi.tableTitle}
-          </p>
+        <div className="mt-7 grid gap-6 lg:grid-cols-2">
+          {tiers.map(({ key, rows, rowsTitle }) => (
+            <div key={key} className="overflow-hidden rounded-2xl border border-border bg-background">
+              <div className="bg-secondary/60 px-5 py-3 font-heading font-bold">{rowsTitle}</div>
+              <ul>
+                {rows.map((row, index) => (
+                  <li
+                    key={index}
+                    className={`px-5 py-4 text-sm leading-relaxed ${
+                      index !== rows.length - 1 ? "border-b border-border" : ""
+                    }`}
+                  >
+                    {row}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
 
-          <div className="mt-4 grid divide-y divide-line overflow-hidden rounded-2xl border border-line sm:grid-cols-2 sm:divide-x sm:divide-y-0 sm:divide-x-reverse">
-            {tiers.map(({ key, rows, rowsTitle }) => (
-              <div key={key} className="bg-canvas p-6">
-                <h4 className="font-display text-lg font-extrabold tracking-tight text-ink">
-                  {rowsTitle}
-                </h4>
-                <ul className="mt-3 grid gap-2.5">
-                  {rows.map((row, index) => (
-                    <li
-                      key={index}
-                      className="flex items-start gap-2.5 text-[15px] leading-relaxed text-ink-2"
-                    >
-                      <span
-                        className="mt-2 size-1.5 shrink-0 rounded-full bg-accent"
-                        aria-hidden
-                      />
-                      {row}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-
-          {/* "לבדיקת חודשים נוספים" — כפתור בדיקה, ולכן לתצוגה
-              המקדימה שבה רואים את כל החודשים זה לצד זה. */}
+        <div className="mt-10 flex flex-col items-center justify-between gap-5 rounded-2xl border border-border bg-background p-6 sm:flex-row">
+          <p className="font-heading text-lg font-bold">רוצים להופיע ביותר מחודש אחד?</p>
           <OrderCta
             href="#months"
-            className="mt-7 inline-flex items-center gap-2 rounded-full border border-line bg-surface px-6 py-3.5 text-[15px] font-bold text-ink transition-colors duration-200 ease-smooth hover:bg-surface-2"
+            className="inline-flex h-11 items-center gap-2 rounded-full bg-primary px-6 font-bold text-primary-foreground shadow-sm transition hover:brightness-105"
           >
             {pricing.multi.cta}
-            <ArrowLeft className="size-4" />
+            <ArrowLeft className="h-4 w-4" />
           </OrderCta>
         </div>
 
-        <p className="mt-6 max-w-4xl text-[13.5px] leading-relaxed text-ink-2">
+        <p className="mt-5 max-w-2xl text-xs leading-relaxed text-muted-foreground">
           {pricing.microcopy}
         </p>
       </div>
@@ -674,26 +589,44 @@ export function Pricing({
 }
 
 /* ===============================================================
-   9 · ההטבה שעובדת לשני הצדדים
+   9 · ההטבה שעובדת לשני הצדדים — פורט מ-Benefit.jsx
    =============================================================== */
 
 export function Benefit({ content }: { content: SiteContentData }) {
   const { benefit } = content.landing;
 
   return (
-    <section className="border-b border-line">
-      <div className="mx-auto max-w-[1200px] px-5 py-16 lg:px-8 lg:py-20">
-        <div className="grid gap-10 lg:grid-cols-[1fr_1fr]">
-          <SectionHead eyebrow={benefit.eyebrow} title={benefit.title} />
-
-          <div className="grid content-start gap-5 self-end">
-            {benefit.body.map((paragraph, index) => (
-              <Prose
-                key={index}
-                text={paragraph}
-                className="text-[16.5px] leading-relaxed text-ink-2"
-              />
-            ))}
+    <section id="benefit" className="py-20 lg:py-28">
+      <div className="mx-auto max-w-[120rem] px-5 lg:px-8">
+        <div className="relative overflow-hidden rounded-3xl bg-foreground p-8 text-background lg:p-14">
+          <div className="brand-gradient absolute -left-16 -top-16 h-64 w-64 rounded-full opacity-20 blur-3xl" />
+          <div className="relative grid items-center gap-8 lg:grid-cols-2">
+            <div>
+              <div className="mb-5 flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-background/15">
+                  <Handshake className="h-5 w-5 text-primary" />
+                </div>
+                <span className="text-xs font-semibold tracking-wide text-primary">
+                  {benefit.eyebrow}
+                </span>
+              </div>
+              <h2 className="text-balance font-heading text-[clamp(1.8rem,4vw,3rem)] font-extrabold leading-[1.1] tracking-tight">
+                {benefit.title}
+              </h2>
+            </div>
+            <div className="space-y-4 text-base leading-[1.8] text-background/80">
+              {benefit.body.map((paragraph, index) => (
+                <Prose
+                  key={index}
+                  text={paragraph}
+                  className={
+                    index === benefit.body.length - 1
+                      ? "font-heading font-bold text-background"
+                      : undefined
+                  }
+                />
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -702,7 +635,7 @@ export function Benefit({ content }: { content: SiteContentData }) {
 }
 
 /* ===============================================================
-   10 · איך מצטרפים?
+   10 · איך מצטרפים? — פורט מ-Steps.jsx
    =============================================================== */
 
 export function HowToJoin({ content }: { content: SiteContentData }) {
@@ -710,45 +643,38 @@ export function HowToJoin({ content }: { content: SiteContentData }) {
   const { howToJoin } = content.landing;
 
   return (
-    <section id="how" className="scroll-mt-20 border-y border-line bg-surface/60">
-      <div className="mx-auto max-w-[1200px] px-5 py-16 lg:px-8 lg:py-20">
-        <SectionHead eyebrow={howToJoin.eyebrow} title={howToJoin.title} />
+    <section id="steps" className="border-y border-border bg-card/60 py-20 lg:py-28">
+      <div className="mx-auto max-w-[120rem] px-5 lg:px-8">
+        <div className="mb-12 max-w-2xl">
+          <SectionEyebrow text={howToJoin.eyebrow} />
+          <h2 className="text-balance font-heading text-[clamp(1.9rem,4.5vw,3.25rem)] font-extrabold leading-[1.1] tracking-tight text-foreground">
+            {howToJoin.title}
+          </h2>
+        </div>
 
-        <ol className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
           {content.howItWorks.map((step, index) => (
-            <li
-              key={index}
-              className="rounded-2xl border border-line bg-canvas p-6 soft-shadow"
-            >
-              <span
-                className="grid size-11 place-items-center rounded-full text-sm font-black text-white"
-                style={{
-                  backgroundImage:
-                    "linear-gradient(135deg, var(--color-brand-pink), var(--color-brand-purple))",
-                }}
-              >
+            <div key={index} className="relative rounded-2xl border border-border bg-background p-6">
+              <div className="brand-gradient mb-4 flex h-11 w-11 items-center justify-center rounded-full font-heading text-lg font-extrabold text-white">
                 {String(index + 1).padStart(2, "0")}
-              </span>
-              <h3 className="mt-4 font-display text-lg font-extrabold tracking-tight text-ink">
+              </div>
+              <h3 className="mb-2 font-heading text-base font-bold leading-tight">
                 {step.title}
               </h3>
-              <p className="mt-1.5 text-[15px] leading-relaxed text-ink-2">
-                {step.text}
-              </p>
-            </li>
+              <p className="text-sm leading-[1.65] text-muted-foreground">{step.text}</p>
+            </div>
           ))}
-        </ol>
+        </div>
 
-        <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">
+        <div className="mt-10 flex flex-col items-center gap-5 sm:flex-row">
           <OrderCta
             href="#order"
-            className="brand-cta shine-cta inline-flex items-center px-7 py-4 text-base font-bold"
+            className="inline-flex h-12 items-center gap-2 rounded-full bg-primary px-7 font-bold text-primary-foreground shadow-sm transition hover:brightness-105"
           >
             {howToJoin.cta}
+            <ArrowLeft className="h-4 w-4" />
           </OrderCta>
-          <p className="max-w-md text-[13.5px] leading-relaxed text-ink-2">
-            {howToJoin.microcopy}
-          </p>
+          <p className="text-xs text-muted-foreground">{howToJoin.microcopy}</p>
         </div>
       </div>
     </section>
@@ -756,11 +682,10 @@ export function HowToJoin({ content }: { content: SiteContentData }) {
 }
 
 /* ===============================================================
-   11 · בונוס למצטרפים הראשונים
+   11 · בונוס למצטרפים הראשונים — פורט מ-Bonus.jsx
 
    האזור נעלם מה-HTML עצמו ברגע שהמועד חלף — ההכרעה נעשית בשרת
-   מול לוח השנה העברי האמיתי (resolveHebrewDeadline), ולא בהסתרה
-   ויזואלית בדפדפן.
+   מול לוח השנה העברי האמיתי (resolveHebrewDeadline).
    =============================================================== */
 
 export function EarlyBird({
@@ -774,40 +699,40 @@ export function EarlyBird({
   if (!deadline?.active) return null;
 
   return (
-    <section className="border-b border-line">
-      <div className="mx-auto max-w-[1200px] px-5 py-14 lg:px-8">
-        <div className="grid gap-7 rounded-3xl border-2 border-accent/40 bg-canvas p-7 soft-shadow lg:grid-cols-[1fr_auto] lg:items-center lg:p-14">
-          <div>
-            <div className="mb-4 flex items-center gap-3">
-              <span className="grid size-9 shrink-0 place-items-center rounded-full bg-surface-2">
-                <Gift className="size-4.5 text-accent" strokeWidth={1.75} />
-              </span>
-              <span className="text-[12.5px] font-semibold tracking-wide text-accent">
-                {earlyBird.eyebrow}
-              </span>
+    <section id="bonus" className="py-20 lg:py-28">
+      <div className="mx-auto max-w-[120rem] px-5 lg:px-8">
+        <div className="relative overflow-hidden rounded-3xl border-2 border-primary/40 bg-card p-8 soft-shadow lg:p-14">
+          <div className="brand-gradient absolute -right-20 -top-20 h-72 w-72 rounded-full opacity-10 blur-3xl" />
+          <div className="relative grid items-center gap-8 lg:grid-cols-[1fr_auto]">
+            <div>
+              <div className="mb-5 flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-secondary">
+                  <Gift className="h-5 w-5 text-primary" />
+                </div>
+                <span className="text-xs font-semibold tracking-wide text-primary">
+                  {earlyBird.eyebrow}
+                </span>
+              </div>
+              <h2 className="text-balance font-heading text-[clamp(1.8rem,4vw,3rem)] font-extrabold leading-[1.1] tracking-tight text-foreground">
+                {earlyBird.title}
+              </h2>
+              <Prose
+                text={earlyBird.body}
+                className="mt-4 max-w-xl text-base leading-[1.7] text-muted-foreground"
+              />
+              {/* התאריך הלועזי לצד העברי — הקהל מנהל יומן עסקי לועזי */}
+              <p className="mt-4 text-xs font-semibold tracking-wide text-primary">
+                {earlyBird.deadlineLabel} · {deadline.gregorianLabel}
+              </p>
             </div>
-
-            <h2 className="font-display text-[1.9rem] font-extrabold leading-tight tracking-tight text-ink">
-              {earlyBird.title}
-            </h2>
-
-            <Prose
-              text={earlyBird.body}
-              className="mt-3.5 max-w-2xl text-[16.5px] leading-relaxed text-ink-2"
-            />
-
-            {/* התאריך הלועזי לצד העברי — הקהל מנהל יומן עסקי לועזי */}
-            <p className="mt-4 text-[12.5px] font-semibold text-accent">
-              {earlyBird.deadlineLabel} · {deadline.gregorianLabel}
-            </p>
+            <OrderCta
+              href="#order"
+              className="inline-flex h-12 items-center gap-2 whitespace-nowrap rounded-full bg-primary px-7 font-bold text-primary-foreground shadow-sm transition hover:brightness-105"
+            >
+              {earlyBird.cta}
+              <ArrowLeft className="h-4 w-4" />
+            </OrderCta>
           </div>
-
-          <OrderCta
-            href="#order"
-            className="brand-cta shine-cta inline-flex items-center justify-center px-7 py-4 text-base font-bold"
-          >
-            {earlyBird.cta}
-          </OrderCta>
         </div>
       </div>
     </section>
@@ -815,25 +740,49 @@ export function EarlyBird({
 }
 
 /* ===============================================================
-   12 · מי עומד מאחורי "זמנים"?
+   12 · מי עומד מאחורי "זמנים"? — פורט מ-About.jsx
    =============================================================== */
 
 export function About({ content }: { content: SiteContentData }) {
   const { about } = content.landing;
 
   return (
-    <section className="border-y border-line bg-surface/60">
-      <div className="mx-auto max-w-[1200px] px-5 py-16 lg:px-8 lg:py-20">
-        <div className="grid gap-10 lg:grid-cols-[380px_1fr]">
-          <SectionHead eyebrow={about.eyebrow} title={about.title} />
+    <section id="about" className="border-y border-border bg-card/60 py-20 lg:py-28">
+      <div className="mx-auto max-w-[120rem] px-5 lg:px-8">
+        <div className="grid items-start gap-10 lg:grid-cols-2 lg:gap-16">
+          <div>
+            <SectionEyebrow text={about.eyebrow} />
+            <h2 className="text-balance font-heading text-[clamp(1.8rem,4vw,3rem)] font-extrabold leading-[1.1] tracking-tight text-foreground">
+              {about.title}
+            </h2>
+            <div className="mt-6 space-y-4 text-base leading-[1.8] text-foreground/80">
+              {about.body.map((paragraph, index) => (
+                <Prose
+                  key={index}
+                  text={paragraph}
+                  className={
+                    index === about.body.length - 1
+                      ? "font-heading font-bold text-foreground"
+                      : undefined
+                  }
+                />
+              ))}
+            </div>
+          </div>
 
-          <div className="grid content-start gap-4">
-            {about.body.map((paragraph, index) => (
-              <Prose
-                key={index}
-                text={paragraph}
-                className="text-[16.5px] leading-relaxed text-ink-2"
-              />
+          <div className="grid grid-cols-2 gap-4">
+            {[
+              { k: "30,000", v: "בתי אב בבני ברק" },
+              { k: "12", v: "חודשים, 12 קונספטים" },
+              { k: "1", v: "עסק מוביל מכל תחום" },
+              { k: "365", v: "ימים על המקרר" },
+            ].map((stat) => (
+              <div key={stat.v} className="rounded-2xl border border-border bg-background p-6">
+                <div className="font-mono-nums brand-gradient-text text-3xl font-extrabold">
+                  {stat.k}
+                </div>
+                <div className="mt-2 text-sm leading-tight text-muted-foreground">{stat.v}</div>
+              </div>
             ))}
           </div>
         </div>
@@ -843,7 +792,7 @@ export function About({ content }: { content: SiteContentData }) {
 }
 
 /* ===============================================================
-   13 · שאלות — אקורדיון, לא קיר טקסט
+   13 · שאלות — פורט מ-Faq.jsx (אקורדיון native, לא קיר טקסט)
    =============================================================== */
 
 export function FAQ({ content }: { content: SiteContentData }) {
@@ -851,33 +800,38 @@ export function FAQ({ content }: { content: SiteContentData }) {
   const { faq } = content.landing;
 
   return (
-    <section id="faq" className="scroll-mt-20 border-b border-line">
-      <div className="mx-auto max-w-[1200px] px-5 py-16 lg:px-8 lg:py-20">
-        <SectionHead eyebrow={faq.eyebrow} title={faq.title} />
+    <section id="faq" className="scroll-mt-20 py-20 lg:py-28">
+      <div className="mx-auto max-w-3xl px-5 lg:px-8">
+        <div className="mb-12 text-center">
+          <SectionEyebrow text={faq.eyebrow} center className="mb-5 justify-center" />
+          <h2 className="text-balance font-heading text-[clamp(1.9rem,4.5vw,3.25rem)] font-extrabold leading-[1.1] tracking-tight text-foreground">
+            {faq.title}
+          </h2>
+        </div>
 
-        <div className="mt-10 grid gap-4">
+        <div className="space-y-3">
           {content.faq.items.map((item, index) => (
             <details
               key={index}
-              className="group rounded-2xl border border-line bg-canvas px-6 py-4 soft-shadow open:border-accent/40"
+              className="group rounded-2xl border border-border bg-card px-5 open:border-primary/40"
             >
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-display text-[16.5px] font-bold text-ink marker:content-none">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-5 font-heading text-base font-bold marker:content-none lg:text-lg">
                 {item.question}
-                <ChevronDown className="size-4 shrink-0 text-muted transition-transform duration-300 ease-smooth group-open:rotate-180 group-open:text-accent" />
+                <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-300 group-open:rotate-180 group-open:text-primary" />
               </summary>
 
               <Prose
                 text={item.answer}
-                className="mt-3.5 max-w-3xl text-[15px] leading-relaxed text-ink-2"
+                className="pb-5 text-sm leading-[1.75] text-muted-foreground lg:text-base"
               />
 
               {item.cta ? (
                 <a
                   href="#contact"
-                  className="mt-4 inline-flex items-center gap-2 rounded-full border border-line px-5 py-2.5 text-[14px] font-bold text-ink transition-colors duration-200 ease-smooth hover:bg-surface-2"
+                  className="mb-5 inline-flex items-center gap-2 rounded-full border border-border px-5 py-2.5 text-sm font-bold text-foreground transition hover:border-primary/60"
                 >
                   {item.cta}
-                  <ArrowLeft className="size-3.5" />
+                  <ArrowLeft className="h-3.5 w-3.5" />
                 </a>
               ) : null}
             </details>
@@ -889,42 +843,43 @@ export function FAQ({ content }: { content: SiteContentData }) {
 }
 
 /* ===============================================================
-   14 · הנעה סופית
+   14 · הנעה סופית — פורט מ-FinalCta.jsx
    =============================================================== */
 
 export function FinalCta({ content }: { content: SiteContentData }) {
   const { finalCta } = content.landing;
 
   return (
-    <section className="border-y border-line bg-surface/60">
-      <div className="mx-auto max-w-[1200px] px-5 py-16 lg:px-8 lg:py-20">
-        <h2 className="max-w-4xl font-display text-[2.2rem] font-extrabold leading-[1.1] tracking-tight text-ink sm:text-[2.8rem]">
-          {finalCta.title}
-          <span className="gradient-num mt-2 block">{finalCta.subtitle}</span>
-        </h2>
+    <section id="final" className="border-y border-border bg-card/60 py-20 lg:py-28">
+      <div className="mx-auto max-w-[120rem] px-5 lg:px-8">
+        <div className="mx-auto max-w-3xl text-center">
+          <h2 className="text-balance font-heading text-[clamp(1.9rem,5vw,3.5rem)] font-extrabold leading-[1.1] tracking-tight text-foreground">
+            {finalCta.title}
+            <span className="brand-gradient-text mt-2 block">{finalCta.subtitle}</span>
+          </h2>
 
-        <p className="mt-6 max-w-3xl text-[16.5px] leading-relaxed text-ink-2">
-          {finalCta.body}
-        </p>
+          <p className="mt-5 text-lg leading-[1.7] text-muted-foreground">{finalCta.body}</p>
+          <Prose
+            text={finalCta.ask}
+            className="mt-4 text-lg leading-[1.7] text-foreground/85"
+          />
 
-        <Prose
-          text={finalCta.ask}
-          className="mt-5 max-w-3xl text-lg font-medium leading-relaxed text-ink"
-        />
-
-        <div className="mt-9 flex w-full flex-wrap items-stretch gap-3">
-          <OrderCta
-            href="#order"
-            className="brand-cta shine-cta inline-flex items-center px-7 py-4 text-base font-bold"
-          >
-            {finalCta.primaryCta}
-          </OrderCta>
-          <a
-            href="#contact"
-            className="inline-flex items-center rounded-full border border-line bg-surface px-6 py-4 text-base font-medium text-ink transition-colors duration-200 ease-smooth hover:bg-surface-2"
-          >
-            {finalCta.secondaryCta}
-          </a>
+          <div className="mt-9 flex flex-col items-center justify-center gap-4 sm:flex-row">
+            <OrderCta
+              href="#order"
+              className="inline-flex items-center gap-2 rounded-full bg-primary px-8 py-3.5 font-bold text-primary-foreground shadow-sm transition hover:brightness-105"
+            >
+              {finalCta.primaryCta}
+              <ArrowLeft className="h-4 w-4" />
+            </OrderCta>
+            <a
+              href="#contact"
+              className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-8 py-3.5 font-bold text-foreground transition hover:border-primary/60"
+            >
+              <HelpCircle className="h-4 w-4" />
+              {finalCta.secondaryCta}
+            </a>
+          </div>
         </div>
       </div>
     </section>
@@ -932,92 +887,102 @@ export function FinalCta({ content }: { content: SiteContentData }) {
 }
 
 /* ===============================================================
-   18 · פוטר
+   18 · פוטר — פורט מ-Footer.jsx
    =============================================================== */
 
 export function SiteFooter({ content }: { content: SiteContentData }) {
   const { footer } = content.landing;
 
   return (
-    <footer className="bg-ink text-canvas pb-20 lg:pb-0">
-      <div className="progress-fill h-[3px]" />
-
-      <div className="mx-auto grid max-w-[1200px] gap-10 px-5 py-14 sm:grid-cols-[1.4fr_1fr] lg:px-8">
-        <div>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/brand/zmanim-logo-2.png"
-            alt={content.brand.siteName}
-            className="h-16 w-auto object-contain object-right"
-          />
-          <p className="mt-3 font-display text-lg font-extrabold tracking-tight text-canvas">
-            {footer.tagline}
-          </p>
-          <p className="mt-2.5 max-w-[38ch] text-[14.5px] leading-relaxed text-canvas/70">
-            {content.footer.note}
-          </p>
-        </div>
-
-        <div className="grid content-start gap-2 sm:justify-items-end">
-          <span className="text-[11.5px] font-semibold text-canvas/60">
-            יצירת קשר
-          </span>
-          <a
-            dir="ltr"
-            href={`mailto:${content.contact.email}`}
-            className="text-[15px] text-canvas transition-colors hover:text-accent"
-          >
-            {content.contact.email}
-          </a>
-          <span dir="ltr" className="text-[14px] text-canvas/70">
-            {content.contact.phone}
-          </span>
-
-          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-[14px]">
-            {footer.links.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                className="text-canvas underline underline-offset-4 transition-colors hover:text-accent"
-              >
-                {link.label}
-              </a>
-            ))}
-
-            {/* מדיניות פרטיות מוצגת רק כשיש לאן לקשר — קישור שבור
-                בפוטר גרוע מקישור חסר */}
-            {footer.privacyHref ? (
-              <a
-                href={footer.privacyHref}
-                className="text-canvas underline underline-offset-4 transition-colors hover:text-accent"
-              >
-                {footer.privacyLabel}
-              </a>
-            ) : null}
-
-            <a
-              href="#order"
-              className="text-canvas underline underline-offset-4 transition-colors hover:text-accent"
-            >
-              {footer.tosLabel}
-            </a>
+    <footer className="bg-foreground pb-20 text-background lg:pb-0">
+      <div className="mx-auto max-w-[120rem] px-5 py-14 lg:px-8">
+        <div className="grid items-start gap-10 md:grid-cols-2">
+          <div>
+            <div className="mb-4 flex items-center gap-2.5">
+              <svg viewBox="0 0 40 40" className="h-9 w-9" aria-hidden="true">
+                <defs>
+                  <linearGradient id="zf-ring" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="#f17887" />
+                    <stop offset="100%" stopColor="#7a2a8e" />
+                  </linearGradient>
+                  <linearGradient id="zf-hands" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="#f2a265" />
+                    <stop offset="100%" stopColor="#f07c7f" />
+                  </linearGradient>
+                </defs>
+                <circle cx="20" cy="20" r="16" fill="none" stroke="url(#zf-ring)" strokeWidth="3.2" />
+                <line x1="20" y1="20" x2="20" y2="9" stroke="url(#zf-hands)" strokeWidth="3" strokeLinecap="round" />
+                <line x1="20" y1="20" x2="29" y2="20" stroke="url(#zf-hands)" strokeWidth="3" strokeLinecap="round" />
+                <circle cx="20" cy="20" r="2.6" fill="#7a2a8e" />
+              </svg>
+              <div className="leading-none">
+                <div className="font-heading text-2xl font-extrabold">{content.brand.siteName}</div>
+                <div className="mt-1 text-xs text-background/60">{footer.tagline}</div>
+              </div>
+            </div>
+            <p className="max-w-md text-sm leading-[1.7] text-background/70">
+              {content.footer.note}
+            </p>
           </div>
 
-          {/* קוני הלוח מגיעים לכאן מהלוח המודפס עצמו, אבל מי שנחת
-              קודם באתר צריך גם הוא דרך למצוא את הטופס */}
-          <a
-            href="/receipts"
-            className="mt-2 text-[14px] text-canvas underline underline-offset-4 transition-colors hover:text-accent"
-          >
-            קניתם אצל עסק מהלוח? להעלאת קבלה להגרלה
-          </a>
+          <div className="md:text-left">
+            <div className="mb-4 text-xs font-semibold uppercase tracking-wide text-background/50">
+              קישורים
+            </div>
+            <ul className="space-y-2.5">
+              {footer.links.map((link) => (
+                <li key={link.href}>
+                  <a
+                    href={link.href}
+                    className="text-sm text-background/85 transition hover:text-primary"
+                  >
+                    {link.label}
+                  </a>
+                </li>
+              ))}
+              {footer.privacyHref ? (
+                <li>
+                  <a
+                    href={footer.privacyHref}
+                    className="text-sm text-background/85 transition hover:text-primary"
+                  >
+                    {footer.privacyLabel}
+                  </a>
+                </li>
+              ) : null}
+              <li>
+                <a href="#order" className="text-sm text-background/85 transition hover:text-primary">
+                  {footer.tosLabel}
+                </a>
+              </li>
+              <li>
+                <a
+                  dir="ltr"
+                  href={`mailto:${content.contact.email}`}
+                  className="text-sm text-background/85 transition hover:text-primary"
+                >
+                  {content.contact.email}
+                </a>
+              </li>
+              <li dir="ltr" className="text-sm text-background/70">
+                {content.contact.phone}
+              </li>
+              {/* קוני הלוח מגיעים לכאן מהלוח המודפס עצמו, אבל מי שנחת
+                  קודם באתר צריך גם הוא דרך למצוא את הטופס */}
+              <li>
+                <a
+                  href="/receipts"
+                  className="text-sm text-background/85 transition hover:text-primary"
+                >
+                  קניתם אצל עסק מהלוח? להעלאת קבלה להגרלה
+                </a>
+              </li>
+            </ul>
+          </div>
         </div>
-      </div>
-
-      <div className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-3 border-t border-canvas/15 px-5 py-5 lg:px-8">
-        <span className="text-[11.5px] font-semibold text-canvas/50">
-          © 2026 {content.brand.siteName}
-        </span>
+        <div className="mt-12 border-t border-background/15 pt-6 text-xs text-background/50">
+          © {new Date().getFullYear()} {content.brand.siteName}
+        </div>
       </div>
     </footer>
   );
