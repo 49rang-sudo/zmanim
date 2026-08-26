@@ -364,6 +364,29 @@ async function main() {
   // דרך אותו מסלול אחסון של כל מדיה אחרת (S3/MinIO תחת media/,
   // הגשה דרך /api/media) — כך שהמסלול נבדק מקצה לקצה, והחלפתן
   // בתמונות אמיתיות היא רק העלאה, בלי שינוי קוד.
+  //
+  // שלוש מתוך ארבע הסצנות מקבלות כאן תמונת קונספט אמיתית (מאוחסנת
+  // אצל המעצבת ב-Base44) במקום גרדיאנט מחולל, כחלק מה-reskin
+  // הוויזואלי — כדי שה-Showcase/בורר החודשים/מוקאפ הלוח יראו תמונה
+  // אמיתית ולא רק כתם צבע. "פינת תינוק" (baby-corner) נשארת גרדיאנט:
+  // אין לה תמונת קונספט תואמת בין הארבע שסופקו.
+  const SCENE_IMAGE_URLS: Record<string, string> = {
+    "home-renovation":
+      "https://media.base44.com/images/public/6a8da2d186a845297989d3b3/877d70f0f_generated_image.png",
+    learning:
+      "https://media.base44.com/images/public/6a8da2d186a845297989d3b3/76ca527df_generated_image.png",
+    "kitchen-wall":
+      "https://media.base44.com/images/public/6a8da2d186a845297989d3b3/2f6528392_generated_image.png",
+  };
+
+  async function fetchBytes(url: string): Promise<Buffer> {
+    const res = await fetch(url);
+    if (!res.ok) {
+      throw new Error(`הורדת תמונת קונספט נכשלה (${res.status}): ${url}`);
+    }
+    return Buffer.from(await res.arrayBuffer());
+  }
+
   try {
     const { ensureBucket, putArtwork } = await import("../src/lib/s3");
     const { gradientPng } = await import("./placeholder-image");
@@ -376,12 +399,15 @@ async function main() {
 
     for (const image of SCENES) {
       const key = `media/seed-${image.key}.png`;
-      const png = gradientPng(
-        1200,
-        675,
-        [...image.gradient.top] as [number, number, number],
-        [...image.gradient.bottom] as [number, number, number],
-      );
+      const sourceUrl = SCENE_IMAGE_URLS[image.key];
+      const png = sourceUrl
+        ? await fetchBytes(sourceUrl)
+        : gradientPng(
+            1200,
+            675,
+            [...image.gradient.top] as [number, number, number],
+            [...image.gradient.bottom] as [number, number, number],
+          );
       await putArtwork(key, png, "image/png");
 
       const imageUrl = `/api/media/${key.replace(/^media\//, "")}`;
