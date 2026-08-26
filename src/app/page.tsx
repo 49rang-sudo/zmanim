@@ -83,7 +83,7 @@ export default async function HomePage() {
             מובילים לכאן, ואין העתק שני שלו בשום מקום. */}
         <section
           id="order"
-          className="snap-section scroll-mt-16 border-b border-line-2 bg-canvas"
+          className="scroll-mt-16 border-b border-line bg-canvas"
         >
           <div className="mx-auto max-w-[1200px] px-5 py-14 lg:px-8 sm:py-20">
             {showLanding ? (

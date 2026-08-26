@@ -107,21 +107,18 @@ export function InquiryForm({ content }: { content: SiteContentData }) {
   };
 
   return (
-    <section
-      id="contact"
-      className="snap-section scroll-mt-20 border-b border-line-2"
-    >
+    <section id="contact" className="scroll-mt-20 border-b border-line">
       <div className="mx-auto max-w-[1200px] px-5 py-16 lg:px-8 lg:py-20">
         <div className="grid gap-10 lg:grid-cols-[380px_1fr]">
           <div>
             <div className="mb-5 flex items-center gap-3.5">
-              <span className="progress-rule w-14" />
-              <span className="mono-label text-[12.5px] text-ink-2">
+              <span className="progress-rule w-8 rounded-full" />
+              <span className="text-[12.5px] font-semibold tracking-wide text-accent">
                 {copy.eyebrow}
               </span>
             </div>
 
-            <h2 className="font-display text-[2rem] font-black leading-[1.1] tracking-tight text-ink">
+            <h2 className="font-display text-[2rem] font-extrabold leading-[1.1] tracking-tight text-ink">
               {copy.title}
             </h2>
             <p className="mt-4 text-[16px] leading-relaxed text-ink-2">
@@ -129,7 +126,7 @@ export function InquiryForm({ content }: { content: SiteContentData }) {
             </p>
           </div>
 
-          <div className="border border-line-2 bg-surface p-7 lg:p-9">
+          <div className="rounded-2xl border border-line bg-surface p-7 soft-shadow lg:p-9">
             {sent ? (
               <div className="flex items-start gap-3.5">
                 <CheckCircle2 className="mt-0.5 size-6 shrink-0 text-accent" />

@@ -50,9 +50,9 @@ function tierStatus(
 }
 
 const TONE_CLASS = {
-  free: "border-line-2 text-ink",
-  low: "border-accent text-accent",
-  gone: "border-line text-muted line-through decoration-1",
+  free: "bg-surface-2 text-ink",
+  low: "bg-accent-soft text-accent-strong",
+  gone: "bg-surface-3 text-muted line-through decoration-1",
 } as const;
 
 /* ---------------------------------------------------------------
@@ -114,14 +114,11 @@ export function MonthPicker({
   const noMatch = searching && matchedMonths.length === 0 && months.length > 0;
 
   return (
-    <section
-      id="months"
-      className="snap-section scroll-mt-20 border-b border-line-2"
-    >
+    <section id="months" className="scroll-mt-20 border-b border-line">
       <div className="mx-auto max-w-[1200px] px-5 py-16 lg:px-8 lg:py-20">
         <div className="mb-5 flex items-center gap-3.5">
-          <span className="progress-rule w-14" />
-          <span className="mono-label text-[12.5px] text-ink-2">
+          <span className="progress-rule w-8 rounded-full" />
+          <span className="text-[12.5px] font-semibold tracking-wide text-accent">
             {copy.eyebrow}
           </span>
         </div>
@@ -149,7 +146,7 @@ export function MonthPicker({
             {copy.filterLabel}
           </label>
 
-          <div className="flex items-center border border-line-2 bg-surface">
+          <div className="flex items-center rounded-full border border-line bg-surface soft-shadow">
             <Search className="ms-4 size-4 shrink-0 text-muted" />
             <input
               id="category-filter"
@@ -186,7 +183,7 @@ export function MonthPicker({
 
         {/* --- כרטיסי החודשים --- */}
         {months.length === 0 ? (
-          <div className="mt-10 border border-line-2 bg-surface p-8">
+          <div className="mt-10 rounded-2xl border border-line bg-surface p-8 soft-shadow">
             <p className="max-w-2xl text-[16px] leading-relaxed text-ink-2">
               {copy.emptyState}
             </p>
@@ -222,7 +219,7 @@ export function MonthPicker({
             היא עוברת לכאן — ומוסתרת למעלה — כדי שאותו משפט לא יופיע
             פעמיים על אותו מסך. */}
         {noMatch ? (
-          <div className="mt-8 border border-line-2 bg-surface p-7">
+          <div className="mt-8 rounded-2xl border border-line bg-surface p-7 soft-shadow">
             <p className="max-w-2xl whitespace-pre-line text-[16px] font-medium leading-relaxed text-ink">
               {copy.hint}
             </p>
@@ -271,10 +268,8 @@ function MonthCard({
   return (
     <article
       className={cn(
-        "flex flex-col border bg-surface transition-opacity duration-300 ease-smooth",
-        matched && matchedFree.length > 0
-          ? "border-accent"
-          : "border-line-2",
+        "flex flex-col overflow-hidden rounded-2xl border bg-surface soft-shadow transition-opacity duration-300 ease-smooth",
+        matched && matchedFree.length > 0 ? "border-accent" : "border-line",
         dimmed && "opacity-55",
       )}
     >
@@ -283,13 +278,13 @@ function MonthCard({
         <img
           src={month.imageUrl}
           alt={`הקונספט של חודש ${month.hebrewLabel}: ${month.conceptTitle}`}
-          className="w-full border-b border-line-2 object-cover"
+          className="w-full object-cover"
           style={{ aspectRatio: String(month.aspectRatio) }}
         />
       ) : null}
 
       <div className="flex flex-1 flex-col p-6">
-        <span className="mono-label text-[12px] text-accent">
+        <span className="text-[12px] font-semibold text-accent">
           {month.hebrewLabel}
         </span>
         <h3 className="mt-1.5 font-display text-xl font-extrabold tracking-tight text-ink">
@@ -305,7 +300,7 @@ function MonthCard({
         {/* --- מתאים בין היתר ל: --- */}
         {month.categories.length > 0 ? (
           <>
-            <p className="mono-label mt-5 text-[11.5px] text-ink-2">
+            <p className="mt-5 text-[11.5px] font-semibold text-ink-2">
               {copy.suitableForLabel}
             </p>
             <ul className="mt-2.5 flex flex-wrap gap-1.5">
@@ -315,7 +310,7 @@ function MonthCard({
                   <li
                     key={category.slotId}
                     className={cn(
-                      "border px-2.5 py-1 text-[12.5px] leading-none",
+                      "rounded-full border px-2.5 py-1 text-[12.5px] leading-none",
                       category.taken
                         ? "border-line text-muted line-through decoration-1"
                         : isMatch
@@ -340,7 +335,7 @@ function MonthCard({
               <p
                 key={tier}
                 className={cn(
-                  "flex items-center justify-between gap-3 border-s-2 ps-3 text-[13px]",
+                  "flex items-center justify-between gap-3 rounded-full px-3 py-1.5 text-[13px]",
                   TONE_CLASS[result.tone],
                 )}
               >
@@ -359,7 +354,7 @@ function MonthCard({
 
         {/* --- תחום שנתפס, כשחיפשו אותו --- */}
         {matchedTaken.length > 0 && matchedFree.length === 0 ? (
-          <div className="mt-5 border border-line bg-surface-2 p-4">
+          <div className="mt-5 rounded-2xl border border-line bg-surface-2 p-4">
             <p className="font-display text-[15px] font-bold text-ink">
               {copy.takenTitle}
             </p>
@@ -380,7 +375,7 @@ function MonthCard({
         <div className="mt-auto pt-6">
           {month.fromPriceAgorot !== null ? (
             <p className="flex items-baseline gap-2 border-t border-line pt-4">
-              <span className="mono-label text-[11.5px] text-ink-2">
+              <span className="text-[11.5px] font-semibold text-ink-2">
                 {copy.priceFromLabel}
               </span>
               <span className="tnum font-display text-2xl font-black leading-none text-ink">
@@ -394,7 +389,7 @@ function MonthCard({
             className={cn(
               "mt-4 flex items-center justify-center px-5 py-3.5 text-[14.5px] font-bold",
               month.fromPriceAgorot === null
-                ? "border border-line text-muted"
+                ? "rounded-full border border-line text-muted"
                 : "brand-cta shine-cta",
             )}
           >
