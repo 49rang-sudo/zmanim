@@ -658,7 +658,7 @@ export const defaultContent: SiteContentData = {
   brand: {
     siteName: "ZMANIM",
     tagline: "הפרסום הנכון בזמן הנכון.",
-    logoUrl: null,
+    logoUrl: "/brand/zmanim-logo.png",
   },
 
   hero: {
