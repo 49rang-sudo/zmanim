@@ -539,10 +539,7 @@ export function Pricing({
   ];
 
   return (
-    <section
-      id="pricing"
-      className="snap-section scroll-mt-20 border-b border-line-2"
-    >
+    <section id="pricing" className="scroll-mt-20 border-y border-line bg-surface/60">
       <div className="mx-auto max-w-[1200px] px-5 py-16 lg:px-8 lg:py-20">
         <SectionHead
           eyebrow={pricing.eyebrow}
@@ -550,17 +547,25 @@ export function Pricing({
           subtitle={pricing.intro}
         />
 
-        <div className="mt-10 grid gap-px border border-line-2 bg-line-2 lg:grid-cols-2">
+        <div className="mt-10 grid gap-6 lg:grid-cols-2">
           {tiers.map(({ key, copy, range }) => {
             const price = tierPriceLabel(range);
+            const isAnchor = key === "ANCHOR";
             return (
-              <article key={key} className="flex flex-col bg-canvas p-7">
+              <article
+                key={key}
+                className={
+                  isAnchor
+                    ? "flex flex-col rounded-2xl border-2 border-accent/40 bg-canvas p-7 soft-shadow"
+                    : "flex flex-col rounded-2xl border border-line bg-canvas p-7 soft-shadow"
+                }
+              >
                 <div className="flex items-center gap-2.5">
                   <span
                     className={
-                      key === "ANCHOR"
-                        ? "mono-label bg-ink px-2 py-1 text-[11px] text-canvas"
-                        : "mono-label border border-line-2 px-2 py-1 text-[11px] text-ink"
+                      isAnchor
+                        ? "rounded-full bg-ink px-2.5 py-1 text-[11px] font-semibold text-canvas"
+                        : "rounded-full border border-line px-2.5 py-1 text-[11px] font-semibold text-ink"
                     }
                   >
                     {TIER_LABELS[key]}
@@ -576,7 +581,7 @@ export function Pricing({
 
                 {price ? (
                   <p className="mt-6 flex items-baseline gap-2.5 border-t border-line pt-5">
-                    <span className="mono-label text-[12px] text-ink-2">
+                    <span className="text-[12px] font-semibold text-ink-2">
                       {pricing.priceLabel}
                     </span>
                     <span className="tnum font-display text-3xl font-black leading-none text-ink">
@@ -613,7 +618,7 @@ export function Pricing({
         />
 
         {/* --- תמחור למספר חודשים --- */}
-        <div className="mt-12 border border-line-2 bg-surface p-7 lg:p-9">
+        <div className="mt-12 rounded-2xl border border-line bg-surface p-7 soft-shadow lg:p-9">
           <h3 className="font-display text-2xl font-extrabold tracking-tight text-ink">
             {pricing.multi.title}
           </h3>
@@ -621,11 +626,11 @@ export function Pricing({
             {pricing.multi.text}
           </p>
 
-          <p className="mono-label mt-7 text-[12px] text-ink-2">
+          <p className="mt-7 text-[12px] font-semibold text-ink-2">
             {pricing.multi.tableTitle}
           </p>
 
-          <div className="mt-4 grid gap-px border border-line-2 bg-line-2 sm:grid-cols-2">
+          <div className="mt-4 grid divide-y divide-line overflow-hidden rounded-2xl border border-line sm:grid-cols-2 sm:divide-x sm:divide-y-0 sm:divide-x-reverse">
             {tiers.map(({ key, rows, rowsTitle }) => (
               <div key={key} className="bg-canvas p-6">
                 <h4 className="font-display text-lg font-extrabold tracking-tight text-ink">
@@ -638,7 +643,7 @@ export function Pricing({
                       className="flex items-start gap-2.5 text-[15px] leading-relaxed text-ink-2"
                     >
                       <span
-                        className="mt-2 size-1.5 shrink-0 bg-accent"
+                        className="mt-2 size-1.5 shrink-0 rounded-full bg-accent"
                         aria-hidden
                       />
                       {row}
@@ -653,7 +658,7 @@ export function Pricing({
               המקדימה שבה רואים את כל החודשים זה לצד זה. */}
           <OrderCta
             href="#months"
-            className="mt-7 inline-flex items-center gap-2 border border-line-2 px-6 py-3.5 text-[15px] font-bold text-ink transition-colors duration-200 ease-smooth hover:bg-surface-2"
+            className="mt-7 inline-flex items-center gap-2 rounded-full border border-line bg-surface px-6 py-3.5 text-[15px] font-bold text-ink transition-colors duration-200 ease-smooth hover:bg-surface-2"
           >
             {pricing.multi.cta}
             <ArrowLeft className="size-4" />
@@ -676,7 +681,7 @@ export function Benefit({ content }: { content: SiteContentData }) {
   const { benefit } = content.landing;
 
   return (
-    <section className="snap-section dark-zone border-b border-line-2">
+    <section className="border-b border-line">
       <div className="mx-auto max-w-[1200px] px-5 py-16 lg:px-8 lg:py-20">
         <div className="grid gap-10 lg:grid-cols-[1fr_1fr]">
           <SectionHead eyebrow={benefit.eyebrow} title={benefit.title} />
@@ -705,23 +710,29 @@ export function HowToJoin({ content }: { content: SiteContentData }) {
   const { howToJoin } = content.landing;
 
   return (
-    <section id="how" className="snap-section scroll-mt-20 border-b border-line-2">
+    <section id="how" className="scroll-mt-20 border-y border-line bg-surface/60">
       <div className="mx-auto max-w-[1200px] px-5 py-16 lg:px-8 lg:py-20">
         <SectionHead eyebrow={howToJoin.eyebrow} title={howToJoin.title} />
 
-        <ol className="mt-10 grid gap-px border border-line-2 bg-line-2">
+        <ol className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
           {content.howItWorks.map((step, index) => (
             <li
               key={index}
-              className="grid gap-2 bg-canvas p-6 sm:grid-cols-[80px_240px_1fr] sm:items-baseline sm:gap-6"
+              className="rounded-2xl border border-line bg-canvas p-6 soft-shadow"
             >
-              <span className="gradient-num font-display text-4xl font-black leading-none">
+              <span
+                className="grid size-11 place-items-center rounded-full text-sm font-black text-white"
+                style={{
+                  backgroundImage:
+                    "linear-gradient(135deg, var(--color-brand-pink), var(--color-brand-purple))",
+                }}
+              >
                 {String(index + 1).padStart(2, "0")}
               </span>
-              <h3 className="font-display text-lg font-extrabold tracking-tight text-ink">
+              <h3 className="mt-4 font-display text-lg font-extrabold tracking-tight text-ink">
                 {step.title}
               </h3>
-              <p className="text-[15px] leading-relaxed text-ink-2">
+              <p className="mt-1.5 text-[15px] leading-relaxed text-ink-2">
                 {step.text}
               </p>
             </li>
@@ -763,13 +774,15 @@ export function EarlyBird({
   if (!deadline?.active) return null;
 
   return (
-    <section className="snap-section border-b border-line-2 bg-surface-2">
+    <section className="border-b border-line">
       <div className="mx-auto max-w-[1200px] px-5 py-14 lg:px-8">
-        <div className="grid gap-7 border border-line-2 bg-canvas p-7 lg:grid-cols-[1fr_auto] lg:items-center lg:p-9">
+        <div className="grid gap-7 rounded-3xl border-2 border-accent/40 bg-canvas p-7 soft-shadow lg:grid-cols-[1fr_auto] lg:items-center lg:p-14">
           <div>
             <div className="mb-4 flex items-center gap-3">
-              <Gift className="size-5 text-accent" strokeWidth={1.75} />
-              <span className="mono-label text-[12.5px] text-ink-2">
+              <span className="grid size-9 shrink-0 place-items-center rounded-full bg-surface-2">
+                <Gift className="size-4.5 text-accent" strokeWidth={1.75} />
+              </span>
+              <span className="text-[12.5px] font-semibold tracking-wide text-accent">
                 {earlyBird.eyebrow}
               </span>
             </div>
@@ -784,7 +797,7 @@ export function EarlyBird({
             />
 
             {/* התאריך הלועזי לצד העברי — הקהל מנהל יומן עסקי לועזי */}
-            <p className="mono-label mt-4 text-[12.5px] text-accent">
+            <p className="mt-4 text-[12.5px] font-semibold text-accent">
               {earlyBird.deadlineLabel} · {deadline.gregorianLabel}
             </p>
           </div>
