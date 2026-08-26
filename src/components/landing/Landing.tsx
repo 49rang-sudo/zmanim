@@ -276,17 +276,20 @@ export function Difference({ content }: { content: SiteContentData }) {
   const { difference } = content.landing;
 
   return (
-    <section className="snap-section border-b border-line-2">
+    <section className="border-b border-line">
       <div className="mx-auto max-w-[1200px] px-5 py-16 lg:px-8 lg:py-20">
         <SectionHead
           eyebrow={difference.eyebrow}
           title={`${difference.title}\n${difference.subtitle}`}
         />
 
-        <div className="mt-10 grid gap-px border border-line-2 bg-line-2 sm:grid-cols-3">
+        <div className="mt-10 grid gap-5 sm:grid-cols-3">
           {difference.examples.map((example, index) => (
-            <div key={index} className="bg-canvas p-6">
-              <span className="mono-label text-[12px] text-accent">
+            <div
+              key={index}
+              className="rounded-2xl border border-line bg-surface p-6 soft-shadow"
+            >
+              <span className="text-[12px] font-semibold text-accent">
                 {String(index + 1).padStart(2, "0")}
               </span>
               <p className="mt-3 text-[15.5px] leading-relaxed text-ink">
@@ -334,7 +337,7 @@ export function Showcase({
   if (showcase.items.length === 0) return null;
 
   return (
-    <section className="snap-section dark-zone border-b border-line-2">
+    <section className="border-y border-line bg-surface/60">
       <div className="mx-auto max-w-[1200px] px-5 py-16 lg:px-8 lg:py-20">
         <SectionHead title={`${showcase.title}\n${showcase.subtitle}`} />
 
@@ -347,19 +350,19 @@ export function Showcase({
             return (
               <figure
                 key={index}
-                className="flex flex-col border border-line-2 bg-surface"
+                className="flex flex-col overflow-hidden rounded-2xl border border-line bg-canvas soft-shadow"
               >
                 {month?.imageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={month.imageUrl}
                     alt={`הדמיית הקונספט: ${conceptTitle}`}
-                    className="w-full border-b border-line-2 object-cover"
+                    className="w-full object-cover"
                     style={{ aspectRatio: String(month.aspectRatio) }}
                   />
                 ) : (
                   <div
-                    className="w-full border-b border-line-2 bg-surface-2"
+                    className="w-full bg-surface-2"
                     style={{ aspectRatio: "1.5" }}
                     aria-hidden
                   />
@@ -367,7 +370,7 @@ export function Showcase({
 
                 <figcaption className="flex flex-1 flex-col p-6">
                   {monthLabel ? (
-                    <span className="mono-label text-[12px] text-accent">
+                    <span className="text-[12px] font-semibold text-accent">
                       {monthLabel.startsWith("חודש")
                         ? monthLabel
                         : `חודש ${monthLabel}`}
@@ -407,23 +410,28 @@ export function WhyNotAnother({ content }: { content: SiteContentData }) {
   const { whyNotAnother } = content.landing;
 
   return (
-    <section className="snap-section border-b border-line-2">
+    <section className="border-y border-line bg-surface/60">
       <div className="mx-auto max-w-[1200px] px-5 py-16 lg:px-8 lg:py-20">
         <SectionHead eyebrow={whyNotAnother.eyebrow} title={whyNotAnother.title} />
 
-        <div className="mt-10 grid gap-px border border-line-2 bg-line-2 sm:grid-cols-2">
+        <div className="mt-10 grid gap-5 sm:grid-cols-2">
           {content.highlights.map((item, index) => {
             const Icon = ICONS[item.icon] ?? Sparkles;
             return (
-              <article key={index} className="group bg-canvas p-7">
+              <article
+                key={index}
+                className="group rounded-2xl border border-line bg-canvas p-7 soft-shadow"
+              >
                 <div className="flex items-center justify-between">
-                  <span className="mono-label text-[12px] text-accent">
+                  <span className="text-[12px] font-semibold text-accent">
                     {String(index + 1).padStart(2, "0")}
                   </span>
-                  <Icon
-                    className="size-5 text-muted transition-colors duration-300 ease-smooth group-hover:text-accent"
-                    strokeWidth={1.75}
-                  />
+                  <span className="grid size-11 place-items-center rounded-full bg-surface-2">
+                    <Icon
+                      className="size-5 text-muted transition-colors duration-300 ease-smooth group-hover:text-accent"
+                      strokeWidth={1.75}
+                    />
+                  </span>
                 </div>
 
                 <h3 className="mt-5 font-display text-xl font-extrabold tracking-tight text-ink">
@@ -450,21 +458,18 @@ export function WhatYouGet({ content }: { content: SiteContentData }) {
   const { whatYouGet } = content.landing;
 
   return (
-    <section
-      id="what-you-get"
-      className="snap-section dark-zone scroll-mt-20 border-b border-line-2"
-    >
+    <section id="what-you-get" className="scroll-mt-20 border-b border-line">
       <div className="mx-auto max-w-[1200px] px-5 py-16 lg:px-8 lg:py-20">
         <SectionHead eyebrow={whatYouGet.eyebrow} title={whatYouGet.title} />
 
         <div className="mt-10 grid gap-10 lg:grid-cols-[1fr_360px]">
-          <ul className="grid gap-px border border-line-2 bg-line-2">
+          <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line soft-shadow">
             {whatYouGet.items.map((item, index) => (
               <li
                 key={index}
                 className="flex items-start gap-3.5 bg-canvas px-6 py-4"
               >
-                <span className="mono-label mt-0.5 shrink-0 text-[12px] text-accent">
+                <span className="mt-0.5 shrink-0 text-[12px] font-semibold text-accent">
                   {String(index + 1).padStart(2, "0")}
                 </span>
                 <span className="text-[15.5px] leading-relaxed text-ink">
@@ -474,7 +479,7 @@ export function WhatYouGet({ content }: { content: SiteContentData }) {
             ))}
           </ul>
 
-          <aside className="h-max border border-line-2 bg-surface p-7">
+          <aside className="h-max rounded-2xl border border-line bg-surface-2 p-7">
             <h3 className="font-display text-xl font-extrabold tracking-tight text-ink">
               {whatYouGet.bringTitle}
             </h3>
