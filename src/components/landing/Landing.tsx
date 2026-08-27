@@ -20,6 +20,7 @@ import {
 import { CountUpStat } from "./CountUpStat";
 import { ClockMark } from "./ClockMark";
 import { OrderCta } from "./OrderCta";
+import { HoverAccordion } from "./HoverAccordion";
 import { formatPrice } from "@/lib/utils";
 import { TIER_LABELS } from "@/lib/packages";
 import type { SiteContentData } from "@/lib/content";
@@ -695,28 +696,25 @@ export function HowToJoin({ content }: { content: SiteContentData }) {
   const { howToJoin } = content.landing;
 
   return (
-    <section id="steps" className="border-y border-border bg-card/60 py-20 lg:py-28">
+    <section id="steps" className="border-y border-border bg-card/60 py-24 lg:py-36">
       <div className="mx-auto max-w-[120rem] px-5 lg:px-8">
-        <div className="mb-12 max-w-2xl">
+        <div className="mb-16 max-w-2xl">
           <SectionEyebrow text={howToJoin.eyebrow} />
           <h2 className="text-balance font-heading text-[clamp(1.9rem,4.5vw,3.25rem)] font-extrabold leading-[1.1] tracking-tight text-foreground">
             {howToJoin.title}
           </h2>
         </div>
 
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
-          {content.howItWorks.map((step, index) => (
-            <div key={index} className="relative rounded-2xl border border-border bg-background p-6">
-              <div className="brand-gradient mb-4 flex h-11 w-11 items-center justify-center rounded-full font-heading text-lg font-extrabold text-white">
-                {String(index + 1).padStart(2, "0")}
-              </div>
-              <h3 className="mb-2 font-heading text-base font-bold leading-tight">
-                {step.title}
-              </h3>
-              <p className="text-sm leading-[1.65] text-muted-foreground">{step.text}</p>
-            </div>
-          ))}
-        </div>
+        {/* 3ג: פס hover-מתרחב אחד (HoverAccordion) במקום 5 כרטיסים
+            סטטיים — פורט מ-Steps.jsx/HoverAccordion.jsx. זהו שינוי
+            UX אמיתי, לא רק סגנון (ראו דיווח). חיווט הדאטה נשאר
+            content.howItWorks כפי שהיה, רק ממופה ל-title/body. */}
+        <HoverAccordion
+          items={content.howItWorks.map((step) => ({
+            title: step.title,
+            body: step.text,
+          }))}
+        />
 
         <div className="mt-10 flex flex-col items-center gap-5 sm:flex-row">
           <OrderCta
@@ -751,7 +749,7 @@ export function EarlyBird({
   if (!deadline?.active) return null;
 
   return (
-    <section id="bonus" className="py-20 lg:py-28">
+    <section id="bonus" className="py-24 lg:py-36">
       <div className="mx-auto max-w-[120rem] px-5 lg:px-8">
         <div className="relative overflow-hidden rounded-3xl border-2 border-primary/40 bg-card p-8 soft-shadow lg:p-14">
           <div className="brand-gradient absolute -right-20 -top-20 h-72 w-72 rounded-full opacity-10 blur-3xl" />
@@ -799,7 +797,7 @@ export function About({ content }: { content: SiteContentData }) {
   const { about } = content.landing;
 
   return (
-    <section id="about" className="border-y border-border bg-card/60 py-20 lg:py-28">
+    <section id="about" className="border-y border-border bg-card/60 py-24 lg:py-36">
       <div className="mx-auto max-w-[120rem] px-5 lg:px-8">
         <div className="grid items-start gap-10 lg:grid-cols-2 lg:gap-16">
           <div>
@@ -829,8 +827,11 @@ export function About({ content }: { content: SiteContentData }) {
               { k: "1", v: "עסק מוביל מכל תחום" },
               { k: "365", v: "ימים על המקרר" },
             ].map((stat) => (
-              <div key={stat.v} className="rounded-2xl border border-border bg-background p-6">
-                <div className="font-mono-nums brand-gradient-text text-3xl font-extrabold">
+              <div
+                key={stat.v}
+                className="group hover-shadow rounded-2xl border border-border bg-background p-6 soft-shadow transition-colors duration-200 hover:border-primary"
+              >
+                <div className="font-mono-nums brand-gradient-text origin-right text-3xl font-extrabold transition-transform duration-300 group-hover:scale-110">
                   {stat.k}
                 </div>
                 <div className="mt-2 text-sm leading-tight text-muted-foreground">{stat.v}</div>
@@ -852,9 +853,9 @@ export function FAQ({ content }: { content: SiteContentData }) {
   const { faq } = content.landing;
 
   return (
-    <section id="faq" className="scroll-mt-20 py-20 lg:py-28">
+    <section id="faq" className="scroll-mt-20 py-24 lg:py-36">
       <div className="mx-auto max-w-3xl px-5 lg:px-8">
-        <div className="mb-12 text-center">
+        <div className="mb-16 text-center">
           <SectionEyebrow text={faq.eyebrow} center className="mb-5 justify-center" />
           <h2 className="text-balance font-heading text-[clamp(1.9rem,4.5vw,3.25rem)] font-extrabold leading-[1.1] tracking-tight text-foreground">
             {faq.title}
@@ -865,7 +866,7 @@ export function FAQ({ content }: { content: SiteContentData }) {
           {content.faq.items.map((item, index) => (
             <details
               key={index}
-              className="group rounded-2xl border border-border bg-card px-5 open:border-primary/40"
+              className="hover-shadow soft-shadow group rounded-2xl border border-border bg-card px-5 transition-colors open:border-primary/40"
             >
               <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-5 font-heading text-base font-bold marker:content-none lg:text-lg">
                 {item.question}
@@ -902,31 +903,34 @@ export function FinalCta({ content }: { content: SiteContentData }) {
   const { finalCta } = content.landing;
 
   return (
-    <section id="final" className="border-y border-border bg-card/60 py-20 lg:py-28">
+    <section id="final" className="bg-foreground py-24 text-background lg:py-36">
       <div className="mx-auto max-w-[120rem] px-5 lg:px-8">
         <div className="mx-auto max-w-3xl text-center">
-          <h2 className="text-balance font-heading text-[clamp(1.9rem,5vw,3.5rem)] font-extrabold leading-[1.1] tracking-tight text-foreground">
+          <h2 className="text-balance font-heading text-[clamp(1.9rem,5vw,3.5rem)] font-extrabold leading-[1.1] tracking-tight text-background">
             {finalCta.title}
             <span className="brand-gradient-text mt-2 block">{finalCta.subtitle}</span>
           </h2>
 
-          <p className="mt-5 text-lg leading-[1.7] text-muted-foreground">{finalCta.body}</p>
+          <p className="mt-5 text-lg leading-[1.7] text-background/85">{finalCta.body}</p>
           <Prose
             text={finalCta.ask}
-            className="mt-4 text-lg leading-[1.7] text-foreground/85"
+            className="mt-4 text-lg leading-[1.7] text-background/85"
           />
 
           <div className="mt-9 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <OrderCta
               href="#order"
-              className="inline-flex items-center gap-2 rounded-full bg-primary px-8 py-3.5 font-bold text-primary-foreground shadow-sm transition hover:brightness-105"
+              className="hover-lift inline-flex items-center gap-2 rounded-full bg-primary px-8 py-3.5 font-bold text-primary-foreground shadow-sm transition hover:brightness-105"
             >
               {finalCta.primaryCta}
               <ArrowLeft className="h-4 w-4" />
             </OrderCta>
+            {/* כפתור משני כהה — surface-dark/surface-dark-border מטוקני
+                שלב 1, כמו FinalCta.jsx שורה ~37 (היה בעבר בהיר, לא
+                מתאים לרקע הכהה החדש של הסקשן). */}
             <a
               href="#contact"
-              className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-8 py-3.5 font-bold text-foreground transition hover:border-primary/60"
+              className="hover-lift inline-flex items-center gap-2 rounded-full border border-surface-dark-border bg-surface-dark px-8 py-3.5 font-bold text-background transition-colors hover:border-primary/60"
             >
               <HelpCircle className="h-4 w-4" />
               {finalCta.secondaryCta}
