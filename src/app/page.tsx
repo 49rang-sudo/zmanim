@@ -27,6 +27,7 @@ import { CalendarBrowser } from "@/components/landing/CalendarBrowser";
 import { InquiryForm } from "@/components/landing/InquiryForm";
 import { InquiryPopup } from "@/components/landing/InquiryPopup";
 import { DesktopCta } from "@/components/landing/DesktopCta";
+import { InventoryStrip } from "@/components/landing/InventoryStrip";
 
 // זמינות משתנה כל הזמן — אסור להגיש את העמוד מהמטמון
 export const dynamic = "force-dynamic";
@@ -96,12 +97,21 @@ export default async function HomePage() {
         >
           <div className="mx-auto max-w-[120rem] px-5 py-14 lg:px-8 sm:py-20">
             {showLanding ? (
-              <div className="mb-10">
-                <SectionEyebrow text={settings.content.landing.months.eyebrow} />
-                <h2 className="mt-2 font-heading text-3xl font-black tracking-tight text-foreground sm:text-4xl">
-                  {settings.content.wizard.chooseTitle}
-                </h2>
-              </div>
+              <>
+                <div className="mb-10">
+                  <SectionEyebrow text={settings.content.landing.months.eyebrow} />
+                  <h2 className="mt-2 font-heading text-3xl font-black tracking-tight text-foreground sm:text-4xl">
+                    {settings.content.wizard.chooseTitle}
+                  </h2>
+                </div>
+
+                {/* 4ג: "מה עוד פנוי עכשיו" — פורט מ-InventoryStrip.jsx,
+                    ממוקם כאן בין הכותרת לאשף עצמו, תואם למיקום ב-
+                    Home.jsx (בין EditionPicker ל-CalendarBrowser
+                    ב-#months). צורך את landing.months הקיים בלבד —
+                    אין חישוב זמינות חדש. */}
+                <InventoryStrip months={landing.months} />
+              </>
             ) : null}
 
             <OrderWizard
