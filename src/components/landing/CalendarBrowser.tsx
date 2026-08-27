@@ -12,11 +12,7 @@ import {
   type BoardImage,
   type MockupSlot,
 } from "@/components/wizard/CalendarMockup";
-import {
-  announceOrderIntent,
-  ORDER_SECTION_ID,
-  scrollToSection,
-} from "@/lib/order-focus";
+import { openOrderModal } from "@/lib/order-focus";
 import type { SiteContentData } from "@/lib/content";
 import type { EditionAvailability } from "@/lib/availability";
 
@@ -34,7 +30,9 @@ import type { EditionAvailability } from "@/lib/availability";
    2 באשף ההזמנה, עם אותו מודל נתונים אמיתי (Hotspot/AdSlot,
    תפוסה/מכירה אמיתית). הוא לא משוכפל כאן: זהו מצב "תצוגה מקדימה"
    שלו (anchorSlot=null, selections={}) שמוביל בלחיצה על חלון פנוי
-   לאשף האמיתי (#order) — בדיוק כמו שכפתור ה-CTA הישן הוביל.
+   לפתיחת אשף ההזמנה האמיתי במודל — בדיוק כמו שכפתור ה-CTA הישן
+   הוביל (קודם בגלילה ל-#order, עכשיו בפתיחת המודל — ראו
+   src/lib/order-focus.ts / OrderModalHost.tsx).
 
    שני כללים שאסור לשבור כאן (ירשו מהגרסה הקודמת):
 
@@ -42,8 +40,8 @@ import type { EditionAvailability } from "@/lib/availability";
       ממסד הנתונים. "התחום נתפס" נכתב אך ורק כשיש שורת תפיסה
       אמיתית.
 
-   2. הבורר עצמו לא משוכפל. לחיצה על חלון/CTA מובילה לאשף
-      ההזמנה (#order) — שם, ורק שם, בוחרים מקום ומשלמים.
+   2. הבורר עצמו לא משוכפל. לחיצה על חלון/CTA פותחת את מודל
+      ההזמנה — שם, ורק שם, בוחרים מקום ומשלמים.
    =============================================================== */
 
 const TIER_ORDER: PresenceTier[] = ["ANCHOR", "COMPLEMENTARY"];
@@ -168,10 +166,9 @@ export function CalendarBrowser({
       ? currentMonth.categories.filter((c) => matched.has(c.slotId) && !c.taken)
       : [];
 
-  /** לחיצה על חלון פנוי בגיליון — מובילה לאשף האמיתי, עם כוונת הדרגה */
+  /** לחיצה על חלון פנוי בגיליון — פותחת את אשף ההזמנה האמיתי במודל, עם כוונת הדרגה */
   const handleHotspotSelect = (slot: MockupSlot) => {
-    announceOrderIntent(slot.tier);
-    scrollToSection(ORDER_SECTION_ID);
+    openOrderModal(slot.tier);
   };
 
   return (
