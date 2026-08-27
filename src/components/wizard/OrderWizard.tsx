@@ -9,7 +9,9 @@ import {
   ArrowRight,
   CheckCircle2,
   Clock,
+  Loader2,
   Mail,
+  Search,
   ShieldCheck,
 } from "lucide-react";
 import {
@@ -34,6 +36,8 @@ import {
   WTextarea as Textarea,
 } from "./ui";
 import { cn, formatCm, formatPrice } from "@/lib/utils";
+import { boardForMonth } from "@/lib/board";
+import { categoryMatches } from "@/lib/landing-shared";
 import {
   AD_PACKAGES,
   sumWithPackageDiscount,
@@ -621,6 +625,19 @@ export function OrderWizard({
             title={content.wizard.chooseTitle}
             subtitle={content.wizard.chooseSubtitle}
           />
+
+          {/* חיפוש תחום עסק — מדלג אוטומטית לחודש המתאים, לפני שבוחרים
+              מקום. נעלם ברגע שנבחר מקום, בדיוק כמו הודעת ה-intentTier
+              למטה: זו עזרה למציאת החודש, לא רלוונטית יותר אחרי הבחירה. */}
+          {!anchorSlot ? (
+            <CategorySearch
+              board={board}
+              editions={editions ?? []}
+              content={content}
+              onJump={setViewedEditionId}
+            />
+          ) : null}
+
           <CalendarMockup
             board={board}
             calendar={content.calendar}
@@ -1290,5 +1307,291 @@ function HoldTimer({ expiresAt }: { expiresAt: string }) {
         />
       </div>
     </div>
+  );
+}
+
+/* ===============================================================
+   חיפוש תחום עסק בתוך שלב 2 — "בחירת מהדורה + הקלדת תחום, המערכת
+   מתמקדת אוטומטית בעמוד הרלוונטי, ואם לא נמצא — משאירים פנייה"
+   (בקשת הלקוחה). אותו כלל התאמה בדיוק כמו בעמוד הנחיתה
+   (categoryMatches, src/lib/landing-shared.ts) ואותה תבנית גיבוי
+   (boardForMonth) שמזינה את ספירת המלאי בשרת — בלי לשכפל לוגיקה.
+   =============================================================== */
+
+type CategoryMatch = {
+  editionId: string;
+  hebrewLabel: string;
+  category: string;
+  taken: boolean;
+};
+
+function CategorySearch({
+  board,
+  editions,
+  content,
+  onJump,
+}: {
+  board: BoardImage[];
+  editions: EditionAvailability[];
+  content: SiteContentData;
+  onJump: (editionId: string) => void;
+}) {
+  const [query, setQuery] = React.useState("");
+  const [showInquiry, setShowInquiry] = React.useState(false);
+
+  const trimmed = query.trim();
+  const searching = trimmed.length >= 2;
+
+  const matches = React.useMemo<CategoryMatch[]>(() => {
+    if (!searching) return [];
+    const out: CategoryMatch[] = [];
+    for (const edition of editions) {
+      const occupied = new Set(edition.occupiedSlotIds);
+      const monthBoard = boardForMonth(board, edition.gregorianMonth);
+      for (const image of monthBoard) {
+        for (const spot of image.hotspots) {
+          if (categoryMatches(spot.category, trimmed)) {
+            out.push({
+              editionId: edition.id,
+              hebrewLabel: edition.hebrewLabel,
+              category: spot.category,
+              taken: occupied.has(spot.slot.id),
+            });
+          }
+        }
+      }
+    }
+    return out;
+  }, [board, editions, trimmed, searching]);
+
+  // מעדיפים התאמה פנויה על תפוסה, אבל לא מתעלמים מתפוסה — עדיף
+  // להראות "התאמה נמצאה, אבל תפוסה" מאשר "שום התאמה" שקרי.
+  const bestMatch = matches.find((m) => !m.taken) ?? matches[0] ?? null;
+
+  // קופצים לחודש של ההתאמה הכי טובה — פעם אחת לכל תוצאה חדשה, לא
+  // בכל רינדור (אחרת דפדוף ידני של המשתמש בין החודשים אחרי הקפיצה
+  // היה נדרס בחזרה על כל הקלדה נוספת של אותה תוצאה).
+  const jumpedEditionIdRef = React.useRef<string | null>(null);
+  React.useEffect(() => {
+    if (!bestMatch || jumpedEditionIdRef.current === bestMatch.editionId) {
+      return;
+    }
+    jumpedEditionIdRef.current = bestMatch.editionId;
+    onJump(bestMatch.editionId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bestMatch?.editionId]);
+
+  React.useEffect(() => {
+    if (!searching) setShowInquiry(false);
+  }, [searching]);
+
+  const noMatch = searching && matches.length === 0;
+
+  return (
+    <div className="mb-6 rounded-2xl border border-border bg-secondary/30 p-4">
+      <label
+        htmlFor="wizard-category-search"
+        className="mb-2 block text-[13.5px] font-semibold text-foreground"
+      >
+        מה העסק שלכם עושה?
+      </label>
+      <div className="flex items-center rounded-full border border-border bg-card">
+        <Search className="ms-3.5 size-4 shrink-0 text-muted-foreground" />
+        <input
+          id="wizard-category-search"
+          type="search"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="הקלידו תחום, ונדלג ישר לחודש המתאים"
+          className="w-full bg-transparent px-3 py-3 text-[14.5px] text-foreground placeholder:text-muted-foreground focus:outline-none"
+        />
+      </div>
+
+      {bestMatch ? (
+        <p className="mt-2.5 text-[13px] leading-relaxed text-foreground/80">
+          נמצא <strong className="text-foreground">{bestMatch.category}</strong>{" "}
+          ב<strong className="text-foreground">{bestMatch.hebrewLabel}</strong> —
+          עברנו לשם.{" "}
+          {bestMatch.taken
+            ? "שימו לב: המקום הזה עצמו כבר תפוס, אבל אולי יש מקום פנוי נוסף באותו חודש."
+            : "בחרו את המקום המסומן בגיליון למטה."}
+        </p>
+      ) : null}
+
+      {noMatch ? (
+        <div className="mt-3">
+          <p className="text-[13px] leading-relaxed text-foreground/80">
+            לא מצאנו התאמה ל&quot;{trimmed}&quot; באף חודש פתוח כרגע. אל
+            תוותרו — נשמח לבדוק לכם התאמה בעצמנו.
+          </p>
+          {!showInquiry ? (
+            <button
+              type="button"
+              onClick={() => setShowInquiry(true)}
+              className="mt-2 text-[13px] font-semibold text-primary underline underline-offset-2 hover:brightness-90"
+            >
+              נשאיר פנייה ונמצא התאמה
+            </button>
+          ) : (
+            <InlineInquiryFallback
+              content={content}
+              initialCategory={trimmed}
+              onDone={() => setShowInquiry(false)}
+            />
+          )}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * גרסה מצומצמת של טופס הפנייה — לא שכפול לוגי: אותו /api/inquiries,
+ * אותה סכמה (source: "FORM"), אותם שדות חובה בדיוק כמו ב-InquiryForm
+ * המלא (src/components/landing/InquiryForm.tsx). ההבדל היחיד הוא
+ * העיצוב — קטע מלא ברוחב עמוד עם ריווח py-24 לא מתאים בתוך שלב
+ * באשף שיושב בתוך מודל, וגם היה יוצר התנגשות מזהה id="contact" עם
+ * הקטע המקביל בעמוד הנחיתה שמאחורי המודל. תחום העסק ממולא מראש
+ * ממה שכבר הוקלד בחיפוש למעלה, כדי לא להקליד את זה פעמיים.
+ */
+function InlineInquiryFallback({
+  content,
+  initialCategory,
+  onDone,
+}: {
+  content: SiteContentData;
+  initialCategory: string;
+  onDone: () => void;
+}) {
+  const [form, setForm] = React.useState({
+    businessName: "",
+    category: initialCategory,
+    contactName: "",
+    phone: "",
+    email: "",
+  });
+  const [errors, setErrors] = React.useState<Record<string, string>>({});
+  const [busy, setBusy] = React.useState(false);
+  const [sent, setSent] = React.useState(false);
+
+  const submit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const next: Record<string, string> = {};
+    if (form.businessName.trim().length < 2) next.businessName = "נא למלא את שם העסק";
+    if (form.category.trim().length < 2) next.category = "נא לפרט מה העסק מציע";
+    if (form.contactName.trim().length < 2) next.contactName = "נא למלא שם ליצירת קשר";
+    if (!/^[0-9+\-\s()]{9,20}$/.test(form.phone.trim())) next.phone = "מספר טלפון לא תקין";
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.email.trim())) next.email = "כתובת מייל לא תקינה";
+
+    setErrors(next);
+    if (Object.keys(next).length > 0) return;
+
+    setBusy(true);
+    try {
+      const res = await fetch("/api/inquiries", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          source: "FORM",
+          businessName: form.businessName.trim(),
+          category: form.category.trim(),
+          contactName: form.contactName.trim(),
+          phone: form.phone.trim(),
+          email: form.email.trim(),
+        }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        toast.error(body?.error?.message ?? "השליחה נכשלה. נסו שוב בעוד רגע.");
+        return;
+      }
+
+      setSent(true);
+    } catch {
+      toast.error("שגיאת רשת. נסו שוב.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (sent) {
+    return (
+      <div className="mt-3 flex items-center gap-2.5 rounded-2xl border border-border bg-card p-4">
+        <CheckCircle2 className="size-5 shrink-0 text-primary" />
+        <div>
+          <p className="text-[13.5px] font-semibold text-foreground">
+            {content.landing.status.inquiryReceived}
+          </p>
+          <button
+            type="button"
+            onClick={onDone}
+            className="mt-1 text-[12.5px] font-semibold text-primary underline underline-offset-2 hover:brightness-90"
+          >
+            סגירה, וחזרה לדפדוף בחודשים
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <form
+      onSubmit={submit}
+      className="mt-3 grid gap-2.5 rounded-2xl border border-border bg-card p-4"
+    >
+      <div className="grid gap-2.5 sm:grid-cols-2">
+        <Field label="שם העסק *" error={errors.businessName}>
+          <Input
+            value={form.businessName}
+            aria-invalid={!!errors.businessName}
+            onChange={(e) => setForm({ ...form, businessName: e.target.value })}
+          />
+        </Field>
+        <Field label="תחום הפעילות *" error={errors.category}>
+          <Input
+            value={form.category}
+            aria-invalid={!!errors.category}
+            onChange={(e) => setForm({ ...form, category: e.target.value })}
+          />
+        </Field>
+        <Field label="שם ליצירת קשר *" error={errors.contactName}>
+          <Input
+            value={form.contactName}
+            autoComplete="name"
+            aria-invalid={!!errors.contactName}
+            onChange={(e) => setForm({ ...form, contactName: e.target.value })}
+          />
+        </Field>
+        <Field label="טלפון *" error={errors.phone}>
+          <Input
+            type="tel"
+            dir="ltr"
+            className="text-right"
+            value={form.phone}
+            autoComplete="tel"
+            aria-invalid={!!errors.phone}
+            onChange={(e) => setForm({ ...form, phone: e.target.value })}
+          />
+        </Field>
+      </div>
+      <Field label="אימייל *" error={errors.email}>
+        <Input
+          type="email"
+          dir="ltr"
+          className="text-right"
+          value={form.email}
+          autoComplete="email"
+          aria-invalid={!!errors.email}
+          onChange={(e) => setForm({ ...form, email: e.target.value })}
+        />
+      </Field>
+
+      <Button type="submit" variant="pill" loading={busy} className="mt-1 justify-self-start">
+        {busy ? <Loader2 className="size-4 animate-spin" /> : null}
+        שליחת הפנייה
+      </Button>
+    </form>
   );
 }
