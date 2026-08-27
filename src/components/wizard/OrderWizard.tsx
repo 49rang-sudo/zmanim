@@ -262,9 +262,15 @@ export function OrderWizard({
     fetch("/api/cities", { cache: "no-store" })
       .then((res) => res.json())
       .then((data) => {
+        // /api/cities מחזיר תמיד את כל הערים (גם מלאות/סגורות, עם
+        // available:false) כדי ש-CityPicker יוכל להציג אותן כאפורות —
+        // "מהדורה אחת" אומר עיר פנויה אחת, לא שורה אחת בתשובה. תוקן
+        // אחרי בדיקה אמיתית בדפדפן שגילתה שהתנאי הישן (cities.length)
+        // אף פעם לא היה אמת בפועל.
         const cities: CityAvailability[] = data.cities ?? [];
-        if (cities.length === 1) {
-          handleCitySelect(cities[0]);
+        const openCities = cities.filter((c) => c.available);
+        if (openCities.length === 1) {
+          handleCitySelect(openCities[0]);
           goTo(2);
         }
       })
