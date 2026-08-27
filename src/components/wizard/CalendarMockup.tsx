@@ -90,6 +90,13 @@ type Props = {
 
 const TIER_ORDER: PresenceTier[] = ["ANCHOR", "COMPLEMENTARY"];
 
+// פלטת ריבועי הפרסום — זהה במדויק ל-zmanim2-base44/src/components/zmanim/AdSquare.jsx
+// (בקשה מפורשת של בעלת האתר: "להחליף לעיצוב המדויק של בייס44"), במקום
+// טוקני "הנייר" (--color-paper-*) שהיו כאן קודם.
+const HOTSPOT_CREAM = "#fdfbf7";
+const HOTSPOT_BROWN = "#7e6355";
+const HOTSPOT_ACCENT = "#d4b499";
+
 export function CalendarMockup({
   board,
   calendar,
@@ -462,23 +469,21 @@ export function CalendarMockup({
                               width: `${spot.width}%`,
                               height: `${spot.height}%`,
                               animationDelay: `${index * 45}ms`,
-                              borderColor:
-                                isPicked || isEligible
-                                  ? "var(--color-paper-accent)"
-                                  : isOccupied
-                                    ? "var(--color-paper-line-2)"
-                                    : isAnchorTier
-                                      ? "var(--color-paper-ink)"
-                                      : "var(--color-paper-ink-2)",
-                              background: isPicked
-                                ? "var(--color-paper-accent-soft)"
+                              // פלטת בייס44 (CREAM/BROWN) במדויק, לא הטוקנים
+                              // הקיימים של "נייר" — בקשה מפורשת של בעלת האתר
+                              // להחליף לעיצוב הריבועים המדויק כמו בבייס44.
+                              borderColor: isOccupied ? `${HOTSPOT_BROWN}44` : `${HOTSPOT_BROWN}77`,
+                              background: isPicked || isEligible
+                                ? `${HOTSPOT_ACCENT}55`
                                 : isOccupied
-                                  ? "color-mix(in srgb, var(--color-paper-3) 92%, transparent)"
-                                  : "color-mix(in srgb, var(--color-paper) 90%, transparent)",
+                                  ? `${HOTSPOT_CREAM}66`
+                                  : soldTo
+                                    ? `${HOTSPOT_CREAM}8c`
+                                    : "rgba(255,255,255,0.55)",
                             }}
                             className={cn(
                               "group flex flex-col items-center justify-center gap-0.5",
-                              "rounded-[3px] p-1 text-center leading-tight",
+                              "rounded-lg p-1.5 text-center leading-tight",
                               "transition-[transform,background-color,border-color] duration-200 ease-smooth",
                               "animate-[pop-in_0.4s_var(--ease-out-soft)_both]",
                               // העוגן נושא מסגרת מלאה ועבה יותר גם
@@ -487,11 +492,11 @@ export function CalendarMockup({
                               isOccupied
                                 ? "cursor-not-allowed border border-solid"
                                 : isPicked
-                                  ? "cursor-pointer border-2"
+                                  ? "cursor-pointer border-2 border-solid"
                                   : isEligible
-                                    ? "cursor-pointer border-2 [animation:card-pulse_1.8s_ease-in-out_infinite] hover:scale-[1.03]"
-                                    : isAnchorTier
-                                      ? "cursor-pointer border-2 border-solid hover:scale-[1.03]"
+                                    ? "cursor-pointer border-2 border-solid [animation:card-pulse_1.8s_ease-in-out_infinite] hover:scale-[1.03]"
+                                    : isAnchorTier || soldTo
+                                      ? "cursor-pointer border border-solid hover:scale-[1.03]"
                                       : "cursor-pointer border border-dashed hover:scale-[1.03] hover:border-solid",
                             )}
                           >
@@ -500,9 +505,7 @@ export function CalendarMockup({
                                 <ConfettiBurst />
                                 <span
                                   className="absolute right-1 top-1 grid size-4 place-items-center rounded-full text-white"
-                                  style={{
-                                    background: "var(--color-paper-accent)",
-                                  }}
+                                  style={{ background: HOTSPOT_BROWN }}
                                 >
                                   <Check className="size-2.5" strokeWidth={3} />
                                 </span>
@@ -518,48 +521,42 @@ export function CalendarMockup({
                               /* נמכר ושולם — הלוח מתמלא לעיני הבאים */
                               <>
                                 <span
-                                  className="text-[8.5px] uppercase tracking-[0.12em]"
-                                  style={{ color: "var(--color-paper-muted)" }}
+                                  className="text-[10px] uppercase tracking-[0.1em]"
+                                  style={{ color: HOTSPOT_BROWN }}
                                 >
                                   כאן מפרסם
                                 </span>
                                 <span
-                                  className="line-clamp-2 text-[11.5px] font-bold"
-                                  style={{ color: "var(--color-paper-ink)" }}
+                                  className="line-clamp-2 text-[13px] font-extrabold"
+                                  style={{ color: HOTSPOT_BROWN }}
                                 >
                                   {soldTo}
                                 </span>
                               </>
                             ) : isOccupied ? (
-                              <span
-                                className="text-[11px] font-semibold"
-                                style={{ color: "var(--color-paper-muted)" }}
-                              >
+                              <span className="text-[12px] font-semibold" style={{ color: HOTSPOT_BROWN }}>
                                 תפוס
                               </span>
                             ) : (
                               <>
-                                <span
-                                  className="text-[8.5px]"
-                                  style={{ color: "var(--color-paper-muted)" }}
-                                >
+                                <span className="text-[10px]" style={{ color: HOTSPOT_BROWN }}>
                                   מקום זה שמור ל
                                 </span>
                                 <span
                                   className={cn(
                                     "line-clamp-2 font-semibold",
-                                    isAnchorTier ? "text-[12.5px]" : "text-[11px]",
+                                    isAnchorTier ? "text-[13px]" : "text-[12px]",
                                   )}
-                                  style={{ color: "var(--color-paper-ink-2)" }}
+                                  style={{ color: HOTSPOT_BROWN }}
                                 >
                                   {spot.category}
                                 </span>
                                 <span
                                   className={cn(
                                     "tnum font-bold leading-none",
-                                    isAnchorTier ? "text-[12.5px]" : "text-[11px]",
+                                    isAnchorTier ? "text-[13px]" : "text-[12px]",
                                   )}
-                                  style={{ color: "var(--color-paper-accent)" }}
+                                  style={{ color: HOTSPOT_BROWN }}
                                 >
                                   {formatPrice(slot.priceAgorot)}
                                 </span>
