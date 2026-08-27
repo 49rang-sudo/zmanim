@@ -32,7 +32,9 @@ function Field({
 }) {
   return (
     <label className="block" htmlFor={htmlFor}>
-      <span className="mb-1.5 block text-xs font-semibold text-muted-foreground">{label}</span>
+      <span className="mb-1.5 block text-sm font-semibold text-muted-foreground-strong">
+        {label}
+      </span>
       {children}
       {error ? (
         <p className="mt-1.5 text-xs text-destructive">{error}</p>
@@ -43,10 +45,12 @@ function Field({
   );
 }
 
+/* text-base (16px) ולא text-sm: מתחת ל-16px ספארי/כרום בנייד עושים
+   auto-zoom אוטומטי כשלוחצים לתוך input — פורט מ-ContactForm.jsx. */
 function fieldClass(invalid?: boolean) {
   return `w-full h-11 rounded-xl border ${
     invalid ? "border-destructive" : "border-border"
-  } bg-background px-4 text-sm transition focus:border-primary focus:outline-none`;
+  } bg-background px-4 text-base transition focus:border-primary focus:outline-none`;
 }
 
 const PHONE = /^[0-9+\-\s()]{9,20}$/;
@@ -141,20 +145,19 @@ export function InquiryForm({ content }: { content: SiteContentData }) {
   };
 
   return (
-    <section id="contact" className="scroll-mt-20 py-20 lg:py-28">
+    <section id="contact" className="scroll-mt-20 py-24 lg:py-36">
       <div className="mx-auto max-w-2xl px-5 lg:px-8">
         <div className="mb-10 text-center">
-          <div className="mb-5 flex items-center justify-center gap-3">
-            <span className="h-px w-8 bg-primary" />
-            <span className="text-xs font-semibold tracking-wide text-primary">
+          <div className="mb-5 flex justify-center">
+            <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3.5 py-1.5 text-xs font-bold tracking-wide text-primary">
+              <span className="h-1.5 w-1.5 rounded-full bg-primary" />
               {copy.eyebrow}
             </span>
-            <span className="h-px w-8 bg-primary" />
           </div>
           <h2 className="text-balance font-heading text-[clamp(1.8rem,4vw,3rem)] font-extrabold leading-[1.1] tracking-tight text-foreground">
             {copy.title}
           </h2>
-          <p className="mt-4 text-sm leading-[1.7] text-muted-foreground">{copy.intro}</p>
+          <p className="mt-4 text-base leading-[1.7] text-muted-foreground">{copy.intro}</p>
         </div>
 
         {sent ? (
@@ -251,7 +254,7 @@ export function InquiryForm({ content }: { content: SiteContentData }) {
               <textarea
                 id="inq-note"
                 rows={3}
-                className="w-full resize-none rounded-xl border border-border bg-background px-4 py-3 text-sm transition focus:border-primary focus:outline-none"
+                className="w-full resize-none rounded-xl border border-border bg-background px-4 py-3 text-base transition focus:border-primary focus:outline-none"
                 {...bind("note")}
               />
             </Field>
@@ -263,7 +266,7 @@ export function InquiryForm({ content }: { content: SiteContentData }) {
             <button
               type="submit"
               disabled={busy}
-              className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-primary font-bold text-primary-foreground shadow-sm transition hover:brightness-105 disabled:opacity-50"
+              className="hover-lift flex h-12 w-full items-center justify-center gap-2 rounded-full bg-primary text-base font-bold text-primary-foreground shadow-sm transition hover:brightness-105 disabled:opacity-50"
             >
               {busy ? (
                 <>
@@ -274,8 +277,8 @@ export function InquiryForm({ content }: { content: SiteContentData }) {
               )}
             </button>
 
-            <p className="text-center text-xs text-muted-foreground">{copy.microcopy}</p>
-            <p className="text-center text-[11px] leading-relaxed text-muted-foreground/80">
+            <p className="text-center text-sm text-muted-foreground-strong">{copy.microcopy}</p>
+            <p className="text-center text-sm leading-[1.5] text-muted-foreground-strong">
               {copy.privacyNote}
             </p>
           </form>
