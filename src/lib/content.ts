@@ -88,6 +88,30 @@ const landingSchema = z.object({
     title: z.string(),
   }),
 
+  /**
+   * 6.5 · הוכחה חברתית — שדה חדש (אין לו מספר סעיף מקורי בין 19
+   * הסעיפים של הלקוחה). ברירת מחדל עם מערכים ריקים בכוונה: הסקשן
+   * מסתתר לגמרי כל עוד לא הוזן ולו לוגו/ציטוט אחד — בדיוק כמו
+   * ב-SocialProof.jsx של בייס44 (`if (!logos.length && !quotes.length)
+   * return null`). מיקום: מיד אחרי "למה זה לא עוד מקום פרסום",
+   * לפני "מה מקבלים בפועל" — מסונכרן מול הסדר ב-Home.jsx.
+   */
+  socialProof: z.object({
+    eyebrow: z.string(),
+    heading: z.string(),
+    /** שמות עסקים שכבר בנבחרת, מוצגים כתגיות */
+    logos: z.array(z.string()).max(8),
+    quotes: z
+      .array(
+        z.object({
+          quote: z.string(),
+          name: z.string(),
+          business: z.string(),
+        }),
+      )
+      .max(6),
+  }),
+
   /** 7 · מה מקבלים בפועל? */
   whatYouGet: z.object({
     eyebrow: z.string(),
@@ -339,6 +363,15 @@ export const defaultLanding: LandingContent = {
     eyebrow: "למה זה לא עוד מקום פרסום",
     title: `כי יש הבדל בין לקנות שטח פרסום
 לבין לבחור איפה העסק שלכם פוגש את הלקוח.`,
+  },
+
+  // ריק בכוונה — הסקשן מסתתר אוטומטית עד שיוזן לוגו/ציטוט ראשון
+  // דרך לוח הניהול (ContentTab). ראו הערת ה-zod למעלה.
+  socialProof: {
+    eyebrow: "כבר בנבחרת",
+    heading: "עסקים שכבר מצאו את הזמן שלהם.",
+    logos: [],
+    quotes: [],
   },
 
   whatYouGet: {

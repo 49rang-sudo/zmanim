@@ -11,6 +11,7 @@ import {
   Mail,
   MapPin,
   Palette,
+  Quote,
   Sparkles,
   Star,
   Upload,
@@ -21,6 +22,7 @@ import { CountUpStat } from "./CountUpStat";
 import { ClockMark } from "./ClockMark";
 import { OrderCta } from "./OrderCta";
 import { HoverAccordion } from "./HoverAccordion";
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { formatPrice } from "@/lib/utils";
 import { TIER_LABELS } from "@/lib/packages";
 import type { SiteContentData } from "@/lib/content";
@@ -419,17 +421,78 @@ export function WhyNotAnother({ content }: { content: SiteContentData }) {
 }
 
 /* ===============================================================
+   6.5 · הוכחה חברתית — פורט מ-SocialProof.jsx
+
+   בלי framer-motion (לא תלות קיימת באתר האמיתי) — כרטיסי הציטוט
+   מוצגים ישירות, בלי אנימציית scroll-reveal. מסתתר אוטומטית
+   כשאין אף לוגו ואף ציטוט (content.landing.socialProof, ראו
+   content.ts) — בדיוק כמו במקור.
+   =============================================================== */
+
+export function SocialProof({ content }: { content: SiteContentData }) {
+  const { socialProof } = content.landing;
+  if (socialProof.logos.length === 0 && socialProof.quotes.length === 0) {
+    return null;
+  }
+
+  return (
+    <section id="social-proof" className="py-24 lg:py-36">
+      <div className="mx-auto max-w-[120rem] px-5 lg:px-8">
+        <div className="mb-14 max-w-2xl">
+          <SectionEyebrow text={socialProof.eyebrow} />
+          <h2 className="text-balance font-heading text-[30px] font-bold leading-[1.15] tracking-tight text-foreground lg:text-[44px]">
+            {socialProof.heading}
+          </h2>
+        </div>
+
+        {socialProof.logos.length > 0 ? (
+          <div className="mb-12 flex flex-wrap gap-3">
+            {socialProof.logos.map((name, index) => (
+              <span
+                key={index}
+                className="hover-shadow rounded-full border border-border bg-card px-5 py-2 font-heading text-base font-bold soft-shadow transition-colors hover:border-primary hover:text-primary"
+              >
+                {name}
+              </span>
+            ))}
+          </div>
+        ) : null}
+
+        {socialProof.quotes.length > 0 ? (
+          <div className="grid gap-6 md:grid-cols-3">
+            {socialProof.quotes.map((q, index) => (
+              <blockquote
+                key={index}
+                className="hover-shadow rounded-2xl border border-border bg-card p-6 soft-shadow transition-colors hover:border-primary/60"
+              >
+                <Quote className="mb-4 h-7 w-7 text-primary" />
+                <p className="text-base leading-[1.7] text-foreground/85">{q.quote}</p>
+                <footer className="mt-5">
+                  <div className="font-heading font-bold">{q.name}</div>
+                  <div className="mt-0.5 text-sm text-muted-foreground-strong">
+                    {q.business}
+                  </div>
+                </footer>
+              </blockquote>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+/* ===============================================================
    7 · מה מקבלים בפועל? — פורט מ-WhatYouGet.jsx
    =============================================================== */
 
 export function WhatYouGet({ content }: { content: SiteContentData }) {
   const { whatYouGet } = content.landing;
 
-  // 3ב: אין עדיין primitive של Accordion תחת src/components/ui/ (רק
-  // primitives/dialog/button) — הוספת רדיוס/shadcn חדשה היא תלות
-  // שצריכה החלטה מפורשת מהלקוחה, לא להוסיף בשקט. בינתיים מסונכרן
-  // רק spacing/radius/eyebrow מול WhatYouGet.jsx; מבנה שני-הקלפים
-  // (במקום אקורדיון עם "רק הראשון פתוח") נשאר כפי שהיה. ראו דיווח.
+  // אקורדיון אמיתי (Radix, src/components/ui/accordion.tsx) במקום שני
+  // כרטיסים פתוחים במקביל - רק "מה שאתם מקבלים" פתוח כברירת מחדל, כדי
+  // לא לשפוך את כל התוכן על המבקר/ת בבת אחת. תלות חדשה (@radix-ui/react-accordion)
+  // שאושרה במפורש על ידי בעלת האתר. פורט מ-WhatYouGet.jsx.
   return (
     <section id="what-you-get" className="scroll-mt-20 py-24 lg:py-36">
       <div className="mx-auto max-w-[120rem] px-5 lg:px-8">
@@ -440,34 +503,48 @@ export function WhatYouGet({ content }: { content: SiteContentData }) {
           </h2>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          <div className="hover-shadow soft-shadow rounded-2xl border border-border bg-card p-7 transition-colors">
-            <h3 className="mb-5 font-heading text-xl font-bold">מה שאתם מקבלים</h3>
-            <ul className="space-y-3">
-              {whatYouGet.items.map((item, index) => (
-                <li key={index} className="flex items-start gap-3 text-sm leading-relaxed">
-                  <Check className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+        <Accordion type="single" collapsible defaultValue="included" className="max-w-4xl space-y-3">
+          <AccordionItem
+            value="included"
+            className="hover-shadow soft-shadow rounded-2xl border border-border bg-card px-6 transition-colors data-[state=open]:border-primary/40"
+          >
+            <AccordionTrigger className="py-5 font-heading text-xl font-bold">
+              מה שאתם מקבלים
+            </AccordionTrigger>
+            <AccordionContent className="pb-6">
+              <ul className="space-y-3">
+                {whatYouGet.items.map((item, index) => (
+                  <li key={index} className="flex items-start gap-3 text-sm leading-relaxed">
+                    <Check className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </AccordionContent>
+          </AccordionItem>
 
-          <div className="hover-shadow soft-shadow rounded-2xl border border-border bg-secondary/60 p-7 transition-colors">
-            <div className="mb-5 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-background">
-                <Upload className="h-5 w-5 text-primary" />
-              </div>
-              <h3 className="font-heading text-xl font-bold">{whatYouGet.bringTitle}</h3>
-            </div>
-            <p className="mb-5 text-sm leading-[1.7] text-foreground/80">
-              {whatYouGet.bringText}
-            </p>
-            <p className="text-sm font-semibold leading-relaxed text-foreground">
-              {whatYouGet.bringNote}
-            </p>
-          </div>
-        </div>
+          <AccordionItem
+            value="bring"
+            className="hover-shadow soft-shadow rounded-2xl border border-border bg-secondary/60 px-6 transition-colors data-[state=open]:border-primary/40"
+          >
+            <AccordionTrigger className="py-5 font-heading text-xl font-bold">
+              <span className="flex items-center gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-background">
+                  <Upload className="h-5 w-5 text-primary" />
+                </span>
+                {whatYouGet.bringTitle}
+              </span>
+            </AccordionTrigger>
+            <AccordionContent className="pb-6">
+              <p className="mb-5 text-sm leading-[1.7] text-foreground/80">
+                {whatYouGet.bringText}
+              </p>
+              <p className="text-sm font-semibold leading-relaxed text-foreground">
+                {whatYouGet.bringNote}
+              </p>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
       </div>
     </section>
   );

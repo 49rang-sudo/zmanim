@@ -335,6 +335,138 @@ export function ContentTab() {
         </Button>
       </Section>
 
+      {/* --- הוכחה חברתית --- */}
+      <Section title="הוכחה חברתית" className="mt-5">
+        <p className="mb-4 text-[12.5px] leading-relaxed text-muted">
+          הסקשן מוצג בעמוד הנחיתה רק אחרי שיש לפחות לוגו אחד או ציטוט
+          אחד למטה — כל עוד שניהם ריקים הוא נשאר מוסתר לגמרי.
+        </p>
+
+        <div className="grid gap-x-4 sm:grid-cols-2">
+          <Field label="כותרת עליונה" htmlFor="socialProofEyebrow">
+            <Input
+              id="socialProofEyebrow"
+              {...bind("landing.socialProof.eyebrow")}
+            />
+          </Field>
+          <Field label="כותרת" htmlFor="socialProofHeading">
+            <Input
+              id="socialProofHeading"
+              {...bind("landing.socialProof.heading")}
+            />
+          </Field>
+        </div>
+
+        <p className="mb-2 mt-4 text-[12px] font-semibold uppercase tracking-wide text-muted">
+          לוגואים / שמות עסקים
+        </p>
+        {content.landing.socialProof.logos.map((_, index) => (
+          <div key={index} className="mb-2 flex items-center gap-2">
+            <Input
+              className="flex-1"
+              placeholder="שם העסק"
+              {...bind(`landing.socialProof.logos.${index}`)}
+            />
+            <Button
+              variant="quiet"
+              size="icon"
+              aria-label="הסרת לוגו"
+              onClick={() =>
+                setContent(
+                  setPath(
+                    content,
+                    "landing.socialProof.logos",
+                    content.landing.socialProof.logos.filter(
+                      (_, i) => i !== index,
+                    ),
+                  ),
+                )
+              }
+            >
+              <Trash2 className="size-4 text-danger" />
+            </Button>
+          </div>
+        ))}
+        <Button
+          variant="subtle"
+          size="sm"
+          onClick={() =>
+            setContent(
+              setPath(content, "landing.socialProof.logos", [
+                ...content.landing.socialProof.logos,
+                "",
+              ]),
+            )
+          }
+        >
+          <Plus className="size-4" />
+          הוספת לוגו
+        </Button>
+
+        <p className="mb-2 mt-5 text-[12px] font-semibold uppercase tracking-wide text-muted">
+          ציטוטים
+        </p>
+        {content.landing.socialProof.quotes.map((_, index) => (
+          <div
+            key={index}
+            className="mb-3 rounded-md border border-line bg-surface-2 p-4"
+          >
+            <div className="mb-2 flex items-center gap-2">
+              <span className="tnum grid size-6 place-items-center rounded-full bg-surface-3 text-[11px] font-bold text-ink-2">
+                {index + 1}
+              </span>
+              <div className="grid flex-1 gap-2 sm:grid-cols-2">
+                <Input
+                  placeholder="שם"
+                  {...bind(`landing.socialProof.quotes.${index}.name`)}
+                />
+                <Input
+                  placeholder="שם העסק"
+                  {...bind(`landing.socialProof.quotes.${index}.business`)}
+                />
+              </div>
+              <Button
+                variant="quiet"
+                size="icon"
+                aria-label="מחיקת ציטוט"
+                onClick={() =>
+                  setContent(
+                    setPath(
+                      content,
+                      "landing.socialProof.quotes",
+                      content.landing.socialProof.quotes.filter(
+                        (_, i) => i !== index,
+                      ),
+                    ),
+                  )
+                }
+              >
+                <Trash2 className="size-4 text-danger" />
+              </Button>
+            </div>
+            <Textarea
+              placeholder="הציטוט"
+              {...bind(`landing.socialProof.quotes.${index}.quote`)}
+            />
+          </div>
+        ))}
+        <Button
+          variant="subtle"
+          size="sm"
+          onClick={() =>
+            setContent(
+              setPath(content, "landing.socialProof.quotes", [
+                ...content.landing.socialProof.quotes,
+                { quote: "", name: "", business: "" },
+              ]),
+            )
+          }
+        >
+          <Plus className="size-4" />
+          הוספת ציטוט
+        </Button>
+      </Section>
+
       {/* --- סרגל שמירה דביק --- */}
       <div className="glass fixed inset-x-0 bottom-0 z-40 border-t border-line">
         <div className="mx-auto flex max-w-7xl items-center justify-end gap-3 px-5 py-3.5">

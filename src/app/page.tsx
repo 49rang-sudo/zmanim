@@ -19,6 +19,7 @@ import {
   Showcase,
   SiteFooter,
   SiteHeader,
+  SocialProof,
   WhatYouGet,
   WhyNotAnother,
 } from "@/components/landing/Landing";
@@ -118,6 +119,7 @@ export default async function HomePage() {
             <Showcase content={settings.content} data={landing} />
             <Difference content={settings.content} />
             <WhyNotAnother content={settings.content} />
+            <SocialProof content={settings.content} />
             <WhatYouGet content={settings.content} />
             <Pricing content={settings.content} data={landing} />
             <Benefit content={settings.content} />
