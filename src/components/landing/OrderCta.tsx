@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import {
-  announceOrderIntent,
+  openOrderModal,
   ORDER_SECTION_ID,
   resolveCtaTarget,
   scrollToSection,
@@ -25,7 +25,7 @@ type Props = {
 /**
  * כפתור ההזמנה של עמוד הנחיתה. נשאר `<a href>` אמיתי — כך הוא
  * עובד גם בלי JS, נפתח בלשונית חדשה בלחיצה אמצעית, ומופיע לגוגל
- * כקישור פנימי. מה שנוסף כאן הוא רק *לאן* הלחיצה גוללת בפועל.
+ * כקישור פנימי. מה שנוסף כאן הוא רק *לאן* הלחיצה מובילה בפועל.
  *
  * שני דברים שהמטפל עושה ושקישור עוגן רגיל לא יודע לעשות:
  *
@@ -33,6 +33,10 @@ type Props = {
  *    לקוחה מאמצע ההזמנה שלה כלפי מעלה, אל האזור השיווקי.
  *  · כפתור שמבטיח דרגה ("נוכחות עוגן") מודיע עליה לאשף, כדי
  *    שמה שנוחת יהיה מה שהובטח ולא מסך גנרי.
+ *
+ * היעד "order" כבר לא קטע בעמוד — הוא האשף במודל
+ * (OrderModalHost.tsx). כשהיעד שנפתר הוא order פותחים את המודל
+ * (openOrderModal); "months" נשאר קטע אמיתי בעמוד וממשיך לגלול.
  */
 export function OrderCta({ href, tier, className, children }: Props) {
   const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
@@ -51,10 +55,20 @@ export function OrderCta({ href, tier, className, children }: Props) {
     const target = resolveCtaTarget(href.slice(1));
     event.preventDefault();
 
-    if (scrollToSection(target)) {
-      if (target === ORDER_SECTION_ID) announceOrderIntent(tier ?? null);
+    if (target === ORDER_SECTION_ID) {
+      // המודל קיים רק בעמוד הבית (הוא מקבל את נתוני הבורד/תוכן
+      // משם). בעמוד אחר (/receipts, /order/[reference]) אין מי
+      // שיאזין לאירוע — נוסעים הביתה עם #order, ושם OrderModalHost
+      // פותח את המודל מיד בעליית העמוד (consumeOrderHash).
+      if (window.location.pathname === "/") {
+        openOrderModal(tier ?? null);
+      } else {
+        window.location.href = "/#order";
+      }
       return;
     }
+
+    if (scrollToSection(target)) return;
 
     // אין אזור כזה בעמוד הנוכחי — הסרגל העליון מוצג גם ב-/receipts
     // וב-/order/[reference], ושם קישור עוגן פשוט לא עושה כלום.

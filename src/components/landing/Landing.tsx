@@ -1095,9 +1095,12 @@ export function SiteFooter({ content }: { content: SiteContentData }) {
                 </li>
               ) : null}
               <li>
-                <a href="#order" className="text-sm text-background/85 transition hover:text-primary">
+                <OrderCta
+                  href="#order"
+                  className="text-sm text-background/85 transition hover:text-primary"
+                >
                   {footer.tosLabel}
-                </a>
+                </OrderCta>
               </li>
               {/* קוני הלוח מגיעים לכאן מהלוח המודפס עצמו, אבל מי שנחת
                   קודם באתר צריך גם הוא דרך למצוא את הטופס */}
