@@ -550,15 +550,6 @@ export function CalendarMockup({
                                 >
                                   {spot.category}
                                 </span>
-                                <span
-                                  className={cn(
-                                    "tnum font-bold leading-none",
-                                    isAnchorTier ? "text-[13px]" : "text-[12px]",
-                                  )}
-                                  style={{ color: HOTSPOT_BROWN }}
-                                >
-                                  {formatPrice(slot.priceAgorot)}
-                                </span>
                               </>
                             )}
                           </button>
