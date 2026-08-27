@@ -117,6 +117,27 @@
   --animate-fade-up: fade-up 0.5s var(--ease-out-soft) both;
   --animate-pop-in: pop-in 0.45s var(--ease-out-soft) both;
   --animate-shimmer: shimmer 1.4s infinite;
+  --animate-accordion-down: accordion-down 0.25s var(--ease-out-soft);
+  --animate-accordion-up: accordion-up 0.25s var(--ease-out-soft);
+}
+
+/* גובה אמיתי של תוכן האקורדיון, מסופק על ידי Radix כ---radix-accordion-content-height
+   - מאפשר אנימציית height אמיתית (לא max-height משוער). ראו src/components/ui/accordion.tsx. */
+@keyframes accordion-down {
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--radix-accordion-content-height);
+  }
+}
+@keyframes accordion-up {
+  from {
+    height: var(--radix-accordion-content-height);
+  }
+  to {
+    height: 0;
+  }
 }
 
 @keyframes fade-up {
