@@ -45,7 +45,7 @@ export function CityPicker({ selectedCityId, onSelect, messages }: Props) {
           <AlertCircle className="size-6" />
         </div>
         <h3 className="font-heading text-lg font-semibold text-foreground">
-          לא הצלחנו לטעון את רשימת הערים
+          לא הצלחנו לטעון את רשימת המהדורות הפתוחות
         </h3>
         <p className="mt-1.5 max-w-sm text-sm text-muted-foreground">{error}</p>
       </div>
@@ -69,7 +69,7 @@ export function CityPicker({ selectedCityId, onSelect, messages }: Props) {
           <MapPin className="size-6" />
         </div>
         <h3 className="font-heading text-lg font-semibold text-foreground">
-          אין ערים פתוחות כרגע
+          אין מהדורות פתוחות כרגע
         </h3>
         <p className="mt-1.5 max-w-sm text-sm text-muted-foreground">
           כל המהדורות נסגרו להזמנות. השאירו פרטים ונעדכן כשנפתחת מהדורה חדשה.

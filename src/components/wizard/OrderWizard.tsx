@@ -75,7 +75,7 @@ type Props = {
   sumitApiPublicKey: string | null;
 };
 
-const STEPS = ["עיר", "משבצת", "פרטים", "קובץ", "תשלום"] as const;
+const STEPS = ["מהדורה", "משבצת", "פרטים", "קובץ", "תשלום"] as const;
 
 const STORAGE_KEY = "luach:order";
 
@@ -227,16 +227,47 @@ export function OrderWizard({
   React.useEffect(() => {
     const draft = readOrderDraft();
     draftReadyRef.current = true;
-    if (!draft) return;
 
-    restoredViewedEditionRef.current = draft.viewedEditionId;
-    setCity(draft.city);
-    setAnchorSlot(draft.anchorSlot);
-    setTargetEditionsCount(draft.targetEditionsCount);
-    setSelections(draft.selections);
-    setForm(draft.form);
-    // בלי גלילה: המשתמש לא ביקש לקפוץ לכאן, הוא רק רענן דף
-    setStep(draft.step);
+    if (draft) {
+      restoredViewedEditionRef.current = draft.viewedEditionId;
+      setCity(draft.city);
+      setAnchorSlot(draft.anchorSlot);
+      setTargetEditionsCount(draft.targetEditionsCount);
+      setSelections(draft.selections);
+      setForm(draft.form);
+      // בלי גלילה: המשתמש לא ביקש לקפוץ לכאן, הוא רק רענן דף
+      setStep(draft.step);
+      return;
+    }
+
+    // ---------------------------------------------------------------
+    // אין טיוטה לשחזר — בדיקת "מהדורה פתוחה אחת בלבד".
+    //
+    // בקשה מפורשת של הלקוחה: "השנה יש רק מהדורה אחת. אין צורך
+    // לבחור עיר. כשייפתחו עוד ערים, יבחרו מבין המהדורות הפתוחות".
+    // כל עוד יש בדיוק עיר פתוחה אחת (מהדורה אחת רלוונטית), מדלגים
+    // על שלב הבחירה לגמרי וקופצים ישר לדפדוף חודשים/משבצת. ברגע
+    // שתיפתח עיר שנייה, השלב הזה יחזור להופיע מעצמו (התנאי כאן
+    // כבר לא יתקיים) — בלי צורך בשינוי קוד נוסף.
+    //
+    // חייב לקרות כאן ולא באפקט נפרד: state כמו city/step עדיין לא
+    // התעדכן בפועל בזמן שרשימת אפקטי ה-mount רצה (setState בתוך
+    // אפקט קודם לא נקרא סינכרונית), אז אפקט נפרד היה קורא ערכים
+    // ישנים ועלול לדרוס טיוטה שכן שוחזרה. כאן, בהיעדר טיוטה, אין
+    // מה לדרוס.
+    fetch("/api/cities", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data) => {
+        const cities: CityAvailability[] = data.cities ?? [];
+        if (cities.length === 1) {
+          handleCitySelect(cities[0]);
+          goTo(2);
+        }
+      })
+      .catch(() => {
+        // כשל שקט — שלב 1 עדיין עובד כרגיל עם CityPicker הרגיל
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   React.useEffect(() => {
@@ -650,7 +681,7 @@ export function OrderWizard({
               handleResetSelection();
               goTo(1);
             }}
-            backLabel="חזרה לבחירת עיר"
+            backLabel="חזרה לבחירת מהדורה"
             next={
               <Button
                 variant="pill"
