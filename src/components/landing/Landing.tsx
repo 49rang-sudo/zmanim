@@ -424,10 +424,15 @@ export function WhyNotAnother({ content }: { content: SiteContentData }) {
 export function WhatYouGet({ content }: { content: SiteContentData }) {
   const { whatYouGet } = content.landing;
 
+  // 3ב: אין עדיין primitive של Accordion תחת src/components/ui/ (רק
+  // primitives/dialog/button) — הוספת רדיוס/shadcn חדשה היא תלות
+  // שצריכה החלטה מפורשת מהלקוחה, לא להוסיף בשקט. בינתיים מסונכרן
+  // רק spacing/radius/eyebrow מול WhatYouGet.jsx; מבנה שני-הקלפים
+  // (במקום אקורדיון עם "רק הראשון פתוח") נשאר כפי שהיה. ראו דיווח.
   return (
-    <section id="what-you-get" className="scroll-mt-20 py-20 lg:py-28">
+    <section id="what-you-get" className="scroll-mt-20 py-24 lg:py-36">
       <div className="mx-auto max-w-[120rem] px-5 lg:px-8">
-        <div className="mb-12 max-w-2xl">
+        <div className="mb-16 max-w-2xl">
           <SectionEyebrow text={whatYouGet.eyebrow} />
           <h2 className="text-balance font-heading text-[clamp(1.9rem,4.5vw,3.25rem)] font-extrabold leading-[1.1] tracking-tight text-foreground">
             {whatYouGet.title}
@@ -435,7 +440,7 @@ export function WhatYouGet({ content }: { content: SiteContentData }) {
         </div>
 
         <div className="grid gap-6 lg:grid-cols-2">
-          <div className="rounded-2xl border border-border bg-card p-7 soft-shadow">
+          <div className="hover-shadow soft-shadow rounded-2xl border border-border bg-card p-7 transition-colors">
             <h3 className="mb-5 font-heading text-xl font-bold">מה שאתם מקבלים</h3>
             <ul className="space-y-3">
               {whatYouGet.items.map((item, index) => (
@@ -447,7 +452,7 @@ export function WhatYouGet({ content }: { content: SiteContentData }) {
             </ul>
           </div>
 
-          <div className="rounded-2xl border border-border bg-secondary/60 p-7">
+          <div className="hover-shadow soft-shadow rounded-2xl border border-border bg-secondary/60 p-7 transition-colors">
             <div className="mb-5 flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-background">
                 <Upload className="h-5 w-5 text-primary" />
@@ -510,9 +515,9 @@ export function Pricing({
   ];
 
   return (
-    <section id="pricing" className="scroll-mt-20 border-y border-border bg-card/60 py-20 lg:py-28">
+    <section id="pricing" className="scroll-mt-20 border-y border-border bg-card/60 py-24 lg:py-36">
       <div className="mx-auto max-w-[120rem] px-5 lg:px-8">
-        <div className="mb-12 max-w-2xl">
+        <div className="mb-16 max-w-2xl">
           <SectionEyebrow text={pricing.eyebrow} />
           <h2 className="text-balance font-heading text-[clamp(1.9rem,4.5vw,3.25rem)] font-extrabold leading-[1.1] tracking-tight text-foreground">
             {pricing.title}
@@ -529,10 +534,18 @@ export function Pricing({
                 key={key}
                 className={
                   isAnchor
-                    ? "relative rounded-2xl border-2 border-primary/40 bg-background p-7 soft-shadow"
-                    : "relative rounded-2xl border border-border bg-background p-7 soft-shadow"
+                    ? "hover-shadow relative rounded-2xl border-2 border-primary/40 bg-background p-7 pt-9 soft-shadow transition-colors"
+                    : "hover-shadow relative rounded-2xl border border-border bg-background p-7 soft-shadow transition-colors"
                 }
               >
+                {/* תג-סרט צף — "הבחירה הפופולרית" (Pricing.jsx שורות
+                    ~50-52) — חסר עד כה באתר האמיתי, בנוסף לתג הקטן
+                    שכבר קיים למטה. מוצג רק על כרטיס העוגן. */}
+                {isAnchor ? (
+                  <span className="absolute -top-3.5 right-7 inline-flex items-center gap-1 rounded-full bg-primary px-4 py-1 text-sm font-bold text-primary-foreground shadow-sm">
+                    <Star className="h-3.5 w-3.5" /> הבחירה הפופולרית
+                  </span>
+                ) : null}
                 <span
                   className={
                     isAnchor
@@ -635,9 +648,9 @@ export function Benefit({ content }: { content: SiteContentData }) {
   const { benefit } = content.landing;
 
   return (
-    <section id="benefit" className="py-20 lg:py-28">
+    <section id="benefit" className="py-24 lg:py-36">
       <div className="mx-auto max-w-[120rem] px-5 lg:px-8">
-        <div className="relative overflow-hidden rounded-3xl bg-foreground p-8 text-background lg:p-14">
+        <div className="relative overflow-hidden rounded-3xl bg-foreground p-8 text-background soft-shadow lg:p-14">
           <div className="brand-gradient absolute -left-16 -top-16 h-64 w-64 rounded-full opacity-20 blur-3xl" />
           <div className="relative grid items-center gap-8 lg:grid-cols-2">
             <div>
