@@ -99,6 +99,16 @@
   --color-input: hsl(37 26% 84%);
   --color-ring: hsl(31 79% 55%);
 
+  /* טוקנים חדשים לסקשנים כהים (bg-foreground text-background) — פורטו
+     מ-zmanim2-base44/src/index.css, נוספו שם ב-2026-08-27 לפתור כרטיסים
+     שקופים-מדי-עד-בלתי-נראים על רקע שחור. אותו פתרון: משטח אטום מוגבה
+     קלות מעל השחור, עם מסגרת נראית, במקום שקיפות. muted-foreground-strong
+     הוא גרסה כהה יותר של muted-foreground לטקסט קטן (12-14px) שצריך יחס
+     ניגודיות AA אמיתי (32% lightness ~6.5:1) ולא רק גבולי (42% ~4.36:1). */
+  --color-surface-dark: hsl(0 0% 16%);
+  --color-surface-dark-border: hsl(0 0% 27%);
+  --color-muted-foreground-strong: hsl(33 14% 32%);
+
   --font-heading: var(--font-heebo), "Heebo", ui-sans-serif, system-ui, sans-serif;
 
   --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
@@ -264,6 +274,46 @@
     box-shadow:
       0 1px 2px rgba(30, 30, 30, 0.04),
       0 8px 24px -12px rgba(30, 30, 30, 0.12);
+  }
+
+  /* הרמה עדינה + הגדלת צל בהאובר, לכפתורים/כרטיסים לחיצים — פורט מ-
+     zmanim2-base44/src/index.css .hover-lift/.hover-shadow. */
+  .hover-lift {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 4px 8px rgba(30, 30, 30, 0.06),
+      0 20px 36px -16px rgba(30, 30, 30, 0.22);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hover-lift:hover {
+      transform: none;
+    }
+  }
+  .hover-shadow {
+    transition: box-shadow 0.2s ease;
+  }
+  .hover-shadow:hover {
+    box-shadow:
+      0 4px 8px rgba(30, 30, 30, 0.06),
+      0 20px 36px -16px rgba(30, 30, 30, 0.22);
+  }
+
+  /* צל בגוון המותג (לא אפור ניטרלי) על כל כפתור bg-primary+shadow-sm —
+     פורט מ-zmanim2-base44/src/index.css .bg-primary.shadow-sm. שימוש
+     ב-color-mix ולא ב-hsl(var(--x)/alpha) כי --color-primary כאן כבר
+     ערך hsl(...) עטוף (לא triplet גולמי כמו בבייס44). */
+  .bg-primary.shadow-sm {
+    box-shadow:
+      0 4px 14px -2px color-mix(in srgb, var(--color-primary) 35%, transparent),
+      0 2px 6px -1px color-mix(in srgb, var(--color-primary) 22%, transparent);
+  }
+  .bg-primary.shadow-sm.hover-lift:hover {
+    box-shadow:
+      0 10px 28px -6px color-mix(in srgb, var(--color-primary) 45%, transparent),
+      0 4px 10px -2px color-mix(in srgb, var(--color-primary) 28%, transparent);
   }
 
   /* ===========================================================
