@@ -64,8 +64,10 @@ function Prose({
   return <p className={`whitespace-pre-line ${className}`}>{text}</p>;
 }
 
-/** קו-עין דק + תווית — הדפוס החוזר של כותרות המשנה במוקאפ (לא
-    הפס-גרדיאנט העגול שהיה קודם; קו ישר דק בצבע primary בלבד) */
+/** תג-גלולה — הדפוס החוזר של כותרות המשנה במוקאפ העדכני (עודכן
+    מקו-עין דק לתג pill; פורט מ-ContactForm.jsx/Difference.jsx:
+    `bg-primary/10 rounded-full ... + נקודה`). עדכון חד-פעמי ברכיב
+    המשותף — מתגלגל אוטומטית לכל סקשן שכבר קורא ל-<SectionEyebrow>. */
 export function SectionEyebrow({
   text,
   className = "mb-5",
@@ -76,10 +78,11 @@ export function SectionEyebrow({
   center?: boolean;
 }) {
   return (
-    <div className={`flex items-center gap-3 ${center ? "justify-center" : ""} ${className}`}>
-      <span className="h-px w-8 bg-primary" />
-      <span className="text-xs font-semibold tracking-wide text-primary">{text}</span>
-      {center ? <span className="h-px w-8 bg-primary" /> : null}
+    <div className={`flex items-center ${center ? "justify-center" : ""} ${className}`}>
+      <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3.5 py-1.5 text-xs font-bold tracking-wide text-primary">
+        <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+        {text}
+      </span>
     </div>
   );
 }
@@ -92,57 +95,71 @@ export function Hero({ content }: { content: SiteContentData }) {
   const { hero } = content;
 
   return (
-    <section className="relative overflow-hidden pb-10 pt-10 lg:pt-14">
-      <div className="mx-auto max-w-[120rem] px-5 lg:px-8">
+    <section className="relative overflow-hidden bg-foreground pb-10 pt-10 text-background lg:pt-14">
+      {/* זוהר-מש דקורטיבי בגוני המותג מאחורי תוכן ההירו — פורט מ-
+          Hero.jsx. בלי עטיפת hsl() נוספת: --color-primary כאן כבר
+          ערך hsl(...) עטוף (לא triplet גולמי כמו בבייס44). */}
+      <div className="pointer-events-none absolute inset-0 -z-0" aria-hidden="true">
+        <div
+          className="absolute -right-24 -top-24 h-[36rem] w-[36rem] rounded-full opacity-25 blur-3xl"
+          style={{ background: "radial-gradient(circle, var(--color-primary) 0%, transparent 70%)" }}
+        />
+        <div
+          className="absolute -left-32 top-10 h-[30rem] w-[30rem] rounded-full opacity-15 blur-3xl"
+          style={{ background: "radial-gradient(circle, var(--color-primary) 0%, transparent 70%)" }}
+        />
+      </div>
+
+      <div className="relative z-10 mx-auto max-w-[120rem] px-5 lg:px-8">
         <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-14">
           {/* טקסט */}
           <div className="animate-[fade-up_0.6s_var(--ease-out-soft)_both]">
             <div className="mb-6 flex items-center gap-4">
-              <span className="h-px w-8 bg-primary" />
-              <span className="text-xs font-semibold tracking-wide text-primary">
+              <span className="inline-flex items-center gap-2 rounded-full bg-primary/20 px-3.5 py-1.5 text-xs font-bold tracking-wide text-primary">
+                <span className="h-1.5 w-1.5 rounded-full bg-primary" />
                 {hero.eyebrow}
               </span>
-              <ClockMark className="h-14 w-14 shrink-0" />
+              <ClockMark className="h-20 w-20 shrink-0 lg:h-28 lg:w-28" />
             </div>
 
-            <h1 className="text-balance font-heading text-[clamp(2.2rem,6vw,4.25rem)] font-extrabold leading-[1.05] tracking-tight text-foreground">
+            <h1 className="text-balance font-heading text-[clamp(2.2rem,6vw,4.25rem)] font-extrabold leading-[1.05] tracking-tight text-background">
               {hero.title}
             </h1>
             {hero.titleSecondary ? (
-              <p className="mt-4 font-heading text-xl font-bold text-foreground">
+              <p className="mt-4 font-heading text-xl font-bold text-background">
                 {hero.titleSecondary}
               </p>
             ) : null}
 
             <Prose
               text={hero.subtitle}
-              className="mt-5 max-w-xl text-base leading-[1.7] text-muted-foreground"
+              className="mt-5 max-w-xl text-base leading-[1.7] text-background/70"
             />
             {hero.body ? (
               <Prose
                 text={hero.body}
-                className="mt-4 max-w-xl text-base leading-[1.7] text-foreground/80"
+                className="mt-4 max-w-xl text-base leading-[1.7] text-background/80"
               />
             ) : null}
 
             <div className="mt-8 flex flex-wrap gap-3">
               <OrderCta
                 href="#months"
-                className="inline-flex h-12 items-center gap-2 rounded-full bg-primary px-6 font-bold text-primary-foreground shadow-sm transition hover:brightness-105"
+                className="hover-lift inline-flex h-12 items-center gap-2 rounded-full bg-primary px-6 font-bold text-primary-foreground shadow-sm transition hover:brightness-105"
               >
                 {hero.primaryCta}
                 <ArrowLeft className="h-4 w-4" />
               </OrderCta>
               <OrderCta
                 href="#months"
-                className="inline-flex h-12 items-center rounded-full border border-border bg-card px-6 font-bold text-foreground transition hover:border-primary/60"
+                className="hover-lift inline-flex h-12 items-center rounded-full border border-surface-dark-border bg-surface-dark px-6 font-bold text-background transition-colors hover:border-primary"
               >
                 {hero.secondaryCta}
               </OrderCta>
             </div>
 
             {hero.microcopy ? (
-              <p className="mt-4 text-xs text-muted-foreground">{hero.microcopy}</p>
+              <p className="mt-4 text-xs text-background/70">{hero.microcopy}</p>
             ) : null}
           </div>
 
@@ -172,16 +189,22 @@ export function Hero({ content }: { content: SiteContentData }) {
             {hero.stats.map((stat, index) => {
               const Icon = ICONS[stat.icon] ?? Sparkles;
               return (
-                <div key={index} className="flex items-center gap-4 bg-card p-5">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-secondary">
-                    <Icon className="h-5 w-5 text-primary" strokeWidth={1.75} />
+                <div
+                  key={index}
+                  className="group flex items-center gap-4 bg-card p-5 transition-colors hover:bg-secondary/60"
+                >
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-secondary transition-transform duration-300 group-hover:scale-110 group-hover:bg-primary">
+                    <Icon
+                      className="h-5 w-5 text-primary transition-colors group-hover:text-primary-foreground"
+                      strokeWidth={1.75}
+                    />
                   </div>
                   <div>
                     <div className="font-heading text-lg font-extrabold leading-tight">
                       <CountUpStat value={stat.value} />
                       {stat.unit ? ` ${stat.unit}` : ""}
                     </div>
-                    <div className="mt-0.5 text-xs leading-tight text-muted-foreground">
+                    <div className="mt-0.5 text-xs leading-tight text-muted-foreground-strong">
                       {stat.label}
                     </div>
                   </div>
@@ -203,7 +226,7 @@ export function Difference({ content }: { content: SiteContentData }) {
   const { difference } = content.landing;
 
   return (
-    <section id="how" className="py-20 lg:py-28">
+    <section id="how" className="py-24 lg:py-36">
       <div className="mx-auto max-w-[120rem] px-5 lg:px-8">
         <div className="max-w-3xl">
           <SectionEyebrow text={difference.eyebrow} />
@@ -215,7 +238,7 @@ export function Difference({ content }: { content: SiteContentData }) {
         </div>
 
         <div className="mt-10 grid items-start gap-8 lg:grid-cols-2 lg:gap-12">
-          <div className="space-y-4 text-base leading-[1.8] text-foreground/85">
+          <div className="space-y-5 text-base leading-[1.7] text-foreground/75">
             {difference.examples.map((example, index) => (
               <p key={index}>{example}</p>
             ))}
@@ -224,7 +247,7 @@ export function Difference({ content }: { content: SiteContentData }) {
             ) : null}
           </div>
 
-          <div className="rounded-2xl border border-border bg-card p-7 soft-shadow">
+          <div className="hover-shadow rounded-2xl border border-border bg-card p-7 soft-shadow transition-colors hover:border-primary/60">
             <div className="mb-4 flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary">
                 <Clock className="h-5 w-5 text-primary" />
@@ -237,7 +260,7 @@ export function Difference({ content }: { content: SiteContentData }) {
               <Prose
                 key={index}
                 text={paragraph}
-                className="mt-4 text-base leading-[1.8] text-foreground/80 first:mt-0"
+                className="mt-4 text-base leading-[1.6] text-foreground/75 first:mt-0"
               />
             ))}
           </div>
@@ -891,13 +914,14 @@ export function FinalCta({ content }: { content: SiteContentData }) {
    =============================================================== */
 
 export function SiteFooter({ content }: { content: SiteContentData }) {
-  const { footer } = content.landing;
+  const { footer, nav } = content.landing;
 
   return (
     <footer className="bg-foreground pb-20 text-background lg:pb-0">
       <div className="mx-auto max-w-[120rem] px-5 py-14 lg:px-8">
-        <div className="grid items-start gap-10 md:grid-cols-2">
-          <div>
+        <div className="grid items-start gap-10 md:grid-cols-2 lg:grid-cols-4">
+          {/* מותג + תיאור — שני עמודות רוחב (Footer.jsx: lg:col-span-2) */}
+          <div className="lg:col-span-2">
             <div className="mb-4 flex items-center gap-2.5">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -914,7 +938,28 @@ export function SiteFooter({ content }: { content: SiteContentData }) {
             </p>
           </div>
 
-          <div className="md:text-left">
+          {/* עמודת ניווט-בדף — אותם קישורים בדיוק כמו בסרגל העליון
+              (content.landing.nav.links), לא רשימה קשיחה נפרדת */}
+          <div>
+            <div className="mb-4 text-xs font-semibold uppercase tracking-wide text-background/50">
+              ניווט
+            </div>
+            <ul className="space-y-2.5">
+              {nav.links.map((link) => (
+                <li key={link.href}>
+                  <a
+                    href={link.href}
+                    className="text-sm text-background/85 transition hover:text-primary"
+                  >
+                    {link.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* עמודת קישורים + יצירת קשר */}
+          <div>
             <div className="mb-4 text-xs font-semibold uppercase tracking-wide text-background/50">
               קישורים
             </div>
@@ -944,6 +989,22 @@ export function SiteFooter({ content }: { content: SiteContentData }) {
                   {footer.tosLabel}
                 </a>
               </li>
+              {/* קוני הלוח מגיעים לכאן מהלוח המודפס עצמו, אבל מי שנחת
+                  קודם באתר צריך גם הוא דרך למצוא את הטופס */}
+              <li>
+                <a
+                  href="/receipts"
+                  className="text-sm text-background/85 transition hover:text-primary"
+                >
+                  קניתם אצל עסק מהלוח? להעלאת קבלה להגרלה
+                </a>
+              </li>
+            </ul>
+
+            <div className="mb-4 mt-8 text-xs font-semibold uppercase tracking-wide text-background/50">
+              יצירת קשר
+            </div>
+            <ul className="space-y-2.5">
               <li>
                 <a
                   dir="ltr"
@@ -953,17 +1014,12 @@ export function SiteFooter({ content }: { content: SiteContentData }) {
                   {content.contact.email}
                 </a>
               </li>
-              <li dir="ltr" className="text-sm text-background/70">
-                {content.contact.phone}
-              </li>
-              {/* קוני הלוח מגיעים לכאן מהלוח המודפס עצמו, אבל מי שנחת
-                  קודם באתר צריך גם הוא דרך למצוא את הטופס */}
-              <li>
+              <li dir="ltr">
                 <a
-                  href="/receipts"
-                  className="text-sm text-background/85 transition hover:text-primary"
+                  href={`tel:${content.contact.phone}`}
+                  className="font-mono-nums text-sm text-background/85 transition hover:text-primary"
                 >
-                  קניתם אצל עסק מהלוח? להעלאת קבלה להגרלה
+                  {content.contact.phone}
                 </a>
               </li>
             </ul>
