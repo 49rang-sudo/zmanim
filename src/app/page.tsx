@@ -25,6 +25,7 @@ import {
 import { CalendarBrowser } from "@/components/landing/CalendarBrowser";
 import { InquiryForm } from "@/components/landing/InquiryForm";
 import { InquiryPopup } from "@/components/landing/InquiryPopup";
+import { DesktopCta } from "@/components/landing/DesktopCta";
 
 // זמינות משתנה כל הזמן — אסור להגיש את העמוד מהמטמון
 export const dynamic = "force-dynamic";
@@ -136,6 +137,7 @@ export default async function HomePage() {
         <>
           <InquiryPopup content={settings.content} />
           <MobileCtaBar content={settings.content} />
+          <DesktopCta content={settings.content} />
         </>
       ) : null}
     </>
