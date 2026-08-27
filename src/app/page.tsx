@@ -3,7 +3,7 @@ import { getSiteSettings, getInspirationBoard } from "@/lib/site";
 import { getLandingData } from "@/lib/landing";
 import { resolveHebrewDeadline } from "@/lib/hebrew-date";
 import { env } from "@/lib/env";
-import { OrderWizard } from "@/components/wizard/OrderWizard";
+import { OrderModalHost } from "@/components/landing/OrderModalHost";
 import {
   About,
   Benefit,
@@ -15,7 +15,6 @@ import {
   HowToJoin,
   MobileCtaBar,
   Pricing,
-  SectionEyebrow,
   Showcase,
   SiteFooter,
   SiteHeader,
@@ -74,9 +73,15 @@ export default async function HomePage() {
 
       <main>
         {/* סדר הדף (3א, מסונכרן מול zmanim2-base44/src/pages/Home.jsx):
-            הירו → הלוח/הבורר של החודשים + אשף ההזמנה (מיד אחריו, לפני
-            כל סקשן הסבר) → ConceptGrid → Difference → WhyNotAnother →
-            ...(שאר הסקשנים, ללא שינוי). אושר מראש על ידי הלקוחה. */}
+            הירו → הלוח/הבורר של החודשים → "מה עוד פנוי עכשיו" →
+            ConceptGrid → Difference → WhyNotAnother → ...(שאר
+            הסקשנים, ללא שינוי). אושר מראש על ידי הלקוחה.
+
+            אשף ההזמנה כבר לא קטע קבוע בעמוד (כמו ב-Base44 עם
+            ReservationModal) — הוא נטען לפי דרישה בתוך מודל, דרך
+            OrderModalHost למטה. שום כפתור בעמוד לא מצביע יותר
+            ל-#order כקטע אמיתי — כולם עוברים דרך OrderCta /
+            openOrderModal (src/lib/order-focus.ts). */}
         {showLanding ? (
           <>
             <Hero content={settings.content} />
@@ -86,43 +91,26 @@ export default async function HomePage() {
               months={landing.months}
               editions={landing.editions}
             />
+
+            {/* 4ג: "מה עוד פנוי עכשיו" — פורט מ-InventoryStrip.jsx.
+                נשאר קטע קבוע בעמוד (בדיוק כמו ב-Base44): רק אשף
+                ההזמנה עצמו עבר להיות מודל, לא הרשימה הזו. צורך את
+                landing.months הקיים בלבד — אין חישוב זמינות חדש. */}
+            <InventoryStrip months={landing.months} />
           </>
         ) : null}
 
-        {/* אזור ההזמנה — הבורר האמיתי. כל כפתורי הבחירה בעמוד
-            מובילים לכאן, ואין העתק שני שלו בשום מקום. */}
-        <section
-          id="order"
-          className="scroll-mt-16 border-b border-border bg-background"
-        >
-          <div className="mx-auto max-w-[120rem] px-5 py-14 lg:px-8 sm:py-20">
-            {showLanding ? (
-              <>
-                <div className="mb-10">
-                  <SectionEyebrow text={settings.content.landing.months.eyebrow} />
-                  <h2 className="mt-2 font-heading text-3xl font-black tracking-tight text-foreground sm:text-4xl">
-                    {settings.content.wizard.chooseTitle}
-                  </h2>
-                </div>
-
-                {/* 4ג: "מה עוד פנוי עכשיו" — פורט מ-InventoryStrip.jsx,
-                    ממוקם כאן בין הכותרת לאשף עצמו, תואם למיקום ב-
-                    Home.jsx (בין EditionPicker ל-CalendarBrowser
-                    ב-#months). צורך את landing.months הקיים בלבד —
-                    אין חישוב זמינות חדש. */}
-                <InventoryStrip months={landing.months} />
-              </>
-            ) : null}
-
-            <OrderWizard
-              board={board}
-              content={settings.content}
-              maxUploadMb={maxUploadMb}
-              sumitCompanyId={sumitCompanyId}
-              sumitApiPublicKey={sumitApiPublicKey}
-            />
-          </div>
-        </section>
+        {/* מאחז מודל ההזמנה — מקבל בדיוק את מה שה-OrderWizard קיבל
+            כשהיה קטע קבוע בעמוד, ונשאר מותקן תמיד (גם כש-showLanding
+            כבוי), כי גם ה-OrderWizard המקורי תמיד עלה בעמוד ללא
+            תלות ב-showLanding. */}
+        <OrderModalHost
+          board={board}
+          content={settings.content}
+          maxUploadMb={maxUploadMb}
+          sumitCompanyId={sumitCompanyId}
+          sumitApiPublicKey={sumitApiPublicKey}
+        />
 
         {showLanding ? (
           <>
