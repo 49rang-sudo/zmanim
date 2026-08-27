@@ -5,14 +5,23 @@ export type ChargeResult =
   | { ok: true; paymentId: string; documentDownloadUrl?: string }
   | { ok: false; reason: string };
 
-// TODO(sumit): שמות השדות בתשובה לא מאושרים במלואם מול תיעוד sumit —
-// רק ה"בקיצור" שנמסר (Status, Data.PaymentID/DocumentID/קישור הורדה,
-// "האם התשלום תקין"). לכן הסכמה כאן סלחנית (אופציונלי + passthrough)
-// ומכסה כמה שמות סבירים לכל שדה — יש לצמצם ולאמת מול ה-Schema האמיתי
-// לפני שהאתר גובה כסף אמיתי.
+// עטיפת התשובה (Status/UserErrorMessage/TechnicalErrorDetails/Data) אומתה
+// מול ה-Schema האמיתי (2026-08-27, מהתיעוד הרשמי - הדוגמה שנמסרה):
+//   { "Status": "Success (0)", "UserErrorMessage": "string",
+//     "TechnicalErrorDetails": "string", "Data": null }
+// כלומר Status הוא מחרוזת בתבנית "שם (קוד)" - 0 = הצלחה. זה שדה ההצלחה/
+// כישלון האמיתי והאמין - לא Data.Valid/IsValid שהיה ניחוש קודם.
+//
+// TODO(sumit): הדוגמה הכללית הזו מציגה Data:null (זו כנראה עטיפת-תשובה
+// גנרית המשותפת להרבה endpoints ב-sumit, לא הדוגמה הספציפית לתשובת חיוב
+// מוצלחת) - עדיין לא אומת מבנה Data המדויק בתשובת charge מוצלחת בפועל
+// (PaymentID/קישור הורדת מסמך וכו'). הפענוח למטה נשאר סלחני לגבי Data
+// ומחפש כמה שמות סבירים, עד שתגיע דוגמת תשובה אמיתית עם תשלום שהצליח.
 const chargeResponseSchema = z
   .object({
-    Status: z.string().optional(),
+    Status: z.string(),
+    UserErrorMessage: z.string().nullable().optional(),
+    TechnicalErrorDetails: z.string().nullable().optional(),
     Data: z
       .object({
         Valid: z.boolean().optional(),
@@ -24,17 +33,34 @@ const chargeResponseSchema = z
         DocumentDownloadUrl: z.string().optional(),
       })
       .passthrough()
+      .nullable()
       .optional(),
   })
   .passthrough();
+
+// "Success (0)" / "SomeError (7)" וכו' - מחלצים את הקוד המספרי ובודקים ==0.
+// עמיד יותר מהשוואת-מחרוזת-מלאה אם השם המילולי משתנה בין גרסאות/שפות.
+function isSumitStatusSuccess(status: string): boolean {
+  const match = status.match(/\((\d+)\)/);
+  return match ? Number(match[1]) === 0 : false;
+}
 
 /**
  * חיוב בפועל דרך sumit, אחרי שהדפדפן כבר קיבל SingleUseToken חד-פעמי
  * מ-Payments JavaScript API. זו הקריאה הסינכרונית היחידה שקובעת אם
  * התשלום הצליח — אין המתנה ל-webhook.
  *
- * TODO(sumit): לאמת מול לוח הבקרה של sumit את כתובת ה-API (SUMIT_API_BASE_URL)
- * ואת הנתיב המדויק לפני production.
+ * מבנה גוף הבקשה אומת מול ה-Schema האמיתי של POST /billing/payments/charge/
+ * (2026-08-27, מהתיעוד הרשמי) - התיקון המהותי היחיד מול הניחוש הקודם:
+ * Items הוא מערך של { Item: {Name,...}, Quantity, UnitPrice } ולא { Name, Price }
+ * שטוח - המחיר בפועל הוא UnitPrice ברמת השורה, לא Item.Price (זה כנראה מחיר
+ * קטלוג/ברירת מחדל). Credentials/Customer/SingleUseToken כבר תאמו לניחוש המקורי.
+ * PaymentMethod (מספר כרטיס גולמי) לא נשלח בכלל - זו חלופה ל-SingleUseToken,
+ * לא נדרשת בזרימה שלנו שכבר מטוקניזת בצד הלקוח.
+ *
+ * TODO(sumit): גוף התשובה (Response) עדיין לא אומת מול Schema אמיתי - עדיין
+ * ממתינים לדוגמת תשובה אמיתית (הצלחה/כישלון) מהתיעוד לפני שאפשר לצמצם את
+ * chargeResponseSchema הסלחני למטה לסכמה מדויקת.
  */
 export async function chargeSumit(input: {
   singleUseToken: string;
@@ -65,7 +91,13 @@ export async function chargeSumit(input: {
           Phone: input.customer.phone,
           EmailAddress: input.customer.email,
         },
-        Items: [{ Name: input.item.name, Price: input.item.priceShekels }],
+        Items: [
+          {
+            Item: { Name: input.item.name },
+            Quantity: 1,
+            UnitPrice: input.item.priceShekels,
+          },
+        ],
         SingleUseToken: input.singleUseToken,
       }),
     });
@@ -89,13 +121,22 @@ export async function chargeSumit(input: {
   }
 
   const data = parsed.data.Data;
-  const valid = data?.Valid ?? data?.IsValid ?? false;
+  const succeeded = isSumitStatusSuccess(parsed.data.Status);
   const paymentId = data?.PaymentID ?? data?.ID;
 
-  if (!res.ok || !valid || !paymentId) {
-    console.error(`[sumit] חיוב נדחה (HTTP ${res.status}):`, payload);
-    const reason = data?.StatusDescription ?? parsed.data.Status ?? "התשלום נדחה";
+  if (!res.ok || !succeeded) {
+    console.error(`[sumit] חיוב נדחה (HTTP ${res.status}, Status=${parsed.data.Status}):`, payload);
+    const reason =
+      parsed.data.UserErrorMessage || data?.StatusDescription || parsed.data.Status || "התשלום נדחה";
     return { ok: false, reason };
+  }
+
+  // Status מדווח הצלחה אבל אין מזהה תשלום ב-Data - מצב לא צפוי (ראו TODO
+  // למעלה על Data עוד לא מאומת) - עדיף לדווח כישלון מאשר "להצליח" בלי
+  // paymentId אמיתי לשמור/להציג.
+  if (!paymentId) {
+    console.error("[sumit] Status מדווח הצלחה אבל אין PaymentID ב-Data:", payload);
+    return { ok: false, reason: "התשלום עבר אך לא התקבל אישור מלא. נא לפנות לבדיקה." };
   }
 
   return {
