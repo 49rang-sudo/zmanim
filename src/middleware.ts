@@ -4,8 +4,10 @@ import { NextResponse, type NextRequest } from "next/server";
  * מצב תחזוקה — האתר עדיין באמצע עבודה, לא מוכן להצגה ציבורית.
  * חוסם רק את מה שאורח רגיל היה רואה; האדמין ממשיך לעבוד כרגיל
  * כדי שהעבודה על האתר לא תיעצר.
+ *
+ * כובה (2026-08-27) — בעלת האתר אישרה מפורשות שהאתר עובר לחי הערב.
  */
-const MAINTENANCE_MODE = true;
+const MAINTENANCE_MODE = false;
 
 const ALLOWED_PREFIXES = [
   "/admin",
