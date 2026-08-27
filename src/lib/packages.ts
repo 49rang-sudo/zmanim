@@ -189,3 +189,29 @@ export type PackageId = (typeof AD_PACKAGES)[number]["id"];
 export function getPackage(id: string) {
   return AD_PACKAGES.find((p) => p.id === id);
 }
+
+/**
+ * ברירות מחדל ליצירת Hotspot+AdSlot חדשים מהאדמין (ראו
+ * src/app/api/admin/hotspots/route.ts) — "יצירת Hotspot חדש תיצור
+ * אוטומטית גם AdSlot מקושר, עם שם/מחיר ברירת מחדל שניתנים לעריכה
+ * אחר כך" (הוחלט בתוכנית המיגרציה, שלב 5).
+ *
+ * הערכים תואמים בכוונה למה שכבר בשימוש בזריעת הדגמה (prisma/seed.ts:
+ * ANCHOR_PRICE_AGOROT, TIER_PRINT_SIZE, COMPLEMENTARY_PRICES_AGOROT) —
+ * לא מומצאים כאן מחדש. עוגן = 1,600 ₪ (המספר שהלקוחה מסרה לחודש בודד).
+ * משלים = 1,300 ₪, אמצע הטווח שהלקוחה מסרה (1,200–1,350 ₪) — כי מחיר
+ * משלים אמיתי נקבע פר-חלון, וזו רק נקודת פתיחה נוחה לעריכה.
+ */
+export const DEFAULT_TIER_BASE_PRICE_AGOROT: Record<PresenceTier, number> = {
+  ANCHOR: 160_000,
+  COMPLEMENTARY: 130_000,
+};
+
+/** מידות הדפוס בפועל לכל דרגה — זהות ל-TIER_PRINT_SIZE ב-prisma/seed.ts */
+export const TIER_PRINT_SIZE_CM: Record<
+  PresenceTier,
+  { widthCm: number; heightCm: number }
+> = {
+  ANCHOR: { widthCm: 6.1, heightCm: 6.3 },
+  COMPLEMENTARY: { widthCm: 2.9, heightCm: 3 },
+};
