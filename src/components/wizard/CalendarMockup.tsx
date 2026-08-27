@@ -10,6 +10,7 @@ import {
   type PresenceTier,
 } from "@/lib/packages";
 import { boardForMonth } from "@/lib/board";
+import { HOTSPOT_ACCENT, HOTSPOT_BROWN, HOTSPOT_CREAM } from "@/lib/hotspot-colors";
 import type { SiteContentData } from "@/lib/content";
 import type { EditionAvailability, TierAvailability } from "@/lib/availability";
 import type { BoardHotspot, BoardImage } from "@/lib/site";
@@ -92,10 +93,8 @@ const TIER_ORDER: PresenceTier[] = ["ANCHOR", "COMPLEMENTARY"];
 
 // פלטת ריבועי הפרסום — זהה במדויק ל-zmanim2-base44/src/components/zmanim/AdSquare.jsx
 // (בקשה מפורשת של בעלת האתר: "להחליף לעיצוב המדויק של בייס44"), במקום
-// טוקני "הנייר" (--color-paper-*) שהיו כאן קודם.
-const HOTSPOT_CREAM = "#fdfbf7";
-const HOTSPOT_BROWN = "#7e6355";
-const HOTSPOT_ACCENT = "#d4b499";
+// טוקני "הנייר" (--color-paper-*) שהיו כאן קודם. הוצא ל-src/lib/hotspot-colors.ts
+// כדי שגם עורך ה-Hotspot באדמין (InspirationImagesTab.tsx) ישתמש באותם ערכים.
 
 export function CalendarMockup({
   board,
