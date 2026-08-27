@@ -70,11 +70,13 @@ export default async function HomePage() {
       <SiteHeader content={settings.content} />
 
       <main>
+        {/* סדר הדף (3א, מסונכרן מול zmanim2-base44/src/pages/Home.jsx):
+            הירו → הלוח/הבורר של החודשים + אשף ההזמנה (מיד אחריו, לפני
+            כל סקשן הסבר) → ConceptGrid → Difference → WhyNotAnother →
+            ...(שאר הסקשנים, ללא שינוי). אושר מראש על ידי הלקוחה. */}
         {showLanding ? (
           <>
             <Hero content={settings.content} />
-            <Difference content={settings.content} />
-            <Showcase content={settings.content} data={landing} />
             <CalendarBrowser
               content={settings.content}
               board={board}
@@ -112,6 +114,8 @@ export default async function HomePage() {
 
         {showLanding ? (
           <>
+            <Showcase content={settings.content} data={landing} />
+            <Difference content={settings.content} />
             <WhyNotAnother content={settings.content} />
             <WhatYouGet content={settings.content} />
             <Pricing content={settings.content} data={landing} />

@@ -289,18 +289,23 @@ export function Showcase({
   if (showcase.items.length === 0) return null;
 
   return (
-    <section id="concepts" className="border-y border-border bg-card/60 py-20 lg:py-28">
+    <section id="concepts" className="border-y border-border bg-card/60 py-24 lg:py-36">
       <div className="mx-auto max-w-[120rem] px-5 lg:px-8">
-        <div className="mb-12 max-w-2xl">
+        <div className="mb-16 max-w-2xl">
           <SectionEyebrow text="המחשה ויזואלית" />
-          <h2 className="text-balance font-heading text-[clamp(1.9rem,4.5vw,3.25rem)] font-extrabold leading-[1.1] tracking-tight text-foreground">
+          <h2 className="text-balance font-heading text-[30px] font-bold leading-[1.15] tracking-tight text-foreground lg:text-[44px]">
             {showcase.title}
-            <br />
-            {showcase.subtitle}
           </h2>
+          <p className="mt-4 text-base leading-[1.7] text-foreground/70">
+            {showcase.subtitle}
+          </p>
         </div>
 
-        <div className="space-y-8">
+        {/* 3 · שלושה קונספטים זה לצד זה (במקום שקופית-אחר-שקופית) —
+            עדכון מבני 3א, פורט מ-ConceptGrid.jsx. חיווט הדאטה נשאר
+            בדיוק כפי שהיה: data.months[index] לתמונה/כותרת אמיתית,
+            showcase.items לקופי הנערך. */}
+        <div className="grid gap-6 md:grid-cols-3">
           {showcase.items.map((item, index) => {
             const month = data.months[index];
             const monthLabel = item.monthLabel || month?.hebrewLabel || "";
@@ -312,40 +317,38 @@ export function Showcase({
               : null;
 
             return (
-              <div
+              <article
                 key={index}
-                className={`grid items-center gap-6 lg:grid-cols-2 lg:gap-10 ${
-                  index % 2 === 1 ? "lg:[&>*:first-child]:order-2" : ""
-                }`}
+                className="hover-shadow group overflow-hidden rounded-3xl border border-border bg-background soft-shadow transition-colors hover:border-primary/60"
               >
-                <div className="relative aspect-[16/10] overflow-hidden rounded-3xl soft-shadow">
+                <div className="relative aspect-[16/11] overflow-hidden">
                   {month?.imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={month.imageUrl}
                       alt={`הדמיית הקונספט: ${conceptTitle}`}
-                      className="h-full w-full object-cover"
+                      className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                     />
                   ) : (
                     <div className="h-full w-full bg-secondary" aria-hidden />
                   )}
                   {tag ? (
-                    <div className="absolute right-4 top-4 rounded-full bg-background/85 px-4 py-1.5 text-xs font-semibold backdrop-blur-sm">
+                    <div className="absolute right-4 top-4 rounded-full bg-background/90 px-4 py-1.5 text-sm font-semibold backdrop-blur-sm">
                       {tag}
                     </div>
                   ) : null}
                 </div>
-                <div>
+                <div className="p-6">
                   {conceptTitle ? (
-                    <h3 className="font-heading text-2xl font-extrabold tracking-tight lg:text-3xl">
+                    <h3 className="font-heading text-[20px] font-bold tracking-tight lg:text-[22px]">
                       {conceptTitle}
                     </h3>
                   ) : null}
-                  <p className="mt-4 text-base leading-[1.8] text-foreground/80 lg:text-lg">
+                  <p className="mt-3 text-base leading-[1.6] text-foreground/75">
                     {item.text}
                   </p>
                 </div>
-              </div>
+              </article>
             );
           })}
         </div>
@@ -370,28 +373,41 @@ export function WhyNotAnother({ content }: { content: SiteContentData }) {
   const { whyNotAnother } = content.landing;
 
   return (
-    <section id="why" className="border-y border-border bg-card/60 py-20 lg:py-28">
+    <section id="why" className="bg-foreground py-24 text-background lg:py-36">
       <div className="mx-auto max-w-[120rem] px-5 lg:px-8">
-        <div className="mb-12 max-w-2xl">
-          <SectionEyebrow text={whyNotAnother.eyebrow} />
-          <h2 className="text-balance font-heading text-[clamp(1.8rem,4vw,3rem)] font-extrabold leading-[1.15] tracking-tight text-foreground">
+        <div className="mb-16 max-w-2xl">
+          {/* אאייבראו בגרסה כהה (bg-primary/20, לא ה-SectionEyebrow
+              המשותף עם bg-primary/10) — אותו עיקרון כמו ההירו וכמו
+              WhyNot.jsx: קונטרסט על רקע כהה דורש גרסה חזקה יותר. */}
+          <div className="mb-5 flex items-center">
+            <span className="inline-flex items-center gap-2 rounded-full bg-primary/20 px-3.5 py-1.5 text-xs font-bold tracking-wide text-primary">
+              <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+              {whyNotAnother.eyebrow}
+            </span>
+          </div>
+          <h2 className="text-balance font-heading text-[30px] font-bold leading-[1.15] tracking-tight text-background lg:text-[44px]">
             {whyNotAnother.title}
           </h2>
         </div>
 
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {content.highlights.map((item, index) => {
             const Icon = ICONS[item.icon] ?? Sparkles;
             return (
-              <div key={index} className="rounded-2xl border border-border bg-background p-6">
-                <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-full bg-secondary">
-                  <Icon className="h-5 w-5 text-primary" strokeWidth={1.75} />
+              <div
+                key={index}
+                className="group rounded-2xl border border-surface-dark-border bg-surface-dark p-6 transition-colors duration-200 hover:border-primary hover:bg-surface-dark-border/40"
+              >
+                <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-full bg-primary/20 transition-transform duration-300 group-hover:scale-110 group-hover:bg-primary">
+                  <Icon
+                    className="h-5 w-5 text-primary transition-colors group-hover:text-primary-foreground"
+                    strokeWidth={1.75}
+                  />
                 </div>
-                <h3 className="mb-3 font-heading text-lg font-bold">{item.title}</h3>
-                <Prose
-                  text={item.text}
-                  className="text-sm leading-[1.7] text-muted-foreground"
-                />
+                <h3 className="mb-3 font-heading text-lg font-bold text-background">
+                  {item.title}
+                </h3>
+                <Prose text={item.text} className="text-sm leading-[1.7] text-background/85" />
               </div>
             );
           })}
