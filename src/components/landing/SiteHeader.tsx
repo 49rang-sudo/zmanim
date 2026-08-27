@@ -13,6 +13,7 @@
 import * as React from "react";
 import { Menu, X } from "lucide-react";
 import { OrderCta } from "./OrderCta";
+import { useActiveSection } from "@/hooks/useActiveSection";
 import type { SiteContentData } from "@/lib/content";
 
 function LogoMark({ siteName, logoUrl }: { siteName: string; logoUrl?: string | null }) {
@@ -59,6 +60,16 @@ export function SiteHeader({ content }: { content: SiteContentData }) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // הדגשת הקישור הפעיל (scroll-spy) — ה-id-ים נגזרים מהקישורים
+  // עצמם (content.landing.nav.links), לא רשומה קשיחה בקוד: אם
+  // מישהי מוסיפה/מסדרת מחדש קישור בלוח הניהול, ה-scroll-spy ממשיך
+  // לעבוד בלי שינוי קוד. ראו zmanim2-base44/src/hooks/useActiveSection.js.
+  const sectionIds = React.useMemo(
+    () => nav.links.map((link) => link.href.slice(1)),
+    [nav.links],
+  );
+  const activeSection = useActiveSection(sectionIds);
+
   return (
     <>
       <header
@@ -72,15 +83,22 @@ export function SiteHeader({ content }: { content: SiteContentData }) {
           </a>
 
           <nav className="hidden items-center gap-7 lg:flex">
-            {nav.links.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                className="text-sm font-medium text-foreground/75 transition-colors hover:text-primary"
-              >
-                {link.label}
-              </a>
-            ))}
+            {nav.links.map((link) => {
+              const isActive = activeSection === link.href.slice(1);
+              return (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  className={`relative text-sm font-medium transition-colors after:absolute after:-bottom-1.5 after:inset-x-0 after:h-0.5 after:rounded-full after:transition-colors hover:text-primary ${
+                    isActive
+                      ? "text-primary after:bg-primary"
+                      : "text-foreground/75 after:bg-transparent"
+                  }`}
+                >
+                  {link.label}
+                </a>
+              );
+            })}
           </nav>
 
           <div className="flex items-center gap-3">
