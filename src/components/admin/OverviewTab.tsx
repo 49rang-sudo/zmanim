@@ -85,7 +85,7 @@ export function OverviewTab() {
     <div>
       {/* --- מסנן טווח: שורה אחת מעל הגרפים --- */}
       <div className="mb-6 flex flex-wrap items-center gap-2">
-        <span className="ml-1 text-[12.5px] font-medium text-muted">
+        <span className="ml-1 text-[12.5px] font-medium text-muted-foreground">
           טווח זמן
         </span>
         {RANGES.map((option) => (
@@ -98,8 +98,8 @@ export function OverviewTab() {
               "rounded-full px-4 py-1.5 text-[13px] font-semibold",
               "transition-colors duration-200 ease-smooth",
               range === option.value
-                ? "bg-accent text-accent-ink"
-                : "border border-line bg-surface text-ink-2 hover:border-accent",
+                ? "bg-primary text-primary-foreground"
+                : "border border-border bg-card text-muted-foreground hover:border-primary",
             )}
           >
             {option.label}
@@ -168,37 +168,37 @@ export function OverviewTab() {
                 caption={`${stats.kpis.occupancyPct}% מהמשבצות בכל הערים הפעילות נתפסו`}
               />
 
-              <figure className="rounded-lg border border-line bg-surface p-5 shadow-e1">
+              <figure className="rounded-2xl border border-border bg-card p-5 soft-shadow">
                 <figcaption className="mb-3">
-                  <h3 className="font-display text-lg font-semibold text-ink">
+                  <h3 className="font-heading text-lg font-extrabold text-foreground">
                     משבצות מובילות
                   </h3>
                 </figcaption>
 
                 {stats.topSlots.length === 0 ? (
-                  <p className="py-6 text-center text-[13px] text-muted">
+                  <p className="py-6 text-center text-[13px] text-muted-foreground">
                     אין מכירות בטווח הזה
                   </p>
                 ) : (
                   <table className="w-full text-right text-[13px]">
-                    <thead className="text-[11.5px] uppercase tracking-wide text-muted">
+                    <thead className="text-[11.5px] uppercase tracking-wide text-muted-foreground">
                       <tr>
                         <th className="pb-2 font-semibold">משבצת</th>
                         <th className="pb-2 font-semibold">מכירות</th>
                         <th className="pb-2 font-semibold">הכנסה</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-line">
+                    <tbody className="divide-y divide-border">
                       {stats.topSlots.map((slot) => (
                         <tr key={slot.sku}>
                           <td className="py-2">
-                            <span className="text-ink">{slot.name}</span>
-                            <span className="tnum mr-2 text-[11.5px] text-muted">
+                            <span className="text-foreground">{slot.name}</span>
+                            <span className="tnum mr-2 text-[11.5px] text-muted-foreground">
                               {slot.sku}
                             </span>
                           </td>
-                          <td className="tnum py-2 text-ink-2">{slot.count}</td>
-                          <td className="tnum py-2 font-semibold text-ink">
+                          <td className="tnum py-2 text-muted-foreground">{slot.count}</td>
+                          <td className="tnum py-2 font-semibold text-foreground">
                             {formatPrice(slot.revenue)}
                           </td>
                         </tr>
