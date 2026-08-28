@@ -97,9 +97,9 @@ export function TeamTab() {
 
   return (
     <div>
-      <div className="mb-5 rounded-md border border-line bg-surface-2 p-4">
-        <p className="text-[13.5px] leading-relaxed text-ink-2">
-          <strong className="text-ink">כניסה לניהול אפשרית עם Google או עם סיסמה.</strong>{" "}
+      <div className="mb-5 rounded-xl border border-border bg-secondary/40 p-4">
+        <p className="text-[13.5px] leading-relaxed text-muted-foreground">
+          <strong className="text-foreground">כניסה לניהול אפשרית עם Google או עם סיסמה.</strong>{" "}
           רק מי שמופיע/ה ברשימה למטה יכול/ה להתחבר — הוספה כאן היא הדרך
           היחידה לתת גישה, אין הרשמה עצמאית. סיסמה היא אופציונלית: בלעדיה
           אפשר להתחבר רק דרך Google.
@@ -108,7 +108,7 @@ export function TeamTab() {
 
       <form
         onSubmit={addUser}
-        className="mb-6 grid gap-x-4 gap-y-1 rounded-lg border border-line bg-surface p-5 shadow-e1 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end"
+        className="mb-6 grid gap-x-4 gap-y-1 rounded-2xl border border-border bg-card p-5 soft-shadow sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end"
       >
         <Field label="אימייל" htmlFor="new-email">
           <Input
@@ -146,14 +146,14 @@ export function TeamTab() {
         {users.map((user) => (
           <div
             key={user.id}
-            className="rounded-lg border border-line bg-surface p-4 shadow-e1"
+            className="rounded-2xl border border-border bg-card p-4 soft-shadow"
           >
             <div className="flex flex-wrap items-center gap-3">
               <div className="min-w-0 flex-1">
-                <p className="truncate font-semibold text-ink" dir="ltr">
+                <p className="truncate font-semibold text-foreground" dir="ltr">
                   {user.email}
                 </p>
-                <p className="text-[12.5px] text-muted">
+                <p className="text-[12.5px] text-muted-foreground">
                   {user.name ?? "—"}
                   {user.lastLoginAt
                     ? ` · כניסה אחרונה ${formatDateTime(user.lastLoginAt)}`
@@ -268,7 +268,7 @@ function PasswordEditor({
   return (
     <form
       onSubmit={submit}
-      className="mt-4 flex flex-wrap items-end gap-3 border-t border-line pt-4"
+      className="mt-4 flex flex-wrap items-end gap-3 border-t border-border pt-4"
     >
       <div className="min-w-[220px] flex-1">
         <Field label="סיסמה חדשה" htmlFor={`password-${user.id}`}>

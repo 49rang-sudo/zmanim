@@ -49,12 +49,12 @@ export function MailingListTab() {
   return (
     <div>
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-ink-2">
-          <strong className="text-ink">{subscribers.length}</strong> נרשמים
+        <p className="text-sm text-muted-foreground">
+          <strong className="text-foreground">{subscribers.length}</strong> נרשמים
           לרשימת התפוצה
         </p>
         <Button
-          variant="subtle"
+          variant="soft"
           size="sm"
           disabled={subscribers.length === 0}
           onClick={() => window.open("/api/admin/mailing-list/export", "_blank")}
@@ -75,18 +75,18 @@ export function MailingListTab() {
           {subscribers.map((s) => (
             <div
               key={s.id}
-              className="flex flex-wrap items-center gap-3 rounded-lg border border-line bg-surface p-4 shadow-e1"
+              className="flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-card p-4 soft-shadow"
             >
               <div className="min-w-0 flex-1">
-                <p className="truncate font-semibold text-ink">
+                <p className="truncate font-semibold text-foreground">
                   {s.firstName} {s.lastName}
                 </p>
-                <p className="truncate text-[12.5px] text-muted" dir="ltr">
+                <p className="truncate text-[12.5px] text-muted-foreground" dir="ltr">
                   {s.email}
                   {s.phone ? ` · ${s.phone}` : ""}
                 </p>
               </div>
-              <p className="text-[12px] text-muted">
+              <p className="text-[12px] text-muted-foreground">
                 נרשם/ה {formatDateTime(s.createdAt)}
               </p>
             </div>

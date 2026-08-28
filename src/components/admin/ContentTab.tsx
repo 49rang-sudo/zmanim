@@ -107,16 +107,16 @@ export function ContentTab() {
       <div className="grid gap-5 lg:grid-cols-2">
         {/* --- כללי --- */}
         <Section title="כללי">
-          <label className="mb-4 flex cursor-pointer items-center gap-2.5 rounded-md border border-line bg-surface-2 p-3.5">
+          <label className="mb-4 flex cursor-pointer items-center gap-2.5 rounded-xl border border-border bg-secondary/40 p-3.5">
             <input
               type="checkbox"
               checked={landingEnabled}
               onChange={(e) => setLandingEnabled(e.target.checked)}
-              className="size-4 accent-[var(--color-accent)]"
+              className="size-4 accent-[var(--color-primary)]"
             />
-            <span className="text-[13.5px] text-ink">
+            <span className="text-[13.5px] text-foreground">
               הצגת עמוד נחיתה לפני האשף
-              <span className="block text-[12px] text-muted">
+              <span className="block text-[12px] text-muted-foreground">
                 בכיבוי, המבקרים נוחתים ישירות על בחירת המשבצת
               </span>
             </span>
@@ -165,7 +165,7 @@ export function ContentTab() {
             </Field>
           </div>
 
-          <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-muted">
+          <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
             מספרים בולטים
           </p>
           {content.hero.stats.map((_, index) => (
@@ -279,17 +279,17 @@ export function ContentTab() {
           <Input id="tosAccept" {...bind("tos.acceptLabel")} />
         </Field>
 
-        <p className="mb-2 mt-4 text-[12px] font-semibold uppercase tracking-wide text-muted">
+        <p className="mb-2 mt-4 text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
           סעיפים
         </p>
 
         {content.tos.sections.map((_, index) => (
           <div
             key={index}
-            className="mb-3 rounded-md border border-line bg-surface-2 p-4"
+            className="mb-3 rounded-xl border border-border bg-secondary/40 p-4"
           >
             <div className="mb-2 flex items-center gap-2">
-              <span className="tnum grid size-6 place-items-center rounded-full bg-surface-3 text-[11px] font-bold text-ink-2">
+              <span className="tnum grid size-6 place-items-center rounded-full bg-secondary text-[11px] font-bold text-muted-foreground">
                 {index + 1}
               </span>
               <Input
@@ -319,7 +319,7 @@ export function ContentTab() {
         ))}
 
         <Button
-          variant="subtle"
+          variant="soft"
           size="sm"
           onClick={() =>
             setContent(
@@ -337,7 +337,7 @@ export function ContentTab() {
 
       {/* --- הוכחה חברתית --- */}
       <Section title="הוכחה חברתית" className="mt-5">
-        <p className="mb-4 text-[12.5px] leading-relaxed text-muted">
+        <p className="mb-4 text-[12.5px] leading-relaxed text-muted-foreground">
           הסקשן מוצג בעמוד הנחיתה רק אחרי שיש לפחות לוגו אחד או ציטוט
           אחד למטה — כל עוד שניהם ריקים הוא נשאר מוסתר לגמרי.
         </p>
@@ -357,7 +357,7 @@ export function ContentTab() {
           </Field>
         </div>
 
-        <p className="mb-2 mt-4 text-[12px] font-semibold uppercase tracking-wide text-muted">
+        <p className="mb-2 mt-4 text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
           לוגואים / שמות עסקים
         </p>
         {content.landing.socialProof.logos.map((_, index) => (
@@ -388,7 +388,7 @@ export function ContentTab() {
           </div>
         ))}
         <Button
-          variant="subtle"
+          variant="soft"
           size="sm"
           onClick={() =>
             setContent(
@@ -403,16 +403,16 @@ export function ContentTab() {
           הוספת לוגו
         </Button>
 
-        <p className="mb-2 mt-5 text-[12px] font-semibold uppercase tracking-wide text-muted">
+        <p className="mb-2 mt-5 text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
           ציטוטים
         </p>
         {content.landing.socialProof.quotes.map((_, index) => (
           <div
             key={index}
-            className="mb-3 rounded-md border border-line bg-surface-2 p-4"
+            className="mb-3 rounded-xl border border-border bg-secondary/40 p-4"
           >
             <div className="mb-2 flex items-center gap-2">
-              <span className="tnum grid size-6 place-items-center rounded-full bg-surface-3 text-[11px] font-bold text-ink-2">
+              <span className="tnum grid size-6 place-items-center rounded-full bg-secondary text-[11px] font-bold text-muted-foreground">
                 {index + 1}
               </span>
               <div className="grid flex-1 gap-2 sm:grid-cols-2">
@@ -451,7 +451,7 @@ export function ContentTab() {
           </div>
         ))}
         <Button
-          variant="subtle"
+          variant="soft"
           size="sm"
           onClick={() =>
             setContent(
@@ -468,7 +468,7 @@ export function ContentTab() {
       </Section>
 
       {/* --- סרגל שמירה דביק --- */}
-      <div className="glass fixed inset-x-0 bottom-0 z-40 border-t border-line">
+      <div className="glass fixed inset-x-0 bottom-0 z-40 border-t border-border">
         <div className="mx-auto flex max-w-7xl items-center justify-end gap-3 px-5 py-3.5">
           <Button variant="quiet" size="sm" onClick={restore}>
             <RotateCcw className="size-3.5" />
@@ -518,10 +518,10 @@ function LogoField({
 
   return (
     <div className="mb-4">
-      <p className="mb-1.5 text-[13px] font-medium text-ink-2">לוגו</p>
+      <p className="mb-1.5 text-[13px] font-medium text-muted-foreground">לוגו</p>
 
-      <div className="flex items-center gap-4 rounded-md border border-line bg-surface-2 p-3.5">
-        <div className="grid h-14 w-24 shrink-0 place-items-center overflow-hidden rounded-md border border-line bg-surface">
+      <div className="flex items-center gap-4 rounded-xl border border-border bg-secondary/40 p-3.5">
+        <div className="grid h-14 w-24 shrink-0 place-items-center overflow-hidden rounded-xl border border-border bg-card">
           {value ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -530,7 +530,7 @@ function LogoField({
               className="max-h-12 max-w-20 object-contain"
             />
           ) : (
-            <span className="text-[11px] text-muted">אין לוגו</span>
+            <span className="text-[11px] text-muted-foreground">אין לוגו</span>
           )}
         </div>
 
@@ -538,7 +538,7 @@ function LogoField({
           <div className="flex flex-wrap gap-2">
             <Button
               size="sm"
-              variant="subtle"
+              variant="soft"
               loading={busy}
               onClick={() => inputRef.current?.click()}
             >
@@ -556,7 +556,7 @@ function LogoField({
             ) : null}
           </div>
 
-          <p className="mt-1.5 text-[11.5px] leading-snug text-muted">
+          <p className="mt-1.5 text-[11.5px] leading-snug text-muted-foreground">
             PNG · JPG · WEBP · SVG, עד 3 מ״ב. מומלץ רוחב 400px לפחות,
             רקע שקוף. כשאין לוגו מוצג שם האתר בלבד.
           </p>
@@ -589,9 +589,9 @@ function Section({
 }) {
   return (
     <section
-      className={`rounded-lg border border-line bg-surface p-5 shadow-e1 ${className ?? ""}`}
+      className={`rounded-2xl border border-border bg-card p-5 soft-shadow ${className ?? ""}`}
     >
-      <h3 className="mb-4 font-display text-xl font-semibold text-ink">
+      <h3 className="mb-4 font-heading text-xl font-extrabold text-foreground">
         {title}
       </h3>
       {children}
