@@ -88,10 +88,10 @@ export function SlotsTab() {
               event.preventDefault();
               save(slot, event.currentTarget);
             }}
-            className="rounded-lg border border-line bg-surface p-5 shadow-e1"
+            className="rounded-2xl border border-border bg-card p-5 soft-shadow"
           >
             <div className="mb-4 flex flex-wrap items-center gap-2">
-              <span className="tnum font-semibold text-ink">{slot.sku}</span>
+              <span className="tnum font-semibold text-foreground">{slot.sku}</span>
               <Badge tone="neutral">
                 {formatCm(slot.widthCm, slot.heightCm)}
               </Badge>
@@ -104,7 +104,7 @@ export function SlotsTab() {
                 <Badge tone="accent">{slot.soldCount} נמכרו</Badge>
               ) : null}
 
-              <span className="tnum mr-auto font-display text-lg font-bold text-accent">
+              <span className="tnum mr-auto font-heading text-lg font-extrabold text-primary">
                 {formatPrice(slot.priceAgorot)}
               </span>
             </div>
@@ -151,12 +151,12 @@ export function SlotsTab() {
             </Field>
 
             <div className="flex flex-wrap items-center gap-4">
-              <label className="flex cursor-pointer items-center gap-2 text-[13px] text-ink-2">
+              <label className="flex cursor-pointer items-center gap-2 text-[13px] text-muted-foreground">
                 <input
                   type="checkbox"
                   name="active"
                   defaultChecked={slot.active}
-                  className="size-4 accent-[var(--color-accent)]"
+                  className="size-4 accent-[var(--color-primary)]"
                 />
                 מוצגת בעמוד ההזמנה
               </label>
