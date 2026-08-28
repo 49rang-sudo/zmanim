@@ -31,6 +31,13 @@ const buttonVariants = cva(
         /** כדור שקוף — לכפתורי "חזרה"/ביטול בתוך אותה שפת עיצוב */
         "pill-quiet":
           "rounded-full bg-transparent text-muted-foreground hover:bg-secondary hover:text-foreground",
+        /** בורדר עדין + פינות rounded-xl — כפתור משני/סינון בשפת בייס44
+         * (EditionsSection.jsx: "h-10 px-3 rounded-xl border border-border
+         * bg-background ... hover:border-primary/60"). תוסף עבור restyle
+         * לוח הניהול בלבד (בקשת בעלת האתר: "האדמין לא תואם לאדמין שיצרתי
+         * בבייס44") — וריאנט חדש לגמרי, לא נוגע ב-primary/ghost/subtle/quiet
+         * הקיימים שממשיכים לשרת צרכנים אחרים (אשף/נחיתה/קבלות) ללא שינוי. */
+        soft: "rounded-xl border border-border bg-background text-foreground hover:border-primary/60 transition-colors",
       },
       size: {
         sm: "text-[13px] px-3.5 py-2",

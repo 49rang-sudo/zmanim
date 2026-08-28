@@ -56,22 +56,22 @@ export function AdminShell({
   const isOwner = role === "OWNER";
   const tabs = isOwner ? [...BASE_TABS, TEAM_TAB] : BASE_TABS;
   return (
-    <div className="min-h-dvh bg-canvas">
-      <header className="glass sticky top-0 z-30 border-b border-line">
+    <div className="min-h-dvh bg-background">
+      <header className="glass sticky top-0 z-30 border-b border-border">
         <div className="mx-auto flex max-w-[1200px] items-center gap-4 px-5 py-3.5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/brand/zmanim-logo.png" alt="" className="size-9 object-contain" />
 
           <div className="min-w-0">
-            <p className="font-display text-lg font-semibold leading-tight text-ink">
+            <p className="font-heading text-lg font-extrabold leading-tight text-foreground">
               ניהול הלוח
             </p>
-            <p className="truncate text-[12px] text-muted">{userName}</p>
+            <p className="truncate text-[12px] text-muted-foreground">{userName}</p>
           </div>
 
           <div className="mr-auto flex items-center gap-2">
             <Button
-              variant="subtle"
+              variant="soft"
               size="sm"
               onClick={() => window.open("/", "_blank")}
             >
@@ -91,7 +91,10 @@ export function AdminShell({
 
       <main className="mx-auto max-w-[1200px] px-5 py-8">
         <Tabs.Root defaultValue="overview" dir="rtl">
-          <Tabs.List className="mb-7 flex flex-wrap gap-2 border-b border-line pb-3">
+          {/* מסלול-כדור + טאב פעיל "צף" (bg-card + shadow-sm) — אותה תבנית
+              בדיוק כמו zmanim2-base44/src/pages/AdminHome.jsx TabsList/
+              TabsTrigger, במקום קו תחתון + הדגשת accent-soft. */}
+          <Tabs.List className="mb-7 flex h-auto flex-wrap gap-1 rounded-2xl bg-secondary/60 p-1.5">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               return (
@@ -99,10 +102,10 @@ export function AdminShell({
                   key={tab.value}
                   value={tab.value}
                   className={cn(
-                    "inline-flex items-center gap-2 rounded-md px-4 py-2.5 text-sm font-semibold",
-                    "text-ink-2 transition-colors duration-200 ease-smooth",
-                    "hover:bg-surface-3",
-                    "data-[state=active]:bg-accent-soft data-[state=active]:text-accent-strong",
+                    "inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold",
+                    "text-muted-foreground transition-colors duration-200 ease-smooth",
+                    "hover:bg-card/60",
+                    "data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm",
                   )}
                 >
                   <Icon className="size-4" />
