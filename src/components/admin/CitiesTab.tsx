@@ -105,7 +105,7 @@ export function CitiesTab() {
   return (
     <div>
       <div className="mb-5 flex items-center justify-between gap-3">
-        <p className="text-sm text-ink-2">
+        <p className="text-sm text-muted-foreground">
           לכל עיר מהדורת דפוס נפרדת. הקיבולת קובעת כמה משבצות נמכרות בה.
         </p>
         <Button size="sm" onClick={() => setAdding(!adding)}>
@@ -117,7 +117,7 @@ export function CitiesTab() {
       {adding ? (
         <form
           onSubmit={create}
-          className="mb-6 rounded-lg border border-accent bg-accent-soft p-5"
+          className="mb-6 rounded-2xl border border-primary/30 bg-secondary/40 p-5"
         >
           <div className="grid gap-x-4 sm:grid-cols-4">
             <Field label="שם העיר *" htmlFor="name">
@@ -175,15 +175,15 @@ export function CitiesTab() {
             <div
               key={city.id}
               className={cn(
-                "rounded-lg border bg-surface p-5 shadow-e1",
-                city.visible ? "border-line" : "border-line-2 opacity-70",
+                "rounded-2xl border bg-card p-5 soft-shadow",
+                city.visible ? "border-border" : "border-border opacity-70",
               )}
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-2">
-                    <MapPin className="size-4 text-accent" />
-                    <h3 className="font-display text-lg font-semibold text-ink">
+                    <MapPin className="size-4 text-primary" />
+                    <h3 className="font-heading text-lg font-extrabold text-foreground">
                       {city.name}
                     </h3>
                     {!city.visible ? (
@@ -191,7 +191,7 @@ export function CitiesTab() {
                     ) : null}
                   </div>
                   {city.region ? (
-                    <p className="mt-0.5 text-[12.5px] text-muted">
+                    <p className="mt-0.5 text-[12.5px] text-muted-foreground">
                       {city.region}
                     </p>
                   ) : null}
@@ -209,7 +209,7 @@ export function CitiesTab() {
 
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 <label className="text-[12.5px]">
-                  <span className="mb-1 block text-muted">
+                  <span className="mb-1 block text-muted-foreground">
                     קיבולת ברירת מחדל למהדורות חדשות
                   </span>
                   <Input
@@ -228,7 +228,7 @@ export function CitiesTab() {
                 </label>
 
                 <label className="text-[12.5px]">
-                  <span className="mb-1 block text-muted">כמות בהפצה</span>
+                  <span className="mb-1 block text-muted-foreground">כמות בהפצה</span>
                   <Input
                     type="number"
                     min={0}
@@ -246,7 +246,7 @@ export function CitiesTab() {
                 </label>
               </div>
 
-              <div className="mt-4 space-y-2.5 border-t border-line pt-4">
+              <div className="mt-4 space-y-2.5 border-t border-border pt-4">
                 <Toggle
                   label="מוצגת בבורר הערים"
                   checked={city.visible}
@@ -279,19 +279,19 @@ function Toggle({
 }) {
   return (
     <label className="flex cursor-pointer items-center justify-between gap-3">
-      <span className="text-[13px] text-ink-2">{label}</span>
+      <span className="text-[13px] text-muted-foreground">{label}</span>
       <SwitchPrimitive.Root
         checked={checked}
         onCheckedChange={onChange}
         className={cn(
-          "relative h-6 w-11 shrink-0 rounded-full border border-line",
+          "relative h-6 w-11 shrink-0 rounded-full border border-border",
           "transition-colors duration-200 ease-smooth",
-          "data-[state=checked]:bg-accent data-[state=unchecked]:bg-surface-3",
+          "data-[state=checked]:bg-primary data-[state=unchecked]:bg-secondary",
         )}
       >
         <SwitchPrimitive.Thumb
           className={cn(
-            "block size-[18px] rounded-full bg-surface shadow-e1",
+            "block size-[18px] rounded-full bg-card soft-shadow",
             "transition-transform duration-200 ease-smooth",
             "translate-x-[-2px] data-[state=checked]:translate-x-[-22px]",
           )}

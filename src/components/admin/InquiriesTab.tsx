@@ -125,8 +125,8 @@ export function InquiriesTab() {
                   "rounded-full px-3.5 py-1.5 text-[13px] font-semibold",
                   "transition-colors duration-200 ease-smooth",
                   filter === option.value
-                    ? "bg-accent text-accent-ink"
-                    : "bg-surface-3 text-ink-2 hover:bg-surface-2",
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-secondary text-secondary-foreground hover:bg-secondary/70",
                 )}
               >
                 {option.label}
@@ -148,14 +148,14 @@ export function InquiriesTab() {
           {visible.map((inquiry) => (
             <article
               key={inquiry.id}
-              className="rounded-lg border border-line bg-surface p-4 shadow-e1"
+              className="rounded-2xl border border-border bg-card p-4 soft-shadow"
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="font-display text-[15px] font-bold text-ink">
+                  <p className="font-heading text-[15px] font-bold text-foreground">
                     {inquiry.businessName || inquiry.category}
                   </p>
-                  <p className="mt-0.5 text-[13px] text-ink-2">
+                  <p className="mt-0.5 text-[13px] text-muted-foreground">
                     {inquiry.category}
                     {inquiry.location ? ` · ${inquiry.location}` : ""}
                   </p>
@@ -169,13 +169,13 @@ export function InquiriesTab() {
                 </div>
               </div>
 
-              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-ink-2">
+              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-muted-foreground">
                 {inquiry.contactName ? <span>{inquiry.contactName}</span> : null}
                 {inquiry.phone ? (
                   <a
                     dir="ltr"
                     href={`tel:${inquiry.phone}`}
-                    className="text-accent hover:text-accent-strong"
+                    className="text-primary hover:text-accent-strong"
                   >
                     {inquiry.phone}
                   </a>
@@ -184,21 +184,21 @@ export function InquiriesTab() {
                   <a
                     dir="ltr"
                     href={`mailto:${inquiry.email}`}
-                    className="text-accent hover:text-accent-strong"
+                    className="text-primary hover:text-accent-strong"
                   >
                     {inquiry.email}
                   </a>
                 ) : null}
-                <span className="text-muted">
+                <span className="text-muted-foreground">
                   {formatDateTime(inquiry.createdAt)}
                 </span>
               </div>
 
               {inquiry.monthGuess || inquiry.note ? (
-                <div className="mt-3 grid gap-1.5 rounded-md bg-surface-2 p-3 text-[13px] leading-relaxed text-ink-2">
+                <div className="mt-3 grid gap-1.5 rounded-xl bg-secondary/40 p-3 text-[13px] leading-relaxed text-muted-foreground">
                   {inquiry.monthGuess ? (
                     <p>
-                      <span className="font-semibold text-ink">
+                      <span className="font-semibold text-foreground">
                         חודש/קונספט שחשבו עליו:{" "}
                       </span>
                       {inquiry.monthGuess}
@@ -206,14 +206,14 @@ export function InquiriesTab() {
                   ) : null}
                   {inquiry.note ? (
                     <p className="flex gap-2">
-                      <MessageSquare className="mt-0.5 size-3.5 shrink-0 text-muted" />
+                      <MessageSquare className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
                       {inquiry.note}
                     </p>
                   ) : null}
                 </div>
               ) : null}
 
-              <div className="mt-3 flex flex-wrap gap-1.5 border-t border-line pt-3">
+              <div className="mt-3 flex flex-wrap gap-1.5 border-t border-border pt-3">
                 {STATUS_ORDER.map((value) => (
                   <button
                     key={value}
@@ -221,11 +221,11 @@ export function InquiriesTab() {
                     disabled={inquiry.status === value}
                     onClick={() => changeStatus(inquiry, value)}
                     className={cn(
-                      "rounded-md px-3 py-1.5 text-[12.5px] font-semibold",
+                      "rounded-lg px-3 py-1.5 text-[12.5px] font-semibold",
                       "transition-colors duration-200 ease-smooth",
                       inquiry.status === value
-                        ? "cursor-default bg-accent-soft text-accent-strong"
-                        : "bg-surface-3 text-ink-2 hover:bg-surface-2",
+                        ? "cursor-default bg-primary/15 text-primary"
+                        : "bg-secondary text-secondary-foreground hover:bg-secondary/70",
                     )}
                   >
                     {STATUS[value].label}
