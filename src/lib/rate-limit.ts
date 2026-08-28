@@ -46,8 +46,20 @@ export function sweepRateLimits(): void {
   }
 }
 
+/**
+ * X-Real-IP קודם, לא X-Forwarded-For: ה-nginx שלנו (nginx/luach.conf)
+ * קובע את X-Real-IP בעצמו מ-$remote_addr (השכבה הרשתית — לקוח לא יכול
+ * לזייף), אבל את X-Forwarded-For הוא רק *מוסיף* אליו
+ * ($proxy_add_x_forwarded_for) — לקוח ששולח כותרת XFF מזויפת משלו
+ * גורם ל-IP האמיתי שלו לנחות שני בשרשרת, בעוד שהערך הראשון (המזויף)
+ * הוא זה שנלקח כאן. זה עקף בפועל את כל הגבלות הקצב באתר (יצירת הזמנה,
+ * העלאת קובץ, פניות) — תוקן אחרי ביקורת אבטחה שאישרה זאת מול הקוד
+ * וקונפיגורצית ה-nginx בפועל.
+ */
 export function clientIp(headers: Headers): string {
+  const real = headers.get("x-real-ip");
+  if (real) return real.trim();
   const forwarded = headers.get("x-forwarded-for");
   if (forwarded) return forwarded.split(",")[0].trim();
-  return headers.get("x-real-ip") ?? "unknown";
+  return "unknown";
 }
