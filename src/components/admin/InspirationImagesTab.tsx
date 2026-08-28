@@ -26,12 +26,14 @@ import { HOTSPOT_ACCENT, HOTSPOT_BROWN, HOTSPOT_CREAM } from "@/lib/hotspot-colo
    "תמיד יהיה אותן תמונות עם אפשרות להזיז את הריבועים... ולערוך את
    הטקסט שבתוכן". זו התוספת האמיתית היחידה מעבר לפורט המילולי.
 
-   טוקנים: כרום האדמין (canvas/surface/ink) בכל מה שסביב — לא טוקני
-   בייס44 (background/foreground/card), שמיועדים במפורש לדף השיווקי
-   בלבד (ראו ההערה ב-globals.css). ריבועי ה-Hotspot עצמם משתמשים
-   בקבועי CREAM/BROWN/ACCENT הליטרליים (src/lib/hotspot-colors.ts) —
-   חריגה מכוונת וצרה, כדי שמה שהמנהלת עורכת ייראה זהה למה שהמבקרים
-   רואים ב-CalendarMockup.tsx.
+   טוקנים: כרום האדמין עבר ל-restyle כמו כל שאר האדמין הלילה (בקשת
+   בעלת האתר: "האדמין לא תואם לאדמין שיצרתי בבייס44") — טוקני בייס44
+   (bg-card/bg-background/text-foreground/border-border) בכל מה
+   שסביב, במקום canvas/surface/ink הישנים. ריבועי ה-Hotspot עצמם
+   ממשיכים להשתמש בקבועי CREAM/BROWN/ACCENT הליטרליים
+   (src/lib/hotspot-colors.ts) — חריגה מכוונת וצרה שלא נוגעים בה,
+   כדי שמה שהמנהלת עורכת ייראה זהה למה שהמבקרים רואים ב-
+   CalendarMockup.tsx.
    --------------------------------------------------------------- */
 
 type AdminHotspotSlot = {
@@ -136,10 +138,10 @@ export function InspirationImagesTab() {
   return (
     <div>
       <div className="mb-5">
-        <h2 className="font-display text-xl font-semibold text-ink">
+        <h2 className="font-heading text-xl font-extrabold text-foreground">
           תמונות והשראה
         </h2>
-        <p className="mt-1 text-sm text-ink-2">
+        <p className="mt-1 text-sm text-muted-foreground">
           ספרייה קבועה של תמונות קונספט לפי חודש — לא נוצרות תמונות חדשות
           לכל מהדורה. לוחצים על תמונה כדי להזיז את ריבועי הפרסום עליה
           ולערוך את הקטגוריה שבתוכם. מקומות שכבר נמכרו/שוריינו מוצגים
@@ -148,7 +150,7 @@ export function InspirationImagesTab() {
       </div>
 
       {images.length === 0 ? (
-        <p className="rounded-lg border border-line bg-surface-2 p-6 text-center text-sm text-muted">
+        <p className="rounded-2xl border border-border bg-secondary/40 p-6 text-center text-sm text-muted-foreground">
           אין עדיין אף תמונת השראה.
         </p>
       ) : (
@@ -158,13 +160,13 @@ export function InspirationImagesTab() {
               key={image.id}
               onClick={() => setSelectedId(image.id)}
               className={cn(
-                "flex flex-col overflow-hidden rounded-lg border bg-surface text-right shadow-e1",
+                "flex flex-col overflow-hidden rounded-2xl border bg-card text-right soft-shadow",
                 "transition-[transform,box-shadow,border-color] duration-200 ease-smooth",
-                "hover:-translate-y-0.5 hover:shadow-e3 hover:border-accent",
-                image.active ? "border-line" : "border-line-2 opacity-60",
+                "hover:-translate-y-0.5 hover:border-primary",
+                image.active ? "border-border" : "border-border opacity-60",
               )}
             >
-              <div className="relative aspect-[4/3] w-full bg-surface-3">
+              <div className="relative aspect-[4/3] w-full bg-secondary">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={image.imageUrl}
@@ -177,8 +179,8 @@ export function InspirationImagesTab() {
                   <Badge tone="neutral">{monthLabel(image.gregorianMonth)}</Badge>
                   {!image.active ? <Badge tone="warn">מוסתרת</Badge> : null}
                 </div>
-                <div className="mt-1.5 font-semibold text-ink">{image.label}</div>
-                <div className="mt-0.5 text-[12.5px] text-muted">
+                <div className="mt-1.5 font-semibold text-foreground">{image.label}</div>
+                <div className="mt-0.5 text-[12.5px] text-muted-foreground">
                   {image.hotspots.length} חלונות פרסום
                 </div>
               </div>
@@ -187,8 +189,8 @@ export function InspirationImagesTab() {
         </div>
       )}
 
-      <div className="mt-8 border-t border-line pt-6">
-        <Button variant="subtle" size="sm" onClick={() => setAddingMonth((v) => !v)}>
+      <div className="mt-8 border-t border-border pt-6">
+        <Button variant="soft" size="sm" onClick={() => setAddingMonth((v) => !v)}>
           <Plus className="size-4" />
           איתחול תמונה לחודש שעדיין חסר לגמרי בספרייה
         </Button>
@@ -248,7 +250,7 @@ function NewMonthImageForm({ onCreated }: { onCreated: () => Promise<void> }) {
   return (
     <form
       onSubmit={submit}
-      className="mt-4 grid gap-x-4 rounded-lg border border-accent bg-accent-soft p-5 sm:grid-cols-3"
+      className="mt-4 grid gap-x-4 rounded-2xl border border-primary/30 bg-secondary/40 p-5 sm:grid-cols-3"
     >
       <Field label="שם פנימי" htmlFor="new-image-label" hint='למשל "קיר מטבח"'>
         <Input
@@ -262,7 +264,7 @@ function NewMonthImageForm({ onCreated }: { onCreated: () => Promise<void> }) {
         <select
           value={month}
           onChange={(e) => setMonth(e.target.value)}
-          className="w-full rounded-md border border-line bg-surface px-3.5 py-2.5 text-sm text-ink"
+          className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm text-foreground"
         >
           {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
             <option key={m} value={m}>
@@ -277,7 +279,7 @@ function NewMonthImageForm({ onCreated }: { onCreated: () => Promise<void> }) {
           type="file"
           accept="image/png,image/jpeg,image/webp"
           onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-          className="w-full text-[13px] text-ink-2"
+          className="w-full text-[13px] text-muted-foreground"
         />
       </Field>
       <div className="sm:col-span-3">
@@ -370,7 +372,7 @@ function ImageEditor({
     <div>
       <button
         onClick={onBack}
-        className="mb-4 inline-flex items-center gap-1 text-xs text-muted hover:text-ink"
+        className="mb-4 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
       >
         <ChevronRight className="size-3.5" />
         חזרה לכל התמונות
@@ -379,19 +381,19 @@ function ImageEditor({
       <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <ImageIcon className="size-4 text-accent" />
-            <h2 className="font-display text-xl font-semibold text-ink">
+            <ImageIcon className="size-4 text-primary" />
+            <h2 className="font-heading text-xl font-extrabold text-foreground">
               {image.label}
             </h2>
             <Badge tone="neutral">{monthLabel(image.gregorianMonth)}</Badge>
           </div>
-          <p className="mt-1 text-[12.5px] text-muted">
+          <p className="mt-1 text-[12.5px] text-muted-foreground">
             {image.hotspots.length} חלונות פרסום · לוחצים על חלון פנוי כדי לערוך
             אותו, לוחצים שוב כדי לבטל בחירה
           </p>
         </div>
 
-        <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-line bg-surface px-3.5 py-2 text-[13px] font-semibold text-ink-2 hover:border-line-2">
+        <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-border bg-card px-3.5 py-2 text-[13px] font-semibold text-muted-foreground hover:border-primary/60">
           {swappingImage ? (
             <Loader2 className="size-3.5 animate-spin" />
           ) : (
@@ -414,7 +416,7 @@ function ImageEditor({
 
       {/* ============ התמונה המוגדלת עם כל ריבועי הפרסום ============ */}
       <div
-        className="relative w-full max-w-3xl overflow-hidden rounded-lg border border-line"
+        className="relative w-full max-w-3xl overflow-hidden rounded-2xl border border-border"
         style={{ aspectRatio: `${image.aspectRatio}` }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -424,6 +426,9 @@ function ImageEditor({
           className="absolute inset-0 size-full object-cover"
         />
 
+        {/* ריבועי ה-Hotspot עצמם: חריגה מכוונת שלא עוברת restyle — נשארים
+            על קבועי CREAM/BROWN/ACCENT הליטרליים (hotspot-colors.ts) כדי
+            שיישארו זהים למה שהמבקרים רואים ב-CalendarMockup.tsx. */}
         {image.hotspots.map((h) => {
           const locked = !!h.slot?.locked;
           const editable = !locked;
@@ -493,16 +498,16 @@ function ImageEditor({
       </div>
 
       <div className="mt-3">
-        <Button variant="subtle" size="sm" onClick={addHotspot} loading={addingHotspot}>
+        <Button variant="soft" size="sm" onClick={addHotspot} loading={addingHotspot}>
           <Plus className="size-4" />
           הוספת חלון פרסום חדש
         </Button>
       </div>
 
       {/* ============ פאנל עריכה ============ */}
-      <div className="mt-5 border-t border-line pt-5">
+      <div className="mt-5 border-t border-border pt-5">
         {!selectedHotspot ? (
-          <p className="text-sm text-muted">
+          <p className="text-sm text-muted-foreground">
             לחצו על חלון פנוי בתמונה כדי לערוך אותו כאן.
           </p>
         ) : (
@@ -557,16 +562,16 @@ function HotspotEditPanel({
   };
 
   return (
-    <div className="max-w-xl rounded-lg border border-line bg-surface p-5">
+    <div className="max-w-xl rounded-2xl border border-border bg-card p-5">
       <div className="mb-3 flex items-center justify-between gap-2">
-        <span className="text-sm font-bold text-ink">עריכת חלון פרסום</span>
-        <button onClick={onDeselect} className="text-xs text-muted hover:text-ink">
+        <span className="text-sm font-bold text-foreground">עריכת חלון פרסום</span>
+        <button onClick={onDeselect} className="text-xs text-muted-foreground hover:text-foreground">
           סגירה
         </button>
       </div>
 
       {hotspot.slot ? (
-        <p className="mb-4 text-[12.5px] text-muted">
+        <p className="mb-4 text-[12.5px] text-muted-foreground">
           מק״ט {hotspot.slot.sku} · המחיר הנגבה בפועל ({formatPrice(hotspot.slot.priceAgorot)})
           נערך בטאב &quot;משבצות&quot;.
         </p>
@@ -585,7 +590,7 @@ function HotspotEditPanel({
             id="hs-tier"
             value={tier}
             onChange={(e) => setTier(e.target.value as AdminHotspot["tier"])}
-            className="w-full rounded-md border border-line bg-surface px-3.5 py-2.5 text-sm text-ink"
+            className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm text-foreground"
           >
             <option value="ANCHOR">עוגן</option>
             <option value="COMPLEMENTARY">משלים</option>
@@ -640,12 +645,12 @@ function HotspotEditPanel({
         </Field>
       </div>
 
-      <label className="mb-4 flex cursor-pointer items-center gap-2 text-[13px] text-ink-2">
+      <label className="mb-4 flex cursor-pointer items-center gap-2 text-[13px] text-muted-foreground">
         <input
           type="checkbox"
           checked={active}
           onChange={(e) => setActive(e.target.checked)}
-          className="size-4 accent-[var(--color-accent)]"
+          className="size-4 accent-[var(--color-primary)]"
         />
         חלון פעיל (מוצג ללקוחות)
       </label>
