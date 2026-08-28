@@ -120,8 +120,8 @@ export function OrdersTab() {
                 "rounded-full px-3.5 py-1.5 text-[13px] font-semibold",
                 "transition-colors duration-200 ease-smooth",
                 status === filter.value
-                  ? "bg-accent text-accent-ink"
-                  : "bg-surface text-ink-2 border border-line hover:border-accent",
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-card text-muted-foreground border border-border hover:border-primary",
               )}
             >
               {filter.label}
@@ -135,7 +135,7 @@ export function OrdersTab() {
         </div>
 
         <div className="relative mr-auto w-full sm:w-64">
-          <Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
+          <Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -159,9 +159,9 @@ export function OrdersTab() {
           body="כשיגיעו הזמנות הן יופיעו כאן, עם כל הפרטים והקבצים."
         />
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-line bg-surface shadow-e1">
+        <div className="overflow-x-auto rounded-2xl border border-border bg-card soft-shadow">
           <table className="w-full min-w-[760px] text-right text-sm">
-            <thead className="border-b border-line bg-surface-2 text-[12px] uppercase tracking-wide text-muted">
+            <thead className="border-b border-border bg-secondary/60 text-[12px] uppercase tracking-wide text-muted-foreground">
               <tr>
                 <th className="px-4 py-3 font-semibold">הזמנה</th>
                 <th className="px-4 py-3 font-semibold">מפרסם</th>
@@ -173,20 +173,20 @@ export function OrdersTab() {
               </tr>
             </thead>
 
-            <tbody className="divide-y divide-line">
+            <tbody className="divide-y divide-border">
               {orders.map((order) => (
                 <React.Fragment key={order.id}>
                   <tr
                     onClick={() =>
                       setExpanded(expanded === order.id ? null : order.id)
                     }
-                    className="cursor-pointer transition-colors duration-150 hover:bg-surface-2"
+                    className="cursor-pointer transition-colors duration-150 hover:bg-secondary/30"
                   >
                     <td className="px-4 py-3">
-                      <div className="tnum font-semibold text-ink">
+                      <div className="tnum font-semibold text-foreground">
                         {order.reference}
                       </div>
-                      <div className="text-[11.5px] text-muted">
+                      <div className="text-[11.5px] text-muted-foreground">
                         {formatDateTime(order.createdAt)}
                       </div>
                       {order.packageTier ? (
@@ -199,26 +199,26 @@ export function OrdersTab() {
                     </td>
 
                     <td className="px-4 py-3">
-                      <div className="font-medium text-ink">
+                      <div className="font-medium text-foreground">
                         {order.contactName}
                       </div>
                       {order.businessName ? (
-                        <div className="text-[11.5px] text-muted">
+                        <div className="text-[11.5px] text-muted-foreground">
                           {order.businessName}
                         </div>
                       ) : null}
                     </td>
 
                     <td className="px-4 py-3">
-                      <div className="text-ink-2">{order.slot.name}</div>
-                      <div className="tnum text-[11.5px] text-muted">
+                      <div className="text-muted-foreground">{order.slot.name}</div>
+                      <div className="tnum text-[11.5px] text-muted-foreground">
                         {order.sku}
                       </div>
                     </td>
 
-                    <td className="px-4 py-3 text-ink-2">{order.city.name}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{order.city.name}</td>
 
-                    <td className="tnum px-4 py-3 font-semibold text-ink">
+                    <td className="tnum px-4 py-3 font-semibold text-foreground">
                       {formatPrice(order.priceAgorot)}
                     </td>
 
@@ -233,19 +233,19 @@ export function OrdersTab() {
                         <a
                           href={`/api/admin/orders/${order.id}/file`}
                           onClick={(e) => e.stopPropagation()}
-                          className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-accent hover:underline"
+                          className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-primary hover:underline"
                         >
                           <Download className="size-3.5" />
                           הורדה
                         </a>
                       ) : (
-                        <span className="text-[12.5px] text-muted">—</span>
+                        <span className="text-[12.5px] text-muted-foreground">—</span>
                       )}
                     </td>
                   </tr>
 
                   {expanded === order.id ? (
-                    <tr className="bg-surface-2">
+                    <tr className="bg-secondary/20">
                       <td colSpan={7} className="px-4 py-5">
                         <div className="grid gap-5 md:grid-cols-3">
                           <DetailBlock title="פרטי קשר">
@@ -263,7 +263,7 @@ export function OrdersTab() {
                                 <p className="truncate" title={order.fileName}>
                                   {order.fileName}
                                 </p>
-                                <p className="tnum text-muted">
+                                <p className="tnum text-muted-foreground">
                                   {order.fileSize
                                     ? formatFileSize(order.fileSize)
                                     : ""}
@@ -273,7 +273,7 @@ export function OrdersTab() {
                                 </p>
                               </>
                             ) : (
-                              <p className="text-muted">טרם הועלה קובץ</p>
+                              <p className="text-muted-foreground">טרם הועלה קובץ</p>
                             )}
                           </DetailBlock>
 
@@ -286,7 +286,7 @@ export function OrdersTab() {
                                   key={next}
                                   size="sm"
                                   variant={
-                                    order.status === next ? "primary" : "subtle"
+                                    order.status === next ? "primary" : "soft"
                                   }
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -349,10 +349,10 @@ function DetailBlock({
 }) {
   return (
     <div className={className}>
-      <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
+      <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
         {title}
       </p>
-      <div className="space-y-0.5 text-[13.5px] text-ink-2">{children}</div>
+      <div className="space-y-0.5 text-[13.5px] text-muted-foreground">{children}</div>
     </div>
   );
 }

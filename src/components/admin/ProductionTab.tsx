@@ -91,7 +91,7 @@ export function ProductionTab() {
     <div>
       {/* --- בורר עיר --- */}
       <div className="mb-5">
-        <p className="mb-2 text-[12.5px] font-medium text-muted">
+        <p className="mb-2 text-[12.5px] font-medium text-muted-foreground">
           בחרו עיר כדי לראות את מה שממתין לטיפול בה
         </p>
         <div className="flex flex-wrap gap-2">
@@ -115,7 +115,7 @@ export function ProductionTab() {
 
       {/* --- ממתין לטיפול --- */}
       <section className="mb-8">
-        <h3 className="mb-3 flex items-center gap-2 font-display text-xl text-ink">
+        <h3 className="mb-3 flex items-center gap-2 font-heading text-xl font-extrabold text-foreground">
           ממתין לטיפול
           {data.totals.waiting > 0 ? (
             <Badge tone="warn">{data.totals.waiting}</Badge>
@@ -147,15 +147,15 @@ export function ProductionTab() {
         <button
           type="button"
           onClick={() => setShowHandled(!showHandled)}
-          className="flex w-full items-center justify-between rounded-lg border border-line bg-surface-2 px-5 py-3.5 text-right transition-colors duration-200 hover:bg-surface-3"
+          className="flex w-full items-center justify-between rounded-2xl border border-border bg-secondary px-5 py-3.5 text-right transition-colors duration-200 hover:bg-secondary/70"
         >
-          <span className="flex items-center gap-2 font-display text-lg text-ink-2">
+          <span className="flex items-center gap-2 font-heading text-lg font-extrabold text-muted-foreground">
             טופל
             <Badge tone="neutral">{data.totals.handled}</Badge>
           </span>
           <ChevronDown
             className={cn(
-              "size-4 text-muted transition-transform duration-200",
+              "size-4 text-muted-foreground transition-transform duration-200",
               showHandled && "rotate-180",
             )}
           />
@@ -163,7 +163,7 @@ export function ProductionTab() {
 
         {showHandled ? (
           data.handled.length === 0 ? (
-            <p className="py-6 text-center text-[13px] text-muted">
+            <p className="py-6 text-center text-[13px] text-muted-foreground">
               עדיין לא טופלה אף עבודה בבחירה הזו.
             </p>
           ) : (
@@ -171,20 +171,20 @@ export function ProductionTab() {
               {data.handled.map((job) => (
                 <li
                   key={job.id}
-                  className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-md border border-line bg-surface px-4 py-3 text-[13px]"
+                  className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl border border-border bg-card px-4 py-3 text-[13px]"
                 >
-                  <span className="tnum font-semibold text-ink">
+                  <span className="tnum font-semibold text-foreground">
                     {job.reference}
                   </span>
-                  <span className="text-ink-2">{job.city.name}</span>
-                  <span className="text-muted">{job.slot.name}</span>
-                  <span className="truncate text-muted" title={job.fileName ?? ""}>
+                  <span className="text-muted-foreground">{job.city.name}</span>
+                  <span className="text-muted-foreground">{job.slot.name}</span>
+                  <span className="truncate text-muted-foreground" title={job.fileName ?? ""}>
                     {job.fileName}
                   </span>
 
                   <span className="mr-auto flex items-center gap-3">
                     {job.artworkDownloadedAt ? (
-                      <span className="text-[11.5px] text-muted">
+                      <span className="text-[11.5px] text-muted-foreground">
                         {formatDateTime(job.artworkDownloadedAt)}
                         {job.artworkDownloadedBy
                           ? ` · ${job.artworkDownloadedBy}`
@@ -194,7 +194,7 @@ export function ProductionTab() {
 
                     <a
                       href={`/api/admin/orders/${job.id}/file`}
-                      className="text-accent hover:underline"
+                      className="text-primary hover:underline"
                     >
                       הורדה חוזרת
                     </a>
@@ -240,8 +240,8 @@ function CityChip({
         "inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-[13px] font-semibold",
         "transition-colors duration-200 ease-smooth",
         active
-          ? "bg-accent text-accent-ink"
-          : "border border-line bg-surface text-ink-2 hover:border-accent",
+          ? "bg-primary text-primary-foreground"
+          : "border border-border bg-card text-muted-foreground hover:border-primary",
       )}
     >
       {label}
@@ -269,21 +269,21 @@ function JobCard({
   onReload: () => void;
 }) {
   return (
-    <li className="rounded-lg border border-line bg-surface p-5 shadow-e1">
+    <li className="rounded-2xl border border-border bg-card p-5 soft-shadow">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="tnum font-semibold text-ink">{job.reference}</span>
+            <span className="tnum font-semibold text-foreground">{job.reference}</span>
             <Badge tone="accent">{job.city.name}</Badge>
             <Badge tone="neutral">
               {job.slot.name} · {formatCm(job.slot.widthCm, job.slot.heightCm)}
             </Badge>
-            <span className="tnum text-[11.5px] text-muted">{job.sku}</span>
+            <span className="tnum text-[11.5px] text-muted-foreground">{job.sku}</span>
           </div>
 
-          <p className="mt-1.5 text-[13.5px] text-ink-2">
+          <p className="mt-1.5 text-[13.5px] text-muted-foreground">
             {job.businessName ?? job.contactName}
-            <span dir="ltr" className="mr-2 text-muted">
+            <span dir="ltr" className="mr-2 text-muted-foreground">
               {job.phone}
             </span>
           </p>
@@ -294,19 +294,19 @@ function JobCard({
           <a
             href={`/api/admin/orders/${job.id}/file`}
             onClick={() => setTimeout(onReload, 1500)}
-            className="inline-flex items-center gap-2 rounded-md bg-accent px-5 py-2.5 text-sm font-semibold text-accent-ink shadow-accent transition-[transform,background-color] duration-200 ease-smooth hover:-translate-y-0.5 hover:bg-accent-strong"
+            className="hover-lift inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground shadow-sm transition-colors duration-200 ease-smooth"
           >
             <Download className="size-4" />
             הורדה
           </a>
 
-          <Button size="sm" variant="subtle" onClick={onDone}>
+          <Button size="sm" variant="soft" onClick={onDone}>
             סימון כטופל
           </Button>
         </div>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line pt-3 text-[12px] text-muted">
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border pt-3 text-[12px] text-muted-foreground">
         <span className="inline-flex items-center gap-1.5">
           <Inbox className="size-3.5" />
           <span className="truncate" title={job.fileName ?? ""}>
@@ -318,7 +318,7 @@ function JobCard({
       </div>
 
       {job.notes ? (
-        <p className="mt-3 rounded-md bg-surface-2 p-3 text-[12.5px] leading-relaxed text-ink-2">
+        <p className="mt-3 rounded-xl bg-secondary p-3 text-[12.5px] leading-relaxed text-muted-foreground">
           <span className="font-semibold">הערת הלקוח: </span>
           {job.notes}
         </p>
